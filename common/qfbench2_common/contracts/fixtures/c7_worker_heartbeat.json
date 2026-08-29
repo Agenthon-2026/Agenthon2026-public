@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0.0",
+  "queue_id": "agenthon2026-v2",
+  "worker_id": "worker-synth-01",
+  "worker_image_digest": "sha256:38c639b37f57a7c39042c47158faeba6ecc965d2651ebcbc6181d3cbbcd3323f",
+  "c7_instance_digest": "sha256:e3080f7da1218221a4cb90fc516d66602086f622ee110bc91b5443d905995690",
+  "preflight": {
+    "runtime": "runsc",
+    "gpu_device_pinned": true,
+    "scratch_root_present": true,
+    "egress_mode": "deny_all",
+    "docker_server_version": "27.3.1"
+  },
+  "observed_at": "2026-08-21T08:55:00Z",
+  "signature": {
+    "alg": "Ed25519",
+    "key_id": "dev-organizer-2026",
+    "payload_digest": "sha256:0112309cc37d33dcd3620c11319840db8bb9f7f0af50cd2588b0ab274b81a7ec",
+    "signed_at": "2026-08-21T09:00:00Z",
+    "signature": "AEkrhHaL2WTO62N/cUEqZxnapSCOVyp2KQ9MN5UzuX+S4d8/565jntUDQCGaAzo6gUFRe+x5EymsPSOYkXdQCg=="
+  }
+}

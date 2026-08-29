@@ -1,0 +1,339 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agenthon.net/qfbench2/schemas/c8_release_evidence.schema.json",
+  "title": "C8 release evidence manifest",
+  "description": "Structural validation only. Cross-field invariants -- digest self-consistency, W == the worst end of the domain, roster digest over the ordered handle array, provenance/value agreement -- are enforced by qfbench2_common.contracts, which is the authority. Strict parsing is normative: every boolean is a JSON boolean and any string in a boolean position is a hard failure.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "covers",
+    "hub_source_sha",
+    "bundle_digests",
+    "distribution_digest",
+    "ci",
+    "dataset_firewall",
+    "phase_visibility",
+    "deployed_site",
+    "policy_documents",
+    "fact_matrix",
+    "backend_security_review",
+    "sign_off",
+    "signature"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.1.0"
+    },
+    "covers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "competition_ids",
+        "artifact_digests"
+      ],
+      "properties": {
+        "competition_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "agenthon2026-analysis",
+              "agenthon2026-coding",
+              "agenthon2026-forecasting",
+              "agenthon2026-simulation"
+            ]
+          },
+          "description": "Ratified in C8 1.1.0: one canonical id per competition, phase carried by the phase and never spelled into the id."
+        },
+        "artifact_digests": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "hub_source_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "bundle_digests": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      }
+    },
+    "distribution_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "The built wheel's sha256. NEVER a version string: importlib.metadata resolves the distribution, not the imported module, so a vendored fork can spoof one."
+    },
+    "ci": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "skipped_required_jobs",
+        "evaluated_on"
+      ],
+      "properties": {
+        "skipped_required_jobs": {
+          "const": 0
+        },
+        "evaluated_on": {
+          "const": "step",
+          "description": "STEP conclusions, not job conclusions: a green job can contain skipped steps."
+        }
+      }
+    },
+    "dataset_firewall": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "boolean"
+      },
+      "description": "Per UNIT FAMILY, not per repository."
+    },
+    "phase_visibility": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Per scored-or-unscored phase, the OBSERVED values of the platform's hide_prediction_output and hide_output flags. Both are BooleanField(default=False), and with both false the platform serves the submitter a signed download URL for the ingestion output root -- which under the frozen topology holds _control/ and one directory per unit named by its roster handle. A scored row with both false is refused by qfbench2_common.contracts.release, which is the authority; the ruling is stricter still (hide_prediction_output MUST be true on a scored phase) and blocks publication.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "competition_id",
+          "phase_index",
+          "phase_name",
+          "scored",
+          "hide_prediction_output",
+          "hide_output"
+        ],
+        "properties": {
+          "competition_id": {
+            "enum": [
+              "agenthon2026-analysis",
+              "agenthon2026-coding",
+              "agenthon2026-forecasting",
+              "agenthon2026-simulation"
+            ]
+          },
+          "phase_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "phase_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scored": {
+            "type": "boolean"
+          },
+          "hide_prediction_output": {
+            "type": "boolean"
+          },
+          "hide_output": {
+            "type": "boolean"
+          }
+        },
+        "not": {
+          "properties": {
+            "scored": {
+              "const": true
+            },
+            "hide_prediction_output": {
+              "const": false
+            },
+            "hide_output": {
+              "const": false
+            }
+          },
+          "required": [
+            "scored",
+            "hide_prediction_output",
+            "hide_output"
+          ]
+        }
+      }
+    },
+    "deployed_site": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "host",
+        "deployed_commit_sha",
+        "deployed_at",
+        "source_repository"
+      ],
+      "properties": {
+        "host": {
+          "type": "string"
+        },
+        "deployed_commit_sha": {
+          "type": "string"
+        },
+        "deployed_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "source_repository": {
+          "type": "string"
+        }
+      }
+    },
+    "policy_documents": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "version"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "fact_matrix": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "digest",
+          "max_evidence_age_days",
+          "last_verified",
+          "evidence_dated"
+        ],
+        "description": "Publication fails when last_verified predates the evidence it cites.",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "digest": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "max_evidence_age_days": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "last_verified": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+          },
+          "evidence_dated": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+          }
+        }
+      }
+    },
+    "backend_security_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reviewed",
+        "reviewer",
+        "source_sha",
+        "reviewed_at"
+      ],
+      "description": "The Django backend is outside the audited repository; C8 blocks until its source is reviewed.",
+      "properties": {
+        "reviewed": {
+          "type": "boolean"
+        },
+        "reviewer": {
+          "type": "string"
+        },
+        "source_sha": {
+          "type": "string"
+        },
+        "reviewed_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        }
+      }
+    },
+    "sign_off": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "owner_role",
+          "owner_id",
+          "signed_at"
+        ],
+        "properties": {
+          "owner_role": {
+            "enum": [
+              "project-owner",
+              "security-owner",
+              "operations-owner",
+              "legal-owner",
+              "product-owner"
+            ],
+            "description": "Closed set. `project-owner` is the role that authorises the unpublished -> published transition; the others may sign but do not authorise publishing."
+          },
+          "owner_id": {
+            "type": "string"
+          },
+          "signed_at": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+          }
+        }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "alg",
+        "key_id",
+        "payload_digest",
+        "signed_at",
+        "signature"
+      ],
+      "description": "Frozen rule 0.5 envelope. An empty trust store makes verification FAIL.",
+      "properties": {
+        "alg": {
+          "const": "Ed25519"
+        },
+        "key_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payload_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "signed_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "signature": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "minLength": 86
+        }
+      }
+    }
+  }
+}

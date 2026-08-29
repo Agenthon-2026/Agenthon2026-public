@@ -1,0 +1,148 @@
+{
+  "schema_version": "1.1.0",
+  "instance_id": "instance-t1t2t4-01",
+  "queue_id": "agenthon2026-v2",
+  "served_categories": [
+    "api",
+    "byo-large",
+    "byo-small"
+  ],
+  "hardware": {
+    "model": {
+      "value": "1x NVIDIA B200 183GB",
+      "provenance": "measured"
+    },
+    "gpu_uuid": {
+      "value": "GPU-4c1d2e3f-a1b2-c3d4-e5f6-0a1b2c3d4e5f",
+      "provenance": "measured"
+    },
+    "driver": {
+      "value": "580.173.02",
+      "provenance": "measured"
+    },
+    "cuda": {
+      "value": "13.0",
+      "provenance": "measured"
+    },
+    "architecture": {
+      "value": "sm_100",
+      "provenance": "measured"
+    },
+    "node_fingerprint": {
+      "value": "sha256:b965863a0ea192f11ba643df7a04a1fe3adf517dab1867a264997e0e2c13a89d",
+      "provenance": "measured"
+    },
+    "exclusive_use": {
+      "value": true,
+      "provenance": "measured"
+    },
+    "max_contender_processes": {
+      "value": 0,
+      "provenance": "measured"
+    },
+    "thermal_bounds": {
+      "value": {
+        "max_gpu_c": 85
+      },
+      "provenance": "measured"
+    }
+  },
+  "limits": {
+    "cpus": {
+      "value": 4,
+      "provenance": "measured"
+    },
+    "memory_bytes": {
+      "value": 17179869184,
+      "provenance": "measured"
+    },
+    "pids": {
+      "value": 512,
+      "provenance": "measured"
+    },
+    "storage_bytes": {
+      "value": 10737418240,
+      "provenance": "measured"
+    },
+    "output_bytes": {
+      "value": 268435456,
+      "provenance": "measured"
+    },
+    "wall_time_sec": {
+      "value": 1800,
+      "provenance": "measured"
+    }
+  },
+  "runtime": {
+    "worker": {
+      "value": "runc",
+      "provenance": "measured"
+    },
+    "ingestion": {
+      "value": "runc",
+      "provenance": "measured"
+    },
+    "scoring": {
+      "value": "runc",
+      "provenance": "measured"
+    },
+    "unit": {
+      "value": "runsc",
+      "provenance": "measured"
+    }
+  },
+  "egress": {
+    "mode": "deny_all",
+    "endpoint": null
+  },
+  "telemetry": {
+    "min_coverage_fraction": 0.95,
+    "max_missed_samples": 5,
+    "sampling_interval_ms": 50,
+    "signature_required": true
+  },
+  "worker_env": {
+    "gpu_device": "QFBENCH_GPU_DEVICE",
+    "model_endpoint": "MODEL_ENDPOINT",
+    "model_name": "MODEL_NAME",
+    "proxy_policy": "QFBENCH_PROXY_POLICY",
+    "resolver": "QFBENCH_RESOLVER",
+    "scratch_root": "QFBENCH_SCRATCH_ROOT",
+    "seed": "QFBENCH_SEED",
+    "served_categories": "QFBENCH_TIERS_SERVED",
+    "unit_runtime": "QFBENCH_UNIT_RUNTIME"
+  },
+  "unit_resource_profiles": {
+    "t1-standard": {
+      "cpus": 4,
+      "memory_bytes": 17179869184,
+      "pids": 512,
+      "storage_bytes": 10737418240,
+      "wall_time_sec": 1800
+    }
+  },
+  "verifier_sandbox_profile": {
+    "network": "none",
+    "docker_socket": false,
+    "credentials": false,
+    "pids": 128,
+    "output_bytes": 1048576,
+    "wall_time_sec": 300
+  },
+  "model_cache": {
+    "mount": "/opt/qfbench/model-cache",
+    "tree_digest": "sha256:f54b9920ed9e9eca268ab2353f426b4eab08d33da7084878cc35dc7182c50389"
+  },
+  "public_projection": [
+    "hardware.model",
+    "limits.wall_time_sec",
+    "egress.mode"
+  ],
+  "signature": {
+    "alg": "Ed25519",
+    "key_id": "dev-organizer-2026",
+    "payload_digest": "sha256:fcf06e5e910bc65032201b6151f14308a3233afb8058a236ea97ae4e48098d06",
+    "signed_at": "2026-08-21T09:00:00Z",
+    "signature": "CxtBti0yGfmr6pWetA04mPa6+y9BMmIJn2OrG4ygNQSvm9HJsRHixroTgBo7K6XfDSgMWLrEfm8MRmolnNANDg=="
+  }
+}

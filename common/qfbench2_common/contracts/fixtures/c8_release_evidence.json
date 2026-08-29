@@ -1,0 +1,107 @@
+{
+  "schema_version": "1.1.0",
+  "covers": {
+    "competition_ids": [
+      "agenthon2026-coding",
+      "agenthon2026-forecasting"
+    ],
+    "artifact_digests": {
+      "qfbench2-common-wheel": "sha256:539f0ce7bb96896966a0bc8022f824740a1118f05e24f81d575569c0338bd491",
+      "scoring-image": "sha256:b7620e4e4813a93114b17215dfa4faddde930da6fa2ea2ae7ecde85887967cb1"
+    }
+  },
+  "hub_source_sha": "245275997040481933836ee80b24a219985c64a0",
+  "bundle_digests": {
+    "coding-final-program.zip": "sha256:da42a5934a51327c7087140c5fcc54cf8c4bd1e45b9560e3cc6e9a12895efcb7",
+    "forecasting-final-program.zip": "sha256:c51fb005a3791febb2d7b1bd64940be6c50d89a2c637f7179f68091d4f750bea"
+  },
+  "distribution_digest": "sha256:539f0ce7bb96896966a0bc8022f824740a1118f05e24f81d575569c0338bd491",
+  "ci": {
+    "skipped_required_jobs": 0,
+    "evaluated_on": "step"
+  },
+  "dataset_firewall": {
+    "t1-coding": true,
+    "t4-analysis": true,
+    "t4-exec": true
+  },
+  "phase_visibility": [
+    {
+      "competition_id": "agenthon2026-coding",
+      "phase_index": 0,
+      "phase_name": "Development",
+      "scored": true,
+      "hide_prediction_output": true,
+      "hide_output": false
+    },
+    {
+      "competition_id": "agenthon2026-coding",
+      "phase_index": 1,
+      "phase_name": "Final",
+      "scored": true,
+      "hide_prediction_output": true,
+      "hide_output": false
+    },
+    {
+      "competition_id": "agenthon2026-forecasting",
+      "phase_index": 0,
+      "phase_name": "Development",
+      "scored": true,
+      "hide_prediction_output": true,
+      "hide_output": false
+    },
+    {
+      "competition_id": "agenthon2026-forecasting",
+      "phase_index": 1,
+      "phase_name": "Final",
+      "scored": true,
+      "hide_prediction_output": true,
+      "hide_output": false
+    }
+  ],
+  "deployed_site": {
+    "host": "agenthon.net",
+    "deployed_commit_sha": "f13ca5de47fd6ad2a7c66573af1290d40dc6604e",
+    "deployed_at": "2026-08-20T12:00:00Z",
+    "source_repository": "example-site-repository"
+  },
+  "policy_documents": [
+    {
+      "name": "raw-output-retention",
+      "version": "1.0.0"
+    },
+    {
+      "name": "egress-policy",
+      "version": "1.0.0"
+    }
+  ],
+  "fact_matrix": [
+    {
+      "path": "docs/EXAMPLE-EVIDENCE-DOCUMENT.md",
+      "digest": "sha256:6823cb5708337b8dac88c4502f8a0453c34f410803e45102d814e31bccdeaa86",
+      "max_evidence_age_days": 30,
+      "last_verified": "2026-08-20T12:00:00Z",
+      "evidence_dated": "2026-08-19T12:00:00Z"
+    }
+  ],
+  "backend_security_review": {
+    "reviewed": true,
+    "reviewer": "security-owner",
+    "source_sha": "97fffb0cb01aeb2a8b9c961d60947d9b44b25e89",
+    "reviewed_at": "2026-08-18T12:00:00Z"
+  },
+  "sign_off": [
+    {
+      "owner_role": "project-owner",
+      "owner_id": "owner-01",
+      "signed_at": "2026-08-21T08:00:00Z"
+    }
+  ],
+  "signature": {
+    "alg": "Ed25519",
+    "key_id": "dev-organizer-2026",
+    "payload_digest": "sha256:ae8502e9695c88f791633b9a7c88bb2ccc9329991c1ba72b6258cc3a3fcf387e",
+    "signed_at": "2026-08-21T09:00:00Z",
+    "signature": "+5oeewrE7+zutOFHIsAw0yzEVN5koIMCuDjrLwNvcaJAQF5OWBbSzJfmEdtNLg0xtqPCF1unVYQqcmP7TfhLBQ=="
+  }
+}

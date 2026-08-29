@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agenthon.net/qfbench2/schemas/analysis.schema.json",
+  "title": "QFBench 2.0 Track-4 tabular-prediction output (answer.json)",
+  "description": "Reasoning-augmented tabular prediction over entity rows. A unit may be classification (predict a label per entity), regression (predict a numeric value per entity), or ranking (order entities by a predicted score). One prediction per entity row lives in entity_predictions[]. Every prediction must carry >=1 evidence-grounded claim, and every claim cites a span in the frozen corpus; gate g3 runs the ensemble-NLI faithfulness judge and resolves each cited doc's date from the corpus for the embargo check. The card's target_type declares which task applies for this unit.",
+  "type": "object",
+  "required": ["task_id", "entity_predictions"],
+  "properties": {
+    "task_id": {"type": "string"},
+    "schema_version": {"type": "string"},
+    "target_type": {
+      "enum": ["classification", "regression", "ranking"],
+      "description": "Declares the prediction task; must match the card's target_type."
+    },
+    "entity_predictions": {
+      "type": "array",
+      "minItems": 1,
+      "description": "One prediction per entity row in q.json.",
+      "items": {
+        "type": "object",
+        "required": ["entity_id", "interval", "claims"],
+        "properties": {
+          "entity_id": {"type": "string"},
+          "label": {
+            "type": "string",
+            "description": "Predicted class for classification tasks (e.g. 'beat'/'miss'/'inline', 'credit_event'/'no_event'). Optional for regression/ranking."
+          },
+          "point_forecast": {
+            "type": "number",
+            "description": "Predicted value for regression, or the rank score for ranking. Optional confidence for classification."
+          },
+          "rank": {
+            "type": "integer",
+            "description": "1-based predicted rank for ranking tasks (1 = highest)."
+          },
+          "interval": {
+            "type": "object",
+            "required": ["level", "lo", "hi"],
+            "properties": {
+              "level": {"type": "number", "const": 0.90},
+              "lo": {"type": "number"},
+              "hi": {"type": "number"}
+            },
+            "description": "90% prediction interval. Required for every entity and all target_type values."
+          },
+          "claims": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Evidence-grounded claims supporting this entity's prediction. Each claim bundles its text and one corpus citation.",
+            "items": {
+              "type": "object",
+              "required": ["doc_id", "span_start", "span_end", "claim"],
+              "properties": {
+                "doc_id": {"type": "string", "description": "ID of a document in the frozen corpus. Its doc_date is resolved from the corpus for the embargo gate (must be <= question cutoff)."},
+                "span_start": {"type": "integer", "minimum": 0},
+                "span_end": {"type": "integer", "minimum": 0},
+                "claim": {"type": "string"}
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"rank": {"type": "integer"}}, "required": ["rank"]},
+            "then": {"required": ["point_forecast"]},
+            "description": "ranking entities carry a point_forecast (the rank score)."
+          }
+        ]
+      }
+    },
+    "evidence_trace": {
+      "type": ["string", "array"],
+      "items": {"type": "string"},
+      "description": "Free-text reasoning trace, or ordered doc_ids the agent retrieved/used."
+    },
+    "notes": {"type": "object", "description": "Optional free-form author notes (ignored by the scorer)."}
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "schema_version": "1.1.0",
+  "contract_set": "1.1.0",
+  "codes": [
+    {
+      "code": "no_output",
+      "phase_scope": "scoring",
+      "one_line_participant_gloss": "Your container produced no output file for this unit.",
+      "scored": true
+    },
+    {
+      "code": "malformed_output",
+      "phase_scope": "scoring",
+      "one_line_participant_gloss": "Your output file could not be parsed.",
+      "scored": true
+    },
+    {
+      "code": "schema_invalid",
+      "phase_scope": "scoring",
+      "one_line_participant_gloss": "Your output parsed but did not match the published output schema.",
+      "scored": true
+    },
+    {
+      "code": "incomplete_output",
+      "phase_scope": "scoring",
+      "one_line_participant_gloss": "Your output was missing rows or fields the unit requires.",
+      "scored": true
+    },
+    {
+      "code": "resource_timeout",
+      "phase_scope": "execution",
+      "one_line_participant_gloss": "Your container did not finish within the unit's wall-clock budget.",
+      "scored": true
+    },
+    {
+      "code": "resource_oom",
+      "phase_scope": "execution",
+      "one_line_participant_gloss": "Your container exceeded its memory limit and was stopped.",
+      "scored": true
+    },
+    {
+      "code": "container_crashed",
+      "phase_scope": "execution",
+      "one_line_participant_gloss": "Your container exited abnormally before producing output.",
+      "scored": true
+    },
+    {
+      "code": "image_unusable",
+      "phase_scope": "ingestion",
+      "one_line_participant_gloss": "Your submitted image could not be pulled or started.",
+      "scored": true
+    },
+    {
+      "code": "network_violation",
+      "phase_scope": "execution",
+      "one_line_participant_gloss": "Your container attempted network access the rules do not permit.",
+      "scored": true
+    },
+    {
+      "code": "cutoff_violation",
+      "phase_scope": "scoring",
+      "one_line_participant_gloss": "Your output used information dated after the unit's as-of date.",
+      "scored": true
+    },
+    {
+      "code": "contamination_detected",
+      "phase_scope": "scoring",
+      "one_line_participant_gloss": "Your output reproduced organizer-only material.",
+      "scored": true
+    },
+    {
+      "code": "domain_gate_failed",
+      "phase_scope": "scoring",
+      "one_line_participant_gloss": "Your output was well-formed but did not pass one of this unit's published domain checks.",
+      "scored": true
+    }
+  ]
+}

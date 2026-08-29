@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agenthon.net/qfbench2/schemas/c7_worker_heartbeat.schema.json",
+  "title": "Worker heartbeat (contract set 1.1.0)",
+  "description": "A worker's signed preflight report, bound to one C7 instance by instance digest. Structural validation only. The cross-document invariants -- does this heartbeat describe the instance it claims to, is the unit runtime the one C7 declares, is the egress mode the one C7 declares, is a UUID-pinned instance actually running with a pinned device -- are enforced by qfbench2_common.contracts.heartbeat.WorkerHeartbeat.compatibility_objections, which is the authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "queue_id",
+    "worker_id",
+    "worker_image_digest",
+    "c7_instance_digest",
+    "preflight",
+    "observed_at",
+    "signature"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "queue_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The queue this worker consumes. Must equal the C7 instance's queue_id: a queue that exists with no compatible worker accepts submissions and never runs them."
+    },
+    "worker_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "worker_image_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "The image the worker is running, by digest. A tag is not evidence."
+    },
+    "c7_instance_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "HardwareInstance.instance_digest -- the JCS digest of the C7 body without its signature, the same value C2 binds. Edit any C7 field and every heartbeat bound to the old body stops matching, which is correct: the operator changed the claim and the worker has not re-attested to it."
+    },
+    "preflight": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime",
+        "gpu_device_pinned",
+        "scratch_root_present",
+        "egress_mode",
+        "docker_server_version"
+      ],
+      "properties": {
+        "runtime": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The runtime units actually run under, as observed. Compared against C7 runtime.unit."
+        },
+        "gpu_device_pinned": {
+          "type": "boolean"
+        },
+        "scratch_root_present": {
+          "type": "boolean",
+          "description": "False means raw participant output has nowhere outside the ingestion output root to live, and unsanitized bytes inside that root are mounted into the scoring stage as input/res."
+        },
+        "egress_mode": {
+          "enum": [
+            "deny_all",
+            "single_endpoint"
+          ]
+        },
+        "docker_server_version": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "observed_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "alg",
+        "key_id",
+        "payload_digest",
+        "signed_at",
+        "signature"
+      ],
+      "description": "Frozen rule 0.5 envelope over the document minus this member. An empty trust store makes verification FAIL.",
+      "properties": {
+        "alg": {
+          "const": "Ed25519"
+        },
+        "key_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payload_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "signed_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "signature": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "minLength": 86
+        }
+      }
+    }
+  }
+}

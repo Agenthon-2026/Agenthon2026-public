@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0.0",
+  "root": "sanitized",
+  "root_digest": "sha256:3beeb951e443ebf16a1586d13563d13d993e545f2d9592a0fbcadca2683ee226",
+  "entries": [
+    {
+      "path": "solution.py",
+      "size_bytes": 2048,
+      "sha256": "sha256:e587460254383d080d92123c22b0a030cbf3b3aa37c12cd4cc21a27db7593aa4",
+      "mode_bits": 420,
+      "num_rows": null
+    },
+    {
+      "path": "results/metrics.json",
+      "size_bytes": 512,
+      "sha256": "sha256:4434543e0046e2671f2beede9cdd36fb4c2ae2ee76cb8068cc168c8e95124d79",
+      "mode_bits": 420,
+      "num_rows": null
+    },
+    {
+      "path": "results/trades.parquet",
+      "size_bytes": 40960,
+      "sha256": "sha256:a3c72c8f26474654ee330e42ccfcc82678d7f6e669754a063932057a1efe778f",
+      "mode_bits": 420,
+      "num_rows": 1024
+    }
+  ],
+  "limits_applied": {
+    "max_files": 256,
+    "max_depth": 8,
+    "max_file_bytes": 67108864,
+    "max_total_bytes": 268435456,
+    "max_sparse_ratio": 64.0
+  },
+  "rejections": [
+    {
+      "code": "symlink",
+      "count": 1
+    }
+  ],
+  "reference_reachable_from_c3": false,
+  "staging_root_parent_exclusive": true
+}

@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0.0",
+  "unit_handle": "u-38e89a73da774412",
+  "attempt_slot_index": 0,
+  "state": "participant_failure",
+  "score": null,
+  "failure_code": "resource_timeout",
+  "detail": {
+    "code": "resource_timeout"
+  },
+  "plan_digest": "sha256:10bdad0771fa958b9bb35d661e113695b0823dd27b6d826cadf2650681d55841",
+  "run_record_digest": "sha256:3c8ec50aa4dd1f8eebae64fa58206318512a3eb41477c587cf27b714e55bc9b1",
+  "sanitized_tree_digest": "sha256:3beeb951e443ebf16a1586d13563d13d993e545f2d9592a0fbcadca2683ee226",
+  "scorer": {
+    "package": "qfbench2_track_coding",
+    "digest": "sha256:6eb2a823c89c05680d789ecf088b9ff4cb8495c0e6b49c49496fcb138107d6c9",
+    "interface_version": "2.0"
+  },
+  "judge": null
+}

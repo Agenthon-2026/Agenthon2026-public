@@ -1,0 +1,479 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agenthon.net/qfbench2/schemas/c1_evaluation_plan.schema.json",
+  "title": "C1 evaluation plan (contract set 1.1.0)",
+  "description": "Structural validation only. Cross-field invariants -- digest self-consistency, W == the worst end of the domain, roster digest over the ordered handle array, provenance/value agreement -- are enforced by qfbench2_common.contracts, which is the authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_set",
+    "competition_id",
+    "track",
+    "phase",
+    "plan_id",
+    "metric",
+    "roster",
+    "participant_failure",
+    "organizer_failure",
+    "scorer",
+    "required_evidence",
+    "signature"
+  ],
+  "properties": {
+    "schema_version": {
+      "enum": [
+        "1.1.0",
+        "1.2.0"
+      ],
+      "description": "C1 1.2.0 closed scoring_params.target_type and scoring_params.composite_weights. The Python parser accepts any 1.x (major-version rule), and the narrowed value space below applies to BOTH spellings: a 1.1.0 analysis plan is still parsed, and is still refused if its target_type is not one of the three or its weights do not sum to 1. Only documents that had to be re-minted carry 1.2.0."
+    },
+    "contract_set": {
+      "const": "1.1.0"
+    },
+    "competition_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "track": {
+      "enum": [
+        "coding",
+        "forecasting",
+        "simulation",
+        "analysis"
+      ]
+    },
+    "phase": {
+      "enum": [
+        "dev",
+        "final",
+        "verification"
+      ]
+    },
+    "plan_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "direction",
+        "domain",
+        "statistic",
+        "unit_scope"
+      ],
+      "properties": {
+        "direction": {
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "domain": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "min",
+            "max"
+          ],
+          "description": "REQUIRED. Makes the R-2 clip expressible; Track 3 publishes its clip max here rather than declaring an open interval.",
+          "properties": {
+            "min": {
+              "type": "number"
+            },
+            "max": {
+              "type": "number"
+            }
+          }
+        },
+        "statistic": {
+          "enum": [
+            "mean",
+            "median"
+          ]
+        },
+        "unit_scope": {
+          "enum": [
+            "per_unit",
+            "per_unit_attempt"
+          ]
+        }
+      }
+    },
+    "roster": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "count",
+        "digest"
+      ],
+      "description": "expected_units appears ONLY in the resolver/scorer form. A bundle and a participant artifact never receive it.",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "description": "JCS over the ORDERED [unit_handle] array."
+        },
+        "expected_units": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "unit_handle"
+            ],
+            "properties": {
+              "unit_handle": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+                "description": "The ONLY id allowed in participant-visible output, and a DIRECTORY NAME under the ingestion output root. In the sealed phases (final, verification) it must additionally match ^u-[0-9a-f]{8,32}$ and every handle in the roster must share one width -- a cross-field rule JSON Schema cannot express here because it depends on `phase`. qfbench2_common.contracts.plan.validate_unit_handle is the authority; mint handles with derive_opaque_roster()."
+              },
+              "timeout_sec": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "description": "Track 1. The global timeout constant is retired."
+              },
+              "resource_profile_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "grid": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "assets",
+                  "horizons",
+                  "cell_count",
+                  "digest"
+                ],
+                "description": "Track 2 expected-grid commitment. The scorer validates the participant grid against C1, not against card.toml.",
+                "properties": {
+                  "assets": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "horizons": {
+                    "type": "array",
+                    "minItems": 1
+                  },
+                  "cell_count": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "digest": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              },
+              "entity_roster": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "count",
+                  "digest"
+                ],
+                "description": "Track 4. entity_ids are scorer-only; count+digest ship publicly.",
+                "properties": {
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "digest": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "entity_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "scoring_params": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "faithfulness_threshold",
+                  "tau_citation",
+                  "interval_level",
+                  "composite_weights",
+                  "target_type"
+                ],
+                "description": "Track 4 trusted scoring parameters. A card-derived value that disagrees with the plan is refused.",
+                "properties": {
+                  "faithfulness_threshold": {
+                    "type": "number"
+                  },
+                  "tau_citation": {
+                    "type": "number"
+                  },
+                  "interval_level": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "exclusiveMaximum": 1
+                  },
+                  "composite_weights": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "description": "Exactly accuracy and calibration, each in [0,1], summing to 1. The sum is arithmetic, not tidiness: W = 0*w_accuracy - w_calibration*interval_level and metric.domain.min is validated to equal W, so a different sum moves the frozen domain every real score is clipped into. JSON Schema cannot express the sum; the parser enforces it.",
+                    "required": [
+                      "accuracy",
+                      "calibration"
+                    ],
+                    "properties": {
+                      "accuracy": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      "calibration": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      }
+                    }
+                  },
+                  "target_type": {
+                    "enum": [
+                      "classification",
+                      "regression",
+                      "ranking"
+                    ],
+                    "description": "Closed since C1 1.2.0 (global rule 0.3). Selects which metric the leaderboard reports; the pre-fix Track-4 scorer fell back to label accuracy on an unrecognized value, so there is no 'other' member."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "participant_failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy",
+        "score",
+        "by_code",
+        "clip_real_scores_to_domain"
+      ],
+      "description": "R-2 fixed_worst_case. by_code is required as a KEY and must be {}: frozen rule 0.1 forbids reading a contract field with a default, and the field itself is RESERVED so far.",
+      "properties": {
+        "policy": {
+          "const": "fixed_worst_case"
+        },
+        "score": {
+          "type": "number",
+          "description": "W, the pre-committed worst value."
+        },
+        "by_code": {
+          "type": "object",
+          "maxProperties": 0,
+          "description": "RESERVED, and required to be EMPTY through contract set 1.1.0. It is vacuous as frozen: score must equal W (the worst end of the metric domain), an override must lie inside that domain, and an override may not be better than W -- so W is the only legal value and every entry is a no-op. It is kept rather than deleted so a later version can give per-code treatment without breaking documents that already write {}, and it is nailed shut rather than left parseable because a field that looks like a leniency lever but is not is a fail-open invitation. The shape below documents the intended v1.1 form; maxProperties is what is enforced today.",
+          "propertyNames": {
+            "enum": [
+              "no_output",
+              "malformed_output",
+              "schema_invalid",
+              "incomplete_output",
+              "resource_timeout",
+              "resource_oom",
+              "container_crashed",
+              "image_unusable",
+              "network_violation",
+              "cutoff_violation",
+              "contamination_detected",
+              "domain_gate_failed"
+            ]
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "score"
+            ],
+            "properties": {
+              "score": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "clip_real_scores_to_domain": {
+          "const": true
+        }
+      }
+    },
+    "organizer_failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy"
+      ],
+      "properties": {
+        "policy": {
+          "const": "abort_whole_evaluation"
+        }
+      }
+    },
+    "scorer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "package",
+        "digest",
+        "interface_version"
+      ],
+      "properties": {
+        "package": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "interface_version": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "required_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "c2",
+        "c3",
+        "telemetry",
+        "judge"
+      ],
+      "properties": {
+        "c2": {
+          "type": "boolean"
+        },
+        "c3": {
+          "type": "boolean"
+        },
+        "telemetry": {
+          "type": "boolean"
+        },
+        "judge": {
+          "type": "boolean"
+        }
+      }
+    },
+    "attempts_per_unit": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Track 1. n is fixed by the plan and NEVER derived from observed attempts."
+    },
+    "k_values": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      }
+    },
+    "normalization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "ref_scale_commitment"
+      ],
+      "description": "Track 2. mode=ref_scale with no resolvable scale is an ORGANIZER failure, never a raw fallback.",
+      "properties": {
+        "mode": {
+          "const": "ref_scale"
+        },
+        "ref_scale_commitment": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "aggregation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "statistic",
+        "unit_scope"
+      ],
+      "description": "Track 3. Read by the Hub driver AND the private final scorer; must agree with metric.",
+      "properties": {
+        "statistic": {
+          "enum": [
+            "mean",
+            "median"
+          ]
+        },
+        "unit_scope": {
+          "enum": [
+            "per_unit",
+            "per_unit_attempt"
+          ]
+        }
+      }
+    },
+    "repeats": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "warmup_discarded": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "every_repeat_must_pass": {
+      "type": "boolean"
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "alg",
+        "key_id",
+        "payload_digest",
+        "signed_at",
+        "signature"
+      ],
+      "description": "Frozen rule 0.5 envelope. An empty trust store makes verification FAIL.",
+      "properties": {
+        "alg": {
+          "const": "Ed25519"
+        },
+        "key_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payload_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "signed_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "signature": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "minLength": 86
+        }
+      }
+    }
+  }
+}

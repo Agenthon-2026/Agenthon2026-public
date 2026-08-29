@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agenthon.net/qfbench2/schemas/forecast.schema.json",
+  "title": "QFBench 2.0 Track-2 forecast output (forecast_meta.json sidecar)",
+  "description": "Describes a probabilistic JOINT predictive distribution over assets x horizons as of `asof`. The bulk numbers live in forecast.parquet; this sidecar declares representation and indexing. Gate g1_schema validates this AND checks that forecast_rationale.md exists next to forecast.parquet and is non-empty (a filesystem check on the fixed filename; the optional `rationale` key here is declaration only); g2_cutoff verifies asof precedes every target timestamp and that all input panel data AND text-corpus documents have timestamps <= asof (text is an INPUT to the agent, not part of this output schema).",
+  "type": "object",
+  "required": [
+    "unit_id",
+    "asof",
+    "representation",
+    "asset_ids",
+    "horizons"
+  ],
+  "properties": {
+    "unit_id": {
+      "type": "string"
+    },
+    "asof": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "representation": {
+      "enum": [
+        "samples",
+        "parametric"
+      ],
+      "description": "samples => forecast.parquet has columns [draw:int, asset:str, horizon:int, value:float]; parametric => [asset, horizon, mean] plus cov.parquet (lower-tri) per horizon."
+    },
+    "asset_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "horizons": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "description": "forecast horizons in business days/months as declared by the card."
+    },
+    "n_draws": {
+      "type": "integer",
+      "minimum": 200,
+      "description": "required when representation=='samples'; CRPS estimator variance ~ 1/n_draws."
+    },
+    "target": {
+      "enum": [
+        "level",
+        "log_return",
+        "yield"
+      ],
+      "description": "must match the card target."
+    },
+    "units": {
+      "type": "string"
+    },
+    "rationale": {
+      "type": "object",
+      "description": "OPTIONAL declaration of the derivation behind the submitted distribution. The FILE forecast_rationale.md is REQUIRED — gate g1 checks the filesystem directly, next to forecast.parquet, so this sidecar key is a declaration only and its absence cannot fail a submission. The file is NEVER SCORED: no submission is ranked higher or lower because of it, and no scoring code may read its content. It exists because a submission that recalled its answer and one that derived it are indistinguishable as a set of draws. Read only as a review screen over the top of the leaderboard; a flag opens a human review and cannot by itself produce a DNF or move a score.",
+      "required": [
+        "file"
+      ],
+      "properties": {
+        "file": {
+          "const": "forecast_rationale.md",
+          "description": "written next to forecast.parquet in /output"
+        },
+        "method": {
+          "type": "string",
+          "description": "optional one-line summary, e.g. 'random walk + text-adjusted drift'"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "representation": {
+            "const": "samples"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "n_draws"
+        ]
+      }
+    }
+  ]
+}

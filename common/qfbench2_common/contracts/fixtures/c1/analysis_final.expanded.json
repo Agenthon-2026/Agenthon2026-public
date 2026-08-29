@@ -1,0 +1,92 @@
+{
+  "schema_version": "1.2.0",
+  "contract_set": "1.1.0",
+  "competition_id": "agenthon2026-analysis-final",
+  "track": "analysis",
+  "phase": "final",
+  "plan_id": "plan-analysis-final-0001",
+  "metric": {
+    "direction": "desc",
+    "domain": {
+      "min": -0.27,
+      "max": 1.0
+    },
+    "statistic": "mean",
+    "unit_scope": "per_unit"
+  },
+  "roster": {
+    "count": 2,
+    "digest": "sha256:5371857ddfcfbb4ae34547b3e5d55c8de4b4c8226a5e71035917df8e08704e51",
+    "expected_units": [
+      {
+        "unit_handle": "u-644dc0d6eda4da5f",
+        "entity_roster": {
+          "count": 2,
+          "digest": "sha256:82ae4990da00b7e6997c117c242b553a93f6dfb6721f5a30b9c5ea55b79b9f7f",
+          "entity_ids": [
+            "ent-0001",
+            "ent-0002"
+          ]
+        },
+        "scoring_params": {
+          "faithfulness_threshold": 0.8,
+          "tau_citation": 0.6,
+          "interval_level": 0.9,
+          "composite_weights": {
+            "accuracy": 0.7,
+            "calibration": 0.3
+          },
+          "target_type": "classification"
+        }
+      },
+      {
+        "unit_handle": "u-7d3e59dda332e290",
+        "entity_roster": {
+          "count": 2,
+          "digest": "sha256:82484fe85543045eed9f94e92c78851cf423980660b660cc9600cde025dd9cf2",
+          "entity_ids": [
+            "ent-0001",
+            "ent-0002"
+          ]
+        },
+        "scoring_params": {
+          "faithfulness_threshold": 0.8,
+          "tau_citation": 0.6,
+          "interval_level": 0.9,
+          "composite_weights": {
+            "accuracy": 0.7,
+            "calibration": 0.3
+          },
+          "target_type": "regression"
+        }
+      }
+    ]
+  },
+  "participant_failure": {
+    "policy": "fixed_worst_case",
+    "score": -0.27,
+    "by_code": {},
+    "clip_real_scores_to_domain": true
+  },
+  "organizer_failure": {
+    "policy": "abort_whole_evaluation"
+  },
+  "scorer": {
+    "package": "qfbench2_track_analysis",
+    "digest": "sha256:45dc19385d1820408c86213e103d886971c69d5c9d05b834502c859aef135528",
+    "interface_version": "2.0"
+  },
+  "required_evidence": {
+    "c2": true,
+    "c3": true,
+    "telemetry": false,
+    "judge": true
+  },
+  "signature": {
+    "alg": "Ed25519",
+    "key_id": "dev-organizer-2026",
+    "payload_digest": "sha256:c9ba98ec01a48d25e8832a6cabece4a0231ea3c005454538e07ee71aae104176",
+    "signed_at": "2026-08-21T09:00:00Z",
+    "signature": "g7gjixMNoIRUonqwjCI3FoR2LonmHQtLgwdIuCXJGceV9JZxILuSty+Yv1xsOxMS3FJKqkT2RHT4BABvtSBgDQ=="
+  }
+}

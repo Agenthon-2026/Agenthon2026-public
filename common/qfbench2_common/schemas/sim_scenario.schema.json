@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agenthon.net/qfbench2/schemas/sim_scenario.schema.json",
+  "title": "QFBench 2.0 Track-3 scenario config + run report",
+  "description": "Two objects: `scenario` (input, mounted read-only) and `events` (output sidecar to trace.parquet). The trace.parquet message schema is fixed: [t_ns:int, agent_id:int, msg_type:str, side:str, price:int, size:int, order_id:int].",
+  "type": "object",
+  "required": ["scenario", "events"],
+  "properties": {
+    "scenario": {
+      "type": "object",
+      "required": ["scenario_id", "seed", "agent_mix", "horizon_ns"],
+      "properties": {
+        "scenario_id": {"type": "string"},
+        "seed": {"type": "integer"},
+        "agent_mix": {"type": "object", "description": "ABIDES agent type -> count (noise, value, momentum, market-maker, ...)."},
+        "horizon_ns": {"type": "integer", "minimum": 1},
+        "latency_model": {"type": "string"},
+        "oracle_noise": {"type": "number"}
+      }
+    },
+    "events": {
+      "type": "object",
+      "required": ["scenario_id", "n_events", "wall_clock_sec", "events_per_sec", "seed", "trace_sha256"],
+      "properties": {
+        "scenario_id": {"type": "string"},
+        "n_events": {"type": "integer", "minimum": 0},
+        "wall_clock_sec": {"type": "number", "minimum": 0},
+        "events_per_sec": {"type": "number", "minimum": 0, "description": "primary metric; harness-measured, not self-reported, on the official image."},
+        "seed": {"type": "integer"},
+        "trace_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

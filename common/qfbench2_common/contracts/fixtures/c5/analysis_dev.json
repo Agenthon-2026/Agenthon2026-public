@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0.0",
+  "interface_version": "2.0",
+  "competition_id": "agenthon2026-analysis-dev",
+  "team_id": "team-example-0001",
+  "track": "analysis",
+  "phase": "dev",
+  "category": "byo-large",
+  "image": {
+    "registry": "docker.io",
+    "repository": "team-example/qfb2-analyst",
+    "digest": "sha256:c385d45d6f0db86e82c9e5b1494736f033131ba8ee491c90205d00d1a0d98fa4"
+  },
+  "image_access": "public",
+  "models": [
+    {
+      "name": "example-local-large",
+      "version": "example-large-20260220",
+      "training_cutoff": "2025-11",
+      "access": "local",
+      "revision": "a1b2c3d4e5f6"
+    },
+    {
+      "name": "example-api-model",
+      "version": "example-model-20260401",
+      "training_cutoff": "2026-01",
+      "access": "api",
+      "revision": "r1"
+    }
+  ],
+  "license": "Apache-2.0",
+  "descriptor_digest": "sha256:0dadc06734ccc808042d8e24d46338272f89168fa98559298035389216eb4103"
+}

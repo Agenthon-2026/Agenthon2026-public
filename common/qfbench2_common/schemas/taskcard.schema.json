@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agenthon.net/qfbench2/schemas/taskcard.schema.json",
+  "title": "QFBench 2.0 task-card v2",
+  "description": "Validates card.toml (parsed to JSON) for any track. Supersedes QFBench v1 task.toml.",
+  "type": "object",
+  "required": ["schema_version", "task", "metadata", "provenance", "contamination", "scoring", "environment"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {"const": "2.0"},
+    "task": {
+      "type": "object",
+      "required": ["id", "track", "title", "split"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^t[1-4]-[A-Za-z0-9][A-Za-z0-9_-]*$"},
+        "track": {"enum": ["coding", "forecasting", "simulation", "analysis"]},
+        "title": {"type": "string", "minLength": 3},
+        "split": {"enum": ["public-dev", "validation", "private-test"]}
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["author_name", "difficulty", "category", "tags"],
+      "properties": {
+        "author_name": {"type": "string"},
+        "author_email": {"type": "string", "format": "email"},
+        "difficulty": {"enum": ["easy", "medium", "hard"]},
+        "category": {"type": "string"},
+        "tags": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "expert_time_estimate_min": {"type": "number", "minimum": 0},
+        "junior_time_estimate_min": {"type": "number", "minimum": 0}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["license", "data_cutoff", "public_release_date", "redistributable", "manifest"],
+      "properties": {
+        "license": {"type": "string", "description": "SPDX identifier"},
+        "data_source": {"type": "string"},
+        "data_cutoff": {"type": "string", "pattern": "^(\\d{4}-\\d{2}-\\d{2})?$"},
+        "public_release_date": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+        "redistributable": {"type": "boolean"},
+        "manifest": {"type": "string"}
+      }
+    },
+    "contamination": {
+      "type": "object",
+      "required": ["canary_guid"],
+      "properties": {
+        "canary_guid": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"}
+      }
+    },
+    "scoring": {
+      "type": "object",
+      "required": ["verifier", "metric", "admissibility_gates"],
+      "properties": {
+        "verifier": {"type": "string"},
+        "metric": {"enum": ["pass@k", "crps_composite", "events_per_sec", "analysis_composite", "factor_replication_composite"]},
+        "admissibility_gates": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "params": {"type": "object"}
+      }
+    },
+    "environment": {
+      "type": "object",
+      "required": ["cpus", "memory", "network"],
+      "properties": {
+        "build_timeout_sec": {"type": "number", "minimum": 0},
+        "cpus": {"type": "integer", "minimum": 1},
+        "memory": {"type": "string", "pattern": "^\\d+[MG]$"},
+        "gpu": {"type": "boolean"},
+        "network": {"enum": ["none", "restricted"]}
+      }
+    }
+  }
+}

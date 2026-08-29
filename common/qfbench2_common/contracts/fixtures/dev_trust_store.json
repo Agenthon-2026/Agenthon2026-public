@@ -1,0 +1,7 @@
+{
+  "profile": "development",
+  "label": "shipped fixture key - PUBLIC SEED, forgeable, never load in production",
+  "keys": {
+    "dev-organizer-2026": "fw0LhHMR+g48GEtKOhoEf1IC6r89c+QoGIWeF6mcyqs="
+  }
+}

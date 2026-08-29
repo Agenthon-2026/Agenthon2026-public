@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "interface_version": "2.0",
+  "competition_id": "agenthon2026-coding-verification",
+  "team_id": "team-example-0001",
+  "track": "coding",
+  "phase": "verification",
+  "category": "api",
+  "image": {
+    "registry": "docker.io",
+    "repository": "team-example/qfb2-solver",
+    "digest": "sha256:daa511690c1d41a1273c0811161bb5e1a3851f07a08cec07fb0f58fd33ac4a44"
+  },
+  "image_access": "public",
+  "models": [
+    {
+      "name": "example-api-model",
+      "version": "example-model-20260401",
+      "training_cutoff": "2026-01",
+      "access": "api",
+      "revision": "r1"
+    }
+  ],
+  "license": "Apache-2.0",
+  "descriptor_digest": "sha256:b815e50df42bcb51367c241ab6e1a4253b166c97a5cd16d1d186c2f0d1a3bd45"
+}

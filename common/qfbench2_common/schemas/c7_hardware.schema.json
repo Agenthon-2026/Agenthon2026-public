@@ -1,0 +1,692 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agenthon.net/qfbench2/schemas/c7_hardware.schema.json",
+  "title": "C7 hardware, queue, runtime and egress instance",
+  "description": "Structural validation only. Cross-field invariants -- digest self-consistency, W == the worst end of the domain, roster digest over the ordered handle array, provenance/value agreement -- are enforced by qfbench2_common.contracts, which is the authority. Every field is {value, provenance}; ANY unmeasured field forces rankable=false for the queues this instance serves.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "instance_id",
+    "queue_id",
+    "served_categories",
+    "hardware",
+    "limits",
+    "runtime",
+    "egress",
+    "telemetry",
+    "worker_env",
+    "unit_resource_profiles",
+    "verifier_sandbox_profile",
+    "model_cache",
+    "public_projection",
+    "signature"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.1.0"
+    },
+    "instance_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "queue_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "served_categories": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "api",
+          "byo-large",
+          "byo-small",
+          "simulator"
+        ]
+      }
+    },
+    "hardware": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model",
+        "gpu_uuid",
+        "driver",
+        "cuda",
+        "architecture",
+        "node_fingerprint",
+        "exclusive_use",
+        "max_contender_processes",
+        "thermal_bounds"
+      ],
+      "properties": {
+        "model": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "provenance"
+          ],
+          "description": "model provenance=unmeasured REQUIRES value=null.",
+          "properties": {
+            "value": {},
+            "provenance": {
+              "enum": [
+                "measured",
+                "unmeasured"
+              ]
+            }
+          }
+        },
+        "gpu_uuid": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "provenance"
+          ],
+          "description": "gpu_uuid provenance=unmeasured REQUIRES value=null.",
+          "properties": {
+            "value": {},
+            "provenance": {
+              "enum": [
+                "measured",
+                "unmeasured"
+              ]
+            }
+          }
+        },
+        "driver": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "provenance"
+          ],
+          "description": "driver provenance=unmeasured REQUIRES value=null.",
+          "properties": {
+            "value": {},
+            "provenance": {
+              "enum": [
+                "measured",
+                "unmeasured"
+              ]
+            }
+          }
+        },
+        "cuda": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "provenance"
+          ],
+          "description": "cuda provenance=unmeasured REQUIRES value=null.",
+          "properties": {
+            "value": {},
+            "provenance": {
+              "enum": [
+                "measured",
+                "unmeasured"
+              ]
+            }
+          }
+        },
+        "architecture": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "provenance"
+          ],
+          "description": "architecture provenance=unmeasured REQUIRES value=null.",
+          "properties": {
+            "value": {},
+            "provenance": {
+              "enum": [
+                "measured",
+                "unmeasured"
+              ]
+            }
+          }
+        },
+        "node_fingerprint": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "provenance"
+          ],
+          "description": "node_fingerprint provenance=unmeasured REQUIRES value=null.",
+          "properties": {
+            "value": {},
+            "provenance": {
+              "enum": [
+                "measured",
+                "unmeasured"
+              ]
+            }
+          }
+        },
+        "exclusive_use": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "provenance"
+          ],
+          "description": "exclusive_use provenance=unmeasured REQUIRES value=null.",
+          "properties": {
+            "value": {},
+            "provenance": {
+              "enum": [
+                "measured",
+                "unmeasured"
+              ]
+            }
+          }
+        },
+        "max_contender_processes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "provenance"
+          ],
+          "description": "max_contender_processes provenance=unmeasured REQUIRES value=null.",
+          "properties": {
+            "value": {},
+            "provenance": {
+              "enum": [
+                "measured",
+                "unmeasured"
+              ]
+            }
+          }
+        },
+        "thermal_bounds": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "provenance"
+          ],
+          "description": "thermal_bounds provenance=unmeasured REQUIRES value=null.",
+          "properties": {
+            "value": {},
+            "provenance": {
+              "enum": [
+                "measured",
+                "unmeasured"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cpus",
+        "memory_bytes",
+        "pids",
+        "storage_bytes",
+        "output_bytes",
+        "wall_time_sec"
+      ],
+      "properties": {
+        "cpus": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "provenance"
+          ],
+          "description": "cpus provenance=unmeasured REQUIRES value=null.",
+          "properties": {
+            "value": {},
+            "provenance": {
+              "enum": [
+                "measured",
+                "unmeasured"
+              ]
+            }
+          }
+        },
+        "memory_bytes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "provenance"
+          ],
+          "description": "memory_bytes provenance=unmeasured REQUIRES value=null.",
+          "properties": {
+            "value": {},
+            "provenance": {
+              "enum": [
+                "measured",
+                "unmeasured"
+              ]
+            }
+          }
+        },
+        "pids": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "provenance"
+          ],
+          "description": "pids provenance=unmeasured REQUIRES value=null.",
+          "properties": {
+            "value": {},
+            "provenance": {
+              "enum": [
+                "measured",
+                "unmeasured"
+              ]
+            }
+          }
+        },
+        "storage_bytes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "provenance"
+          ],
+          "description": "storage_bytes provenance=unmeasured REQUIRES value=null.",
+          "properties": {
+            "value": {},
+            "provenance": {
+              "enum": [
+                "measured",
+                "unmeasured"
+              ]
+            }
+          }
+        },
+        "output_bytes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "provenance"
+          ],
+          "description": "output_bytes provenance=unmeasured REQUIRES value=null.",
+          "properties": {
+            "value": {},
+            "provenance": {
+              "enum": [
+                "measured",
+                "unmeasured"
+              ]
+            }
+          }
+        },
+        "wall_time_sec": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "provenance"
+          ],
+          "description": "wall_time_sec provenance=unmeasured REQUIRES value=null.",
+          "properties": {
+            "value": {},
+            "provenance": {
+              "enum": [
+                "measured",
+                "unmeasured"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "worker",
+        "ingestion",
+        "scoring",
+        "unit"
+      ],
+      "properties": {
+        "worker": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "provenance"
+          ],
+          "description": "worker provenance=unmeasured REQUIRES value=null.",
+          "properties": {
+            "value": {},
+            "provenance": {
+              "enum": [
+                "measured",
+                "unmeasured"
+              ]
+            }
+          }
+        },
+        "ingestion": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "provenance"
+          ],
+          "description": "ingestion provenance=unmeasured REQUIRES value=null.",
+          "properties": {
+            "value": {},
+            "provenance": {
+              "enum": [
+                "measured",
+                "unmeasured"
+              ]
+            }
+          }
+        },
+        "scoring": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "provenance"
+          ],
+          "description": "scoring provenance=unmeasured REQUIRES value=null.",
+          "properties": {
+            "value": {},
+            "provenance": {
+              "enum": [
+                "measured",
+                "unmeasured"
+              ]
+            }
+          }
+        },
+        "unit": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "provenance"
+          ],
+          "description": "unit provenance=unmeasured REQUIRES value=null.",
+          "properties": {
+            "value": {},
+            "provenance": {
+              "enum": [
+                "measured",
+                "unmeasured"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "egress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "endpoint"
+      ],
+      "description": "mode=single_endpoint with endpoint=null is INVALID BY SCHEMA.",
+      "properties": {
+        "mode": {
+          "enum": [
+            "deny_all",
+            "single_endpoint"
+          ]
+        },
+        "endpoint": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "host",
+                "port",
+                "sni",
+                "pinned_cert_spki",
+                "allowed_methods",
+                "allowed_paths"
+              ],
+              "properties": {
+                "host": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "port": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65535
+                },
+                "sni": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "pinned_cert_spki": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "allowed_methods": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "allowed_paths": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "single_endpoint"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "endpoint": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "deny_all"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "endpoint": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "telemetry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min_coverage_fraction",
+        "max_missed_samples",
+        "sampling_interval_ms",
+        "signature_required"
+      ],
+      "properties": {
+        "min_coverage_fraction": {
+          "type": "number"
+        },
+        "max_missed_samples": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sampling_interval_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "signature_required": {
+          "type": "boolean"
+        }
+      }
+    },
+    "worker_env": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[A-Z][A-Z0-9_]*$"
+      },
+      "description": "role -> variable NAME. C7 never carries their values. The nine required roles may not be absent; extra roles are allowed. scratch_root is new in C7 1.1.0 and names the bind-mounted, daemon-visible directory where RAW participant output lives -- outside the ingestion output root that becomes the scorer's input/res.",
+      "required": [
+        "gpu_device",
+        "model_endpoint",
+        "model_name",
+        "proxy_policy",
+        "resolver",
+        "scratch_root",
+        "seed",
+        "served_categories",
+        "unit_runtime"
+      ]
+    },
+    "unit_resource_profiles": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "verifier_sandbox_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "network",
+        "docker_socket",
+        "credentials",
+        "pids",
+        "output_bytes",
+        "wall_time_sec"
+      ],
+      "properties": {
+        "network": {
+          "const": "none"
+        },
+        "docker_socket": {
+          "const": false
+        },
+        "credentials": {
+          "const": false
+        },
+        "pids": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "output_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "wall_time_sec": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "model_cache": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mount",
+            "tree_digest"
+          ],
+          "properties": {
+            "mount": {
+              "type": "string"
+            },
+            "tree_digest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        }
+      ]
+    },
+    "public_projection": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      },
+      "description": "The ONLY fields the website may publish."
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "alg",
+        "key_id",
+        "payload_digest",
+        "signed_at",
+        "signature"
+      ],
+      "description": "Frozen rule 0.5 envelope. An empty trust store makes verification FAIL.",
+      "properties": {
+        "alg": {
+          "const": "Ed25519"
+        },
+        "key_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payload_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "signed_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "signature": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "minLength": 86
+        }
+      }
+    }
+  }
+}

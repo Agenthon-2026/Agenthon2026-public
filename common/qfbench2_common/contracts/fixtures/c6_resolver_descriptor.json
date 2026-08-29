@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0.0",
+  "pointer_id": "ptr-7f3a9c21",
+  "track": "forecasting",
+  "phase": "final",
+  "dataset_version": "2026.08.1",
+  "artifacts": [
+    {
+      "artifact_id": "t2-inputs",
+      "role": "participant_input",
+      "uri": "s3://synthetic-sealed/t2/final/inputs/",
+      "tree_digest": "sha256:85f3c681e292923fd2a9cfcfa8ce6adfb1b036291196b882e97d604d238c00d6",
+      "total_bytes": 1048576,
+      "object_count": 12,
+      "required": true,
+      "answer_equivalent": false
+    },
+    {
+      "artifact_id": "t2-targets",
+      "role": "scorer_reference",
+      "uri": "s3://synthetic-sealed/t2/final/targets/",
+      "tree_digest": "sha256:33d9db4932045b078366b2f01b65d8aaec20cdf022368d5f4d04bb7cd4db06f2",
+      "total_bytes": 65536,
+      "object_count": 3,
+      "required": true,
+      "answer_equivalent": false
+    },
+    {
+      "artifact_id": "t2-ref-scale",
+      "role": "scorer_reference",
+      "uri": "s3://synthetic-sealed/t2/final/ref_scale/",
+      "tree_digest": "sha256:7f5ed44110c44b09b31a4f0c6762c6ce5668d4432c3f9c0b3184eaefca05368a",
+      "total_bytes": 4096,
+      "object_count": 1,
+      "required": true,
+      "answer_equivalent": true
+    }
+  ],
+  "roster_commitment": {
+    "count": 3,
+    "digest": "sha256:5ad455d0cfaeafced3c839c867d4577b028efbb9e403db67859d2e565d341944"
+  },
+  "corpus_manifest": {
+    "doc-0001": {
+      "digest": "sha256:07d92883cb24bf2d2cde95b180ec0a6dbb9bfd21ec92fb9aad40f2e616c14728",
+      "doc_date": "2026-03-01T00:00:00Z"
+    },
+    "doc-0002": {
+      "digest": "sha256:14eb3558534acdad3705471bbff39b14d96224fd698453858ae26aadc838f36b",
+      "doc_date": "2026-04-15T00:00:00Z"
+    }
+  },
+  "resolver": {
+    "identity": "resolver-organizer-01",
+    "allowed_destination_prefix": "/opt/qfbench/sealed/"
+  },
+  "expires_at": "2026-12-31T00:00:00Z",
+  "signature": {
+    "alg": "Ed25519",
+    "key_id": "dev-organizer-2026",
+    "payload_digest": "sha256:69d4abf57295cc49ef63ba159e150050e9a1f7a4cac0badd8338e7f5e1de52de",
+    "signed_at": "2026-08-21T09:00:00Z",
+    "signature": "BNdPtoojrJ3rvXUx4vCWBBgYTir7LcPZkBnCUZY3Y8EXMY8K52gslUM6fzn6LBFh2Dtxhu2do+ppMWaZxf23Dg=="
+  }
+}

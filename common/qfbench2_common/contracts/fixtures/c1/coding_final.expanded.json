@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.1.0",
+  "contract_set": "1.1.0",
+  "competition_id": "agenthon2026-coding-final",
+  "track": "coding",
+  "phase": "final",
+  "plan_id": "plan-coding-final-0001",
+  "metric": {
+    "direction": "desc",
+    "domain": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "statistic": "mean",
+    "unit_scope": "per_unit_attempt"
+  },
+  "roster": {
+    "count": 3,
+    "digest": "sha256:fd8dc19da0dd4df3c5e760db9eef5f56d42153507dbcf9c1b8849c8a896f6e17",
+    "expected_units": [
+      {
+        "unit_handle": "u-63796a87128182d0",
+        "timeout_sec": 1800.0,
+        "resource_profile_id": "t1-standard"
+      },
+      {
+        "unit_handle": "u-38e89a73da774412",
+        "timeout_sec": 1800.0,
+        "resource_profile_id": "t1-standard"
+      },
+      {
+        "unit_handle": "u-589e49aec5839424",
+        "timeout_sec": 1800.0,
+        "resource_profile_id": "t1-standard"
+      }
+    ]
+  },
+  "participant_failure": {
+    "policy": "fixed_worst_case",
+    "score": 0.0,
+    "by_code": {},
+    "clip_real_scores_to_domain": true
+  },
+  "organizer_failure": {
+    "policy": "abort_whole_evaluation"
+  },
+  "scorer": {
+    "package": "qfbench2_track_coding",
+    "digest": "sha256:6eb2a823c89c05680d789ecf088b9ff4cb8495c0e6b49c49496fcb138107d6c9",
+    "interface_version": "2.0"
+  },
+  "required_evidence": {
+    "c2": true,
+    "c3": true,
+    "telemetry": false,
+    "judge": false
+  },
+  "attempts_per_unit": 3,
+  "k_values": [
+    1,
+    3
+  ],
+  "signature": {
+    "alg": "Ed25519",
+    "key_id": "dev-organizer-2026",
+    "payload_digest": "sha256:10bdad0771fa958b9bb35d661e113695b0823dd27b6d826cadf2650681d55841",
+    "signed_at": "2026-08-21T09:00:00Z",
+    "signature": "gYBtZaLRdC0Gf65tiOzLqVW1wJ2YNZ296f1Cbc++3CmQa6wiIg0R1WlFWRy8PyqI64i2VPMW4J7yBzija9VTCA=="
+  }
+}

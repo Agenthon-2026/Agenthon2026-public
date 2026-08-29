@@ -1,0 +1,331 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agenthon.net/qfbench2/schemas/c4_result.schema.json",
+  "title": "C4 scorer result and aggregate",
+  "description": "Structural validation only. Cross-field invariants -- digest self-consistency, W == the worst end of the domain, roster digest over the ordered handle array, provenance/value agreement -- are enforced by qfbench2_common.contracts, which is the authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "unit_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "unit_handle",
+        "attempt_slot_index",
+        "state",
+        "score",
+        "failure_code",
+        "detail",
+        "plan_digest",
+        "run_record_digest",
+        "sanitized_tree_digest",
+        "scorer",
+        "judge"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0.0"
+        },
+        "unit_handle": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Opaque. A sealed unit id never appears here."
+        },
+        "attempt_slot_index": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "state": {
+          "enum": [
+            "participant_success",
+            "participant_failure",
+            "organizer_failure",
+            "unrankable"
+          ]
+        },
+        "score": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "failure_code": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "no_output",
+                "malformed_output",
+                "schema_invalid",
+                "incomplete_output",
+                "resource_timeout",
+                "resource_oom",
+                "container_crashed",
+                "image_unusable",
+                "network_violation",
+                "cutoff_violation",
+                "contamination_detected",
+                "domain_gate_failed"
+              ]
+            }
+          ]
+        },
+        "detail": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "CLOSED: enum code plus integer counts only. 'note' and 'resolves_after' were removed by the freeze - one is participant-influenced free text, the other is how a sealed target date reaches a public artifact.",
+          "properties": {
+            "code": {
+              "enum": [
+                "no_output",
+                "malformed_output",
+                "schema_invalid",
+                "incomplete_output",
+                "resource_timeout",
+                "resource_oom",
+                "container_crashed",
+                "image_unusable",
+                "network_violation",
+                "cutoff_violation",
+                "contamination_detected",
+                "domain_gate_failed"
+              ]
+            },
+            "missing_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "extra_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "invalid_row_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "nonfinite_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "expected_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "observed_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "rejected_node_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "violation_count": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "plan_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "run_record_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "sanitized_tree_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "scorer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "package",
+            "digest",
+            "interface_version"
+          ],
+          "properties": {
+            "package": {
+              "type": "string"
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "interface_version": {
+              "type": "string"
+            }
+          }
+        },
+        "judge": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "judge_mode",
+                "model_ids",
+                "model_revisions",
+                "tokenizer_digest",
+                "local_cache_tree_digest"
+              ],
+              "properties": {
+                "judge_mode": {
+                  "enum": [
+                    "production",
+                    "smoke"
+                  ]
+                },
+                "model_ids": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "model_revisions": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "tokenizer_digest": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "local_cache_tree_digest": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "aggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plan_digest",
+        "statistic",
+        "value",
+        "n_expected",
+        "n_scored",
+        "n_participant_failure",
+        "n_organizer_failure",
+        "denominator"
+      ],
+      "description": "The mean over the C1 roster. The four counts must sum to n_expected or the aggregate refuses to be emitted.",
+      "properties": {
+        "plan_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "statistic": {
+          "enum": [
+            "mean",
+            "median"
+          ]
+        },
+        "value": {
+          "type": "number"
+        },
+        "n_expected": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "n_scored": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "n_participant_failure": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "n_organizer_failure": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "denominator": {
+          "const": "c1_roster"
+        }
+      }
+    },
+    "failure_code_registry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "contract_set",
+        "codes"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string"
+        },
+        "contract_set": {
+          "type": "string"
+        },
+        "codes": {
+          "type": "array",
+          "minItems": 12,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "phase_scope",
+              "one_line_participant_gloss",
+              "scored"
+            ],
+            "properties": {
+              "code": {
+                "enum": [
+                  "no_output",
+                  "malformed_output",
+                  "schema_invalid",
+                  "incomplete_output",
+                  "resource_timeout",
+                  "resource_oom",
+                  "container_crashed",
+                  "image_unusable",
+                  "network_violation",
+                  "cutoff_violation",
+                  "contamination_detected",
+                  "domain_gate_failed"
+                ]
+              },
+              "phase_scope": {
+                "enum": [
+                  "ingestion",
+                  "execution",
+                  "scoring"
+                ],
+                "description": "RATIFIED: the PIPELINE stage that may emit this code (ingestion | execution | scoring). It is NOT the competition phase (dev | final | verification). The competition phase lives in C1, which is signed and covers the whole evaluation; a per-code copy of it would be a second place to write one fact, and the two would eventually disagree with nothing able to adjudicate. A code emitted outside its pipeline scope is an organizer fault."
+              },
+              "one_line_participant_gloss": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "scored": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": []
+}

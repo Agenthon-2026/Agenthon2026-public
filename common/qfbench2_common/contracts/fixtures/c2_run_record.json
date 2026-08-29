@@ -1,0 +1,135 @@
+{
+  "schema_version": "1.1.0",
+  "run_id": "run-0001-u-63796a87128182d0-slot0",
+  "unit_handle": "u-63796a87128182d0",
+  "attempt_slot_index": 0,
+  "bindings": {
+    "plan_digest": "sha256:10bdad0771fa958b9bb35d661e113695b0823dd27b6d826cadf2650681d55841",
+    "descriptor_digest": "sha256:90d7b2cab950491c053a9ca702026d142b914dcbbb54b27df689e4aca509283b",
+    "c7_instance_digest": "sha256:e3080f7da1218221a4cb90fc516d66602086f622ee110bc91b5443d905995690",
+    "sanitized_tree_digest": "sha256:3beeb951e443ebf16a1586d13563d13d993e545f2d9592a0fbcadca2683ee226"
+  },
+  "image": {
+    "requested": "docker.io/team-example/qfb2-solver@sha256:a17eb95d89902977aaf45034f7749935a7b4b03755b162116dd726a39c3af0ae",
+    "resolved_digest": "sha256:a17eb95d89902977aaf45034f7749935a7b4b03755b162116dd726a39c3af0ae",
+    "interface_label": "qfbench2.interface=2.0"
+  },
+  "lifecycle": {
+    "phase_reached": "exited",
+    "daemon_status": "exited",
+    "daemon_error": "",
+    "exit_code": 0,
+    "signal": null,
+    "timed_out": false,
+    "oom_killed": false,
+    "cleanup_confirmed": true
+  },
+  "participant_outcome": "success",
+  "rankability": {
+    "state": "rankable",
+    "unmet_controls": []
+  },
+  "timing": {
+    "started_at": "2026-08-21T10:00:00Z",
+    "ended_at": "2026-08-21T10:04:12Z",
+    "elapsed_sec": 252.0,
+    "applied_timeout_sec": 1800.0
+  },
+  "applied": {
+    "runtime": {
+      "requested": "runsc",
+      "applied": "runsc",
+      "source": "pinned"
+    },
+    "gpu": {
+      "requested": "GPU-4c1d2e3f-a1b2-c3d4-e5f6-0a1b2c3d4e5f",
+      "applied": "GPU-4c1d2e3f-a1b2-c3d4-e5f6-0a1b2c3d4e5f",
+      "source": "pinned",
+      "uuid": "GPU-4c1d2e3f-a1b2-c3d4-e5f6-0a1b2c3d4e5f",
+      "selector": "uuid"
+    },
+    "network": {
+      "requested": "none",
+      "applied": "none",
+      "source": "pinned"
+    },
+    "limits": {
+      "cpus": {
+        "requested": 4,
+        "applied": 4,
+        "source": "pinned"
+      },
+      "memory_bytes": {
+        "requested": 17179869184,
+        "applied": 17179869184,
+        "source": "pinned"
+      },
+      "pids": {
+        "requested": 512,
+        "applied": 512,
+        "source": "pinned"
+      },
+      "storage_bytes": {
+        "requested": 10737418240,
+        "applied": 10737418240,
+        "source": "pinned"
+      }
+    }
+  },
+  "telemetry": {
+    "sampling_interval_ms": 50,
+    "samples_taken": 4990,
+    "samples_expected": 5040,
+    "samples_missed": 50,
+    "coverage_fraction": 0.9901,
+    "gpu_uuid": "GPU-4c1d2e3f-a1b2-c3d4-e5f6-0a1b2c3d4e5f",
+    "participant_cgroup_id": "qfb2-unit-0001",
+    "exclusive": true,
+    "contender_process_count": 0,
+    "throttled": false
+  },
+  "output_row_counts": {
+    "results/trades.parquet": 1024
+  },
+  "repeats": [],
+  "leakage": {
+    "canary_verdict": "clean",
+    "hit_count": 0,
+    "scanned_file_count": 3,
+    "scanned_bytes": 43520
+  },
+  "worker_layer_view": [
+    {
+      "layer": "worker",
+      "runtime": "runc",
+      "docker_socket_present": true,
+      "mount_roots": [
+        "/var/lib/codabench"
+      ]
+    },
+    {
+      "layer": "unit",
+      "runtime": "runsc",
+      "docker_socket_present": false,
+      "mount_roots": [
+        "/input",
+        "/output"
+      ]
+    }
+  ],
+  "observation": {
+    "observed_by": "qfbench2-hub",
+    "notes_count": 0
+  },
+  "attestation": {
+    "observation_verdict": "confirmed",
+    "reason": "host_facts_match",
+    "signature": {
+      "alg": "Ed25519",
+      "key_id": "dev-organizer-2026",
+      "payload_digest": "sha256:047c2f7b146bff5b75e89c3c15f35d3b0da25e16eeba0c2c58cdc742563fc049",
+      "signed_at": "2026-08-21T09:00:00Z",
+      "signature": "kFXwb4D9ADB6kppqsbXMbbiYK2UqKvTDTdlgdIzTLWuKQCnMpuss6HW6uNUcCqP/X4/UNUt4CUJVYnmKUor8CQ=="
+    }
+  }
+}

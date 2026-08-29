@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agenthon.net/qfbench2/schemas/manifest.schema.json",
+  "title": "QFBench 2.0 per-file data manifest",
+  "description": "The per-file CHECKSUM manifest. qfbench2_common.manifest.verify_manifest verifies it EXACTLY and in BOTH directions -- manifest->disk (every entry exists, is a plain single-linked readable regular file, and hashes to the recorded digest) and disk->manifest (no unmanifested file inside a covered subtree). Structural validation lives here; the cross-field invariants (path safety, duplicate and NFC/case collisions, node types) are enforced by that module, which is the authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["manifest_version", "unit_id", "files"],
+  "properties": {
+    "manifest_version": {"const": "2.0"},
+    "unit_id": {"type": "string"},
+    "generated_by": {"type": "string"},
+    "coverage": {
+      "type": "array",
+      "description": "Which subtrees this manifest claims to be EXACT over, relative to the unit directory, each covered recursively. \".\" means the whole unit. When absent, coverage is DERIVED: the first path component of every entry that has one, plus the unit root non-recursively if any entry is a root-level file. The derived form leaves a directory that holds no manifest entry unpoliced -- declare coverage to close that, and declare [\".\"] to leave no gap. manifest.json is never counted as an unmanifested extra.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^(\\.|[^/\\\\][^\\\\]*)$"
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "role", "license", "sha256", "split", "redistributable"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Relative to the unit directory, POSIX separators, NFC-normalized. Absolute paths, '..'/'.' components, backslashes and drive letters are refused: the previous implementation joined this straight onto the unit directory, so an absolute path replaced it outright.",
+            "pattern": "^(?!/)(?!.*(^|/)\\.\\.?(/|$))[^\\\\]+$"
+          },
+          "role": {"enum": ["input", "reference", "fixture", "scenario", "corpus", "trace"]},
+          "source": {"type": "string"},
+          "license": {"type": "string", "description": "SPDX identifier"},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "bytes": {"type": "integer", "minimum": 0},
+          "split": {"enum": ["public-dev", "validation", "private-test"]},
+          "cutoff": {"type": "string", "pattern": "^(\\d{4}-\\d{2}-\\d{2})?$"},
+          "public_release_date": {"type": "string"},
+          "redistributable": {"type": "boolean"},
+          "pii_stripped": {"type": "boolean"}
+        }
+      }
+    },
+    "notes": {"type": "string"}
+  }
+}

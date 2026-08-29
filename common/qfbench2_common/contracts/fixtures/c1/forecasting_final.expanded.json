@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.1.0",
+  "contract_set": "1.1.0",
+  "competition_id": "agenthon2026-forecasting-final",
+  "track": "forecasting",
+  "phase": "final",
+  "plan_id": "plan-forecasting-final-0001",
+  "metric": {
+    "direction": "asc",
+    "domain": {
+      "min": 0.0,
+      "max": 4.0
+    },
+    "statistic": "mean",
+    "unit_scope": "per_unit"
+  },
+  "roster": {
+    "count": 3,
+    "digest": "sha256:5ad455d0cfaeafced3c839c867d4577b028efbb9e403db67859d2e565d341944",
+    "expected_units": [
+      {
+        "unit_handle": "u-f83780ad7957ef1a",
+        "grid": {
+          "assets": [
+            "SYN-A",
+            "SYN-B"
+          ],
+          "horizons": [
+            1,
+            5,
+            21
+          ],
+          "cell_count": 6,
+          "digest": "sha256:fd796831ba5c60b3f456f85ce96c8435beaadda75ec6248d7967c5bba6021723"
+        }
+      },
+      {
+        "unit_handle": "u-2c5833340d58e0a8",
+        "grid": {
+          "assets": [
+            "SYN-A",
+            "SYN-B"
+          ],
+          "horizons": [
+            1,
+            5,
+            21
+          ],
+          "cell_count": 6,
+          "digest": "sha256:3c3b8c61b482605ad17f4bc2b9cd417483ddd912a3e55fa3bca1e4a328c2b539"
+        }
+      },
+      {
+        "unit_handle": "u-6950a81d13974183",
+        "grid": {
+          "assets": [
+            "SYN-A",
+            "SYN-B"
+          ],
+          "horizons": [
+            1,
+            5,
+            21
+          ],
+          "cell_count": 6,
+          "digest": "sha256:0982cceea025510b0b766c26eb62366a5766ca061ea57f4b1717f502ea805f06"
+        }
+      }
+    ]
+  },
+  "participant_failure": {
+    "policy": "fixed_worst_case",
+    "score": 4.0,
+    "by_code": {},
+    "clip_real_scores_to_domain": true
+  },
+  "organizer_failure": {
+    "policy": "abort_whole_evaluation"
+  },
+  "scorer": {
+    "package": "qfbench2_track_forecasting",
+    "digest": "sha256:c5e9ea4a1ded7f619f7195b1f123e5d011d75cade7295791732acf8c02d810c2",
+    "interface_version": "2.0"
+  },
+  "required_evidence": {
+    "c2": true,
+    "c3": true,
+    "telemetry": false,
+    "judge": false
+  },
+  "normalization": {
+    "mode": "ref_scale",
+    "ref_scale_commitment": "sha256:b9a6287e755380ebfb739b872da296a5ba412706075be6f8ae5e691c3cdd0df6"
+  },
+  "signature": {
+    "alg": "Ed25519",
+    "key_id": "dev-organizer-2026",
+    "payload_digest": "sha256:b9a8915f8b7c705de37946917cb81377f3935b2f05e14c2ee53ba533155173ec",
+    "signed_at": "2026-08-21T09:00:00Z",
+    "signature": "HwcJ6Gh0qCwuAbYCKFXtOeiwTmvpuEGuS+7/awUXGuCjc3upgml2BC9bCbcoLQbFZdtHafAwUTP2LDf+pYFkBA=="
+  }
+}

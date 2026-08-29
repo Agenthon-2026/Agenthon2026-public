@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agenthon.net/qfbench2/schemas/c3_artifact_tree.schema.json",
+  "title": "C3 sanitized participant artifact tree",
+  "description": "Structural validation only. Cross-field invariants -- digest self-consistency, W == the worst end of the domain, roster digest over the ordered handle array, provenance/value agreement -- are enforced by qfbench2_common.contracts, which is the authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "root",
+    "root_digest",
+    "entries",
+    "limits_applied",
+    "rejections",
+    "reference_reachable_from_c3",
+    "staging_root_parent_exclusive"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "root": {
+      "const": "sanitized"
+    },
+    "root_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "sha256 over the JCS form of entries sorted by NFC-normalized path, code-point ascending."
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "size_bytes",
+          "sha256",
+          "mode_bits",
+          "num_rows"
+        ],
+        "description": "The digest preimage is fixed: num_rows is required-and-nullable rather than optional, so two implementations cannot disagree.",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^/\\\\][^\\\\]*$"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "description": "Over the COPIED bytes."
+          },
+          "mode_bits": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4095
+          },
+          "num_rows": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "limits_applied": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_files",
+        "max_depth",
+        "max_file_bytes",
+        "max_total_bytes",
+        "max_sparse_ratio"
+      ],
+      "properties": {
+        "max_files": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_depth": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_file_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_total_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_sparse_ratio": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "rejections": {
+      "type": "array",
+      "description": "COUNTS ONLY. There is deliberately no path field. mode_unsafe covers setuid/setgid/sticky bits on a participant file: the copy into a fresh 0o644 file drops the bit either way, but a counted code makes the refusal visible in these rows, which a raise on the way past never did.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "count"
+        ],
+        "properties": {
+          "code": {
+            "enum": [
+              "symlink",
+              "hard_link",
+              "non_regular",
+              "unreadable",
+              "path_unsafe",
+              "path_not_allowed",
+              "depth_exceeded",
+              "count_exceeded",
+              "file_bytes_exceeded",
+              "total_bytes_exceeded",
+              "sparse_ratio_exceeded",
+              "nfc_collision",
+              "case_collision",
+              "duplicate_path",
+              "mode_unsafe"
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "reference_reachable_from_c3": {
+      "const": false,
+      "description": "An ASSERTED TEST RESULT, not prose. True is an organizer fault."
+    },
+    "staging_root_parent_exclusive": {
+      "const": true
+    }
+  }
+}

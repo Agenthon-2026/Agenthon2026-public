@@ -1,0 +1,10 @@
+{
+  "plan_digest": "sha256:10bdad0771fa958b9bb35d661e113695b0823dd27b6d826cadf2650681d55841",
+  "statistic": "mean",
+  "value": 0.8888888888888888,
+  "n_expected": 9,
+  "n_scored": 8,
+  "n_participant_failure": 1,
+  "n_organizer_failure": 0,
+  "denominator": "c1_roster"
+}

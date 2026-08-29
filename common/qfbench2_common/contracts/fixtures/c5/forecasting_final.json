@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "interface_version": "2.0",
+  "competition_id": "agenthon2026-forecasting-final",
+  "team_id": "team-example-0001",
+  "track": "forecasting",
+  "phase": "final",
+  "category": "byo-small",
+  "image": {
+    "registry": "docker.io",
+    "repository": "team-example/qfb2-forecaster",
+    "digest": "sha256:4bd33729d44f4dc44d2fabbfcf928d28503bc62fed86f68f3a5c354317f0ca02"
+  },
+  "image_access": "public",
+  "models": [
+    {
+      "name": "example-local-small",
+      "version": "example-small-20260315",
+      "training_cutoff": "2025-12",
+      "access": "local",
+      "revision": "8f2c1d0e4b6a"
+    }
+  ],
+  "license": "Apache-2.0",
+  "descriptor_digest": "sha256:46efb460377c8b8d2cc08c132e9b7ff48ad552aeff81ee54ca71eeeb4e3cd296"
+}

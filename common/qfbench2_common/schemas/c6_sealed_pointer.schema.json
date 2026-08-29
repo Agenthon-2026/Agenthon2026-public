@@ -1,0 +1,246 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agenthon.net/qfbench2/schemas/c6_sealed_pointer.schema.json",
+  "title": "C6 sealed pointer: public handle + resolver descriptor",
+  "description": "Structural validation only. Cross-field invariants -- digest self-consistency, W == the worst end of the domain, roster digest over the ordered handle array, provenance/value agreement -- are enforced by qfbench2_common.contracts, which is the authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [],
+  "properties": {
+    "public_handle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "track",
+        "phase",
+        "dataset_version",
+        "pointer_id"
+      ],
+      "description": "What ships in a bundle. NOTHING ELSE: never a digest, never a count.",
+      "properties": {
+        "schema_version": {
+          "const": "1.0.0"
+        },
+        "track": {
+          "enum": [
+            "coding",
+            "forecasting",
+            "simulation",
+            "analysis"
+          ]
+        },
+        "phase": {
+          "enum": [
+            "dev",
+            "final",
+            "verification"
+          ]
+        },
+        "dataset_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pointer_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "resolver_descriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "pointer_id",
+        "track",
+        "phase",
+        "dataset_version",
+        "artifacts",
+        "roster_commitment",
+        "corpus_manifest",
+        "resolver",
+        "expires_at",
+        "signature"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0.0"
+        },
+        "pointer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "track": {
+          "enum": [
+            "coding",
+            "forecasting",
+            "simulation",
+            "analysis"
+          ]
+        },
+        "phase": {
+          "enum": [
+            "dev",
+            "final",
+            "verification"
+          ]
+        },
+        "dataset_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifacts": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "artifact_id",
+              "role",
+              "uri",
+              "tree_digest",
+              "total_bytes",
+              "object_count",
+              "required",
+              "answer_equivalent"
+            ],
+            "properties": {
+              "artifact_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "role": {
+                "enum": [
+                  "participant_input",
+                  "scorer_reference",
+                  "verifier_asset"
+                ],
+                "description": "A single string, so 'two roles' is unrepresentable."
+              },
+              "uri": {
+                "type": "string",
+                "minLength": 1
+              },
+              "tree_digest": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "description": "Null or empty is forbidden."
+              },
+              "total_bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "object_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "answer_equivalent": {
+                "type": "boolean",
+                "description": "True on any derived artifact that inverts to the answer."
+              }
+            }
+          }
+        },
+        "roster_commitment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "count",
+            "digest"
+          ],
+          "properties": {
+            "count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        },
+        "corpus_manifest": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "digest",
+              "doc_date"
+            ],
+            "properties": {
+              "digest": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "doc_date": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+              }
+            }
+          }
+        },
+        "resolver": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "identity",
+            "allowed_destination_prefix"
+          ],
+          "properties": {
+            "identity": {
+              "type": "string",
+              "minLength": 1
+            },
+            "allowed_destination_prefix": {
+              "type": "string"
+            }
+          }
+        },
+        "expires_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "signature": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "alg",
+            "key_id",
+            "payload_digest",
+            "signed_at",
+            "signature"
+          ],
+          "description": "Frozen rule 0.5 envelope. An empty trust store makes verification FAIL.",
+          "properties": {
+            "alg": {
+              "const": "Ed25519"
+            },
+            "key_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "payload_digest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "signed_at": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+            },
+            "signature": {
+              "type": "string",
+              "contentEncoding": "base64",
+              "minLength": 86
+            }
+          }
+        }
+      }
+    }
+  }
+}

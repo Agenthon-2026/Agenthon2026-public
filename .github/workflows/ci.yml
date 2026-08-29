@@ -1,0 +1,161 @@
+# Participant-facing CI: everything here must pass for a member of the public with no
+# credentials. Nothing in this workflow may reference a private repository or a token.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Install, import, CLI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.13"
+
+      # Installed from the tree, exactly as a participant installs it from the tag.
+      - name: Install
+        run: python -m pip install "./common"
+
+      - name: Import the public surface
+        run: |
+          python - <<'PY'
+          from qfbench2_common.contracts import CONTRACT_SET
+          from qfbench2_common.scoring.faithfulness import predictive_quality
+          from qfbench2_common.scoring._ranking import average_ranks, spearman_rho
+          print("contract set", CONTRACT_SET)
+          PY
+
+      - name: CLI help
+        run: |
+          qfbench2 --help
+          qfbench2-smoke --help
+
+      - name: Declared licence matches LICENSE
+        run: |
+          python - <<'PY'
+          import pathlib, sys, tomllib
+          # This project is CC BY-NC 4.0. The check exists so the DECLARATION and the FILE cannot
+          # drift apart -- a package whose metadata and LICENSE disagree is worse than one that
+          # simply states a licence.
+          #
+          # It has to read both sides to mean anything. The previous version asserted only that
+          # the word "NonCommercial" appeared in LICENSE and never opened pyproject.toml at all,
+          # so `license = "MIT"` next to the unchanged CC BY-NC text passed a step named
+          # "Declared licence matches LICENSE".
+          text = pathlib.Path("LICENSE").read_text()
+
+          # Identify the licence from its own text first, then require the declaration to agree.
+          # Deriving it this way means changing EITHER side alone fails the step.
+          if "Attribution-NonCommercial 4.0 International" in text:
+              actual = "CC-BY-NC-4.0"
+          elif "Permission is hereby granted, free of charge" in text:
+              actual = "MIT"
+          elif "Apache License" in text and "Version 2.0" in text:
+              actual = "Apache-2.0"
+          else:
+              sys.exit("LICENSE text matches no licence this check can identify")
+
+          project = tomllib.loads(pathlib.Path("common/pyproject.toml").read_text())["project"]
+          declared = project.get("license")
+          if isinstance(declared, dict):  # legacy {text=...} / {file=...} form
+              declared = declared.get("text") or declared.get("file")
+          if not isinstance(declared, str) or not declared:
+              sys.exit("common/pyproject.toml declares no [project] license")
+          if declared != actual:
+              sys.exit(f"common/pyproject.toml declares license = {declared!r}, "
+                       f"but the LICENSE text is {actual}")
+
+          license_files = project.get("license-files") or []
+          if "LICENSE" not in license_files:
+              sys.exit(f"license-files = {license_files!r} does not ship LICENSE, so the "
+                       f"declared {declared} would be distributed without its text")
+
+          if pathlib.Path("common/LICENSE").read_text() != text:
+              sys.exit("common/LICENSE disagrees with the root LICENSE")
+          print(f"licence: declared {declared}, LICENSE text is {actual}, "
+                f"root and package agree")
+          PY
+
+  tests:
+    name: pytest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.13"
+      - run: python -m pip install "./common" pytest scipy
+      - run: python -m pytest common/tests -q
+
+  types:
+    name: mypy (strict)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.13"
+      # `strict = true` has been declared in common/pyproject.toml since the toolkit was written
+      # and no job ever ran it, so the declaration gated nothing. The `dev` extra carries the
+      # exact mypy pin: unpinned, the gate's strictness would be decided by whenever CI last ran.
+      # The package's own dependencies have to be installed too -- mypy follows imports into
+      # numpy and jsonschema, and a missing one changes the verdict.
+      - name: Install the package and the pinned type checker
+        run: python -m pip install "./common[dev]"
+      # Run from `common/` so [tool.mypy] in common/pyproject.toml is the config that applies.
+      - name: mypy
+        working-directory: common
+        run: mypy qfbench2_common
+
+  lint:
+    name: Lint and format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.13"
+      - run: python -m pip install "ruff==0.15.21"
+      - run: ruff check common
+      - run: ruff format --check common
+
+  links:
+    name: Markdown links resolve
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.13"
+      # Relative links only. A broken one in a starter pack is a participant dead end,
+      # so this fails the build rather than warning.
+      - name: Check relative links
+        run: |
+          python - <<'PY'
+          import pathlib, re, sys
+          root = pathlib.Path(".")
+          pat = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
+          bad = []
+          for md in root.rglob("*.md"):
+              if ".git" in md.parts:
+                  continue
+              for target in pat.findall(md.read_text(encoding="utf-8", errors="replace")):
+                  t = target.split("#")[0].strip()
+                  if not t or t.startswith(("http://", "https://", "mailto:")):
+                      continue
+                  if not (md.parent / t).exists():
+                      bad.append(f"{md}: {target}")
+          if bad:
+              print("\n".join(sorted(bad)))
+              sys.exit(f"{len(bad)} broken relative link(s)")
+          print("all relative links resolve")
+          PY

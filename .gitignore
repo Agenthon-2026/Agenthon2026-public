@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+
+# Tool caches. These are excluded by this file, not by the self-ignore files ruff, pytest and
+# mypy write inside their own cache directories -- an archive or copy step that drops those
+# nested files must not be able to make the caches shippable. They also embed absolute paths
+# from whichever machine last ran the tools.
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+
+# Editor and OS droppings.
+.DS_Store
+*.swp
+*.orig
+*.rej
+.idea/
+.vscode/

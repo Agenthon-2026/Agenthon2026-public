@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "interface_version": "2.0",
+  "competition_id": "agenthon2026-simulation-verification",
+  "team_id": "team-example-0001",
+  "track": "simulation",
+  "phase": "verification",
+  "category": "simulator",
+  "image": {
+    "registry": "docker.io",
+    "repository": "team-example/qfb2-simulator",
+    "digest": "sha256:92ec2b0c277c740faaecf86993f574ef67a59d23af276bf28364d12765516499"
+  },
+  "image_access": "public",
+  "models": [
+    {
+      "name": "none-deterministic-simulator",
+      "version": "v1.4.2",
+      "training_cutoff": "not-applicable",
+      "access": "local",
+      "revision": "c0ffee123456"
+    }
+  ],
+  "license": "Apache-2.0",
+  "descriptor_digest": "sha256:06c596c677dbfb3cc97cef4771fcdfcd989025824e8c2f6842ff87809fea34b2"
+}

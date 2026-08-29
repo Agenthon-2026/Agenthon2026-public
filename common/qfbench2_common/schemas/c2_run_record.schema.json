@@ -1,0 +1,669 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agenthon.net/qfbench2/schemas/c2_run_record.schema.json",
+  "title": "C2 trusted run record (contract set 1.0.0)",
+  "description": "Structural validation only. Cross-field invariants -- digest self-consistency, W == the worst end of the domain, roster digest over the ordered handle array, provenance/value agreement -- are enforced by qfbench2_common.contracts, which is the authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "unit_handle",
+    "attempt_slot_index",
+    "bindings",
+    "image",
+    "lifecycle",
+    "participant_outcome",
+    "rankability",
+    "timing",
+    "applied",
+    "telemetry",
+    "output_row_counts",
+    "repeats",
+    "leakage",
+    "worker_layer_view",
+    "observation",
+    "attestation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.1.0"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "unit_handle": {
+      "type": "string",
+      "minLength": 1
+    },
+    "attempt_slot_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plan_digest",
+        "descriptor_digest",
+        "c7_instance_digest",
+        "sanitized_tree_digest"
+      ],
+      "properties": {
+        "plan_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "descriptor_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "c7_instance_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "sanitized_tree_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requested",
+        "resolved_digest",
+        "interface_label"
+      ],
+      "description": "resolved_digest is a real digest. The pre-freeze helper failed OPEN to the empty string; the pattern refuses that.",
+      "properties": {
+        "requested": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resolved_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "interface_label": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phase_reached",
+        "daemon_status",
+        "daemon_error",
+        "exit_code",
+        "signal",
+        "timed_out",
+        "oom_killed",
+        "cleanup_confirmed"
+      ],
+      "properties": {
+        "phase_reached": {
+          "enum": [
+            "created",
+            "started",
+            "exited",
+            "killed"
+          ]
+        },
+        "daemon_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "daemon_error": {
+          "type": "string"
+        },
+        "exit_code": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "signal": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timed_out": {
+          "type": "boolean"
+        },
+        "oom_killed": {
+          "type": "boolean",
+          "description": "The daemon's State.OOMKilled -- a channel the participant cannot write. Separate from exit_code because 137 is also an ordinary SIGKILL, so without this flag an OOM and a nonzero exit are the same bytes and the C4 code resource_oom cannot be emitted truthfully."
+        },
+        "cleanup_confirmed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "participant_outcome": {
+      "enum": [
+        "success",
+        "failure"
+      ],
+      "description": "Derived by the Runner helper from daemon facts, never from the exit code alone."
+    },
+    "rankability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "unmet_controls"
+      ],
+      "description": "The trusted execution profile, NOT whether participant code succeeded. A timeout under a valid profile is rankable.",
+      "properties": {
+        "state": {
+          "enum": [
+            "rankable",
+            "unrankable",
+            "organizer_failure"
+          ]
+        },
+        "unmet_controls": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "unit_runtime_unpinned",
+              "gpu_device_unpinned",
+              "tier_unenforced",
+              "image_digest_unresolved",
+              "egress_unverified",
+              "telemetry_absent",
+              "cleanup_unconfirmed",
+              "hardware_mismatch",
+              "signature_invalid",
+              "observation_contradicted"
+            ]
+          }
+        }
+      }
+    },
+    "timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "started_at",
+        "ended_at",
+        "elapsed_sec",
+        "applied_timeout_sec"
+      ],
+      "description": "HOST-measured. A participant-reported figure is inadmissible.",
+      "properties": {
+        "started_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "ended_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        },
+        "elapsed_sec": {
+          "type": "number",
+          "minimum": 0
+        },
+        "applied_timeout_sec": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "applied": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime",
+        "gpu",
+        "network",
+        "limits"
+      ],
+      "description": "Requested-vs-applied is STRUCTURAL. source=operator_override means an OPERATOR deliberately applied something other than the requested value (QFBENCH_ALLOW_NO_EVAL_NETWORK running a restricted card offline is the live instance); it is NOT daemon_default, and recording it as one is a false statement in a signed artifact. Every operator_override contributes an unmet control -- runtime->unit_runtime_unpinned, gpu->gpu_device_unpinned, network->egress_unverified, limits->tier_unenforced -- so such a run can never be rankable.",
+      "properties": {
+        "runtime": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "requested",
+            "applied",
+            "source"
+          ],
+          "description": "Requested vs applied container runtime.",
+          "properties": {
+            "requested": {},
+            "applied": {},
+            "source": {
+              "enum": [
+                "pinned",
+                "daemon_default",
+                "unset",
+                "operator_override"
+              ]
+            }
+          }
+        },
+        "gpu": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "requested",
+            "applied",
+            "source",
+            "uuid",
+            "selector"
+          ],
+          "description": "R-5: the device is named by UUID, never by index. `selector` records HOW the applied device was chosen and is null exactly when no device was applied; `index` and `all` are sayable but each forces the gpu_device_unpinned unmet control.",
+          "properties": {
+            "requested": {},
+            "applied": {},
+            "source": {
+              "enum": [
+                "pinned",
+                "daemon_default",
+                "unset",
+                "operator_override"
+              ]
+            },
+            "uuid": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^GPU-[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$"
+            },
+            "selector": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": [
+                "uuid",
+                "index",
+                "all",
+                null
+              ],
+              "description": "uuid | index | all | null. null means no device was applied at all -- silence and 'no GPU' were the same bytes before C2 1.1.0, and they are different facts."
+            }
+          }
+        },
+        "network": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "requested",
+            "applied",
+            "source"
+          ],
+          "description": "Requested vs applied network mode.",
+          "properties": {
+            "requested": {},
+            "applied": {},
+            "source": {
+              "enum": [
+                "pinned",
+                "daemon_default",
+                "unset",
+                "operator_override"
+              ]
+            }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "cpus",
+            "memory_bytes",
+            "pids",
+            "storage_bytes"
+          ],
+          "properties": {
+            "cpus": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "requested",
+                "applied",
+                "source"
+              ],
+              "description": "cpus",
+              "properties": {
+                "requested": {},
+                "applied": {},
+                "source": {
+                  "enum": [
+                    "pinned",
+                    "daemon_default",
+                    "unset",
+                    "operator_override"
+                  ]
+                }
+              }
+            },
+            "memory_bytes": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "requested",
+                "applied",
+                "source"
+              ],
+              "description": "memory_bytes",
+              "properties": {
+                "requested": {},
+                "applied": {},
+                "source": {
+                  "enum": [
+                    "pinned",
+                    "daemon_default",
+                    "unset",
+                    "operator_override"
+                  ]
+                }
+              }
+            },
+            "pids": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "requested",
+                "applied",
+                "source"
+              ],
+              "description": "pids",
+              "properties": {
+                "requested": {},
+                "applied": {},
+                "source": {
+                  "enum": [
+                    "pinned",
+                    "daemon_default",
+                    "unset",
+                    "operator_override"
+                  ]
+                }
+              }
+            },
+            "storage_bytes": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "requested",
+                "applied",
+                "source"
+              ],
+              "description": "storage_bytes",
+              "properties": {
+                "requested": {},
+                "applied": {},
+                "source": {
+                  "enum": [
+                    "pinned",
+                    "daemon_default",
+                    "unset",
+                    "operator_override"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "telemetry": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "sampling_interval_ms",
+        "samples_taken",
+        "samples_expected",
+        "samples_missed",
+        "coverage_fraction",
+        "gpu_uuid",
+        "participant_cgroup_id",
+        "exclusive",
+        "contender_process_count",
+        "throttled"
+      ],
+      "properties": {
+        "sampling_interval_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "samples_taken": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "samples_expected": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "samples_missed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "coverage_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "gpu_uuid": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "participant_cgroup_id": {
+          "type": "string"
+        },
+        "exclusive": {
+          "type": "boolean"
+        },
+        "contender_process_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "throttled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "output_row_counts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "description": "R-3: the Runner measures this from the parquet footer."
+    },
+    "repeats": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "index",
+          "elapsed_sec",
+          "output_tree_digest",
+          "event_count",
+          "rankability"
+        ],
+        "properties": {
+          "index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "elapsed_sec": {
+            "type": "number"
+          },
+          "output_tree_digest": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "event_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rankability": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "leakage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canary_verdict",
+        "hit_count",
+        "scanned_file_count",
+        "scanned_bytes"
+      ],
+      "description": "R-8 verdict-only. additionalProperties:false is what stops the matched token being attached.",
+      "properties": {
+        "canary_verdict": {
+          "enum": [
+            "clean",
+            "hit"
+          ]
+        },
+        "hit_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "scanned_file_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "scanned_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "worker_layer_view": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "layer",
+          "runtime",
+          "docker_socket_present",
+          "mount_roots"
+        ],
+        "properties": {
+          "layer": {
+            "enum": [
+              "worker",
+              "ingestion",
+              "scoring",
+              "unit"
+            ]
+          },
+          "runtime": {
+            "type": "string"
+          },
+          "docker_socket_present": {
+            "type": "boolean"
+          },
+          "mount_roots": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "not": {
+        "required": [
+          "signature"
+        ]
+      },
+      "description": "Hub-authored and UNSIGNED."
+    },
+    "attestation": {
+      "description": "Runner-authored and signed. signature.payload_digest is FROZEN as the sha256 over the RFC 8785 canonical form of this record MINUS the attestation block -- see qfbench2_common.contracts.run_record.attestation_payload, which is the only supported reading. Null only for a record that is not rankable.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "observation_verdict",
+            "reason",
+            "signature"
+          ],
+          "properties": {
+            "observation_verdict": {
+              "enum": [
+                "confirmed",
+                "contradicted"
+              ]
+            },
+            "reason": {
+              "enum": [
+                "host_facts_match",
+                "host_facts_mismatch",
+                "observation_absent",
+                "observation_malformed",
+                "clock_skew"
+              ]
+            },
+            "signature": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "alg",
+                "key_id",
+                "payload_digest",
+                "signed_at",
+                "signature"
+              ],
+              "description": "Frozen rule 0.5 envelope. An empty trust store makes verification FAIL.",
+              "properties": {
+                "alg": {
+                  "const": "Ed25519"
+                },
+                "key_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "payload_digest": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "signed_at": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+                },
+                "signature": {
+                  "type": "string",
+                  "contentEncoding": "base64",
+                  "minLength": 86
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

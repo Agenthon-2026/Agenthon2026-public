@@ -1,0 +1,63 @@
+{
+  "schema_version": "1.1.0",
+  "contract_set": "1.1.0",
+  "competition_id": "agenthon2026-simulation-final",
+  "track": "simulation",
+  "phase": "final",
+  "plan_id": "plan-simulation-final-0001",
+  "metric": {
+    "direction": "desc",
+    "domain": {
+      "min": 0.0,
+      "max": 10000000.0
+    },
+    "statistic": "mean",
+    "unit_scope": "per_unit"
+  },
+  "roster": {
+    "count": 2,
+    "digest": "sha256:f2419f42b5dfb087ef9dd4ebc6b2e9e9aae86412ce228259f395a5848cc2c5b2",
+    "expected_units": [
+      {
+        "unit_handle": "u-f0a716e5c45428f1"
+      },
+      {
+        "unit_handle": "u-e1b7047df63c51e6"
+      }
+    ]
+  },
+  "participant_failure": {
+    "policy": "fixed_worst_case",
+    "score": 0.0,
+    "by_code": {},
+    "clip_real_scores_to_domain": true
+  },
+  "organizer_failure": {
+    "policy": "abort_whole_evaluation"
+  },
+  "scorer": {
+    "package": "qfbench2_track_simulation",
+    "digest": "sha256:cd2229d0ffb4af63bea9e482138373fc950cebc3e375544e82446e20b205cb33",
+    "interface_version": "2.0"
+  },
+  "required_evidence": {
+    "c2": true,
+    "c3": true,
+    "telemetry": true,
+    "judge": false
+  },
+  "aggregation": {
+    "statistic": "mean",
+    "unit_scope": "per_unit"
+  },
+  "repeats": 5,
+  "warmup_discarded": 1,
+  "every_repeat_must_pass": true,
+  "signature": {
+    "alg": "Ed25519",
+    "key_id": "dev-organizer-2026",
+    "payload_digest": "sha256:278dec3f8a33ac707f50844854109c12bdac4c0a1e61a1fd226244de74cb4b4d",
+    "signed_at": "2026-08-21T09:00:00Z",
+    "signature": "/ODPUc1HsKtMqXJtp/qsB15ien7oqYVo945hngeoMqQjaOGKxgTTV/FcHi9QsjVqaZgEZozDvi0X9BuNgZ8wDg=="
+  }
+}

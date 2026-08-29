@@ -1,0 +1,136 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "qfbench2-common"
+version = "2.3.1"
+description = "Shared evaluation harness for Agenthon 2026 / QFBench 2.0 (all four tracks)"
+readme = "README.md"
+requires-python = ">=3.13"
+# The SAME grant as before, expressed as an SPDX id so tooling can read it. Without this the
+# `License:` metadata field is 19k characters of licence text and `pip-licenses` renders 410
+# lines for this one distribution. The full CC BY-NC text still ships, via `license-files`.
+license = "CC-BY-NC-4.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Pawel Polak" }]
+classifiers = [
+  "Programming Language :: Python :: 3.13",
+  "Intended Audience :: Science/Research",
+]
+dependencies = [
+  "numpy>=1.26",
+  "scipy>=1.11",
+  "jsonschema>=4.21",
+  "tomli>=2.0; python_version < '3.11'",
+]
+
+[project.optional-dependencies]
+data = ["pandas>=2.2", "pyarrow>=15"]
+nli = ["transformers>=4.40", "torch>=2.2"]      # T4 faithfulness judge
+# Harbor is shelled out, never imported. BOTH the Track-1 adapter
+# (qfbench2_common.track1.harbor) and the Track-4 exec adapter
+# (qfbench2_common.track4.harbor_exec) shell out to it, so `harbor` is the canonical
+# name and the per-track spellings are aliases -- neither obvious guess should fail.
+harbor = ["harbor>=0.15.0; python_version >= '3.12'"]
+track1-harbor = ["qfbench2-common[harbor]"]
+track4-harbor = ["qfbench2-common[harbor]"]
+# The lint/type toolchain is pinned exactly: an unpinned `mypy` means the gate's strictness is
+# decided by whenever CI last ran, and a release that turns a warning into an error turns a green
+# required check red with no change to this repository.
+# pyyaml is here for workflow-parsing tests that check CI's own shape. Those tests are NOT in
+# this repository yet -- `common/tests/` is `test_public_safety.py`, `test_ranking_quality.py`,
+# `test_fixture_integrity.py` and `test_gate_vocabulary_and_coverage.py`, none of which parse a
+# workflow -- so pyyaml is currently unused. Add the tests or drop the dependency; do not leave
+# this comment asserting a suite that does not exist.
+dev = ["pytest>=8.2", "pytest-cov", "ruff==0.15.21", "mypy==2.3.0", "pyyaml>=6.0"]
+
+[project.scripts]
+qfbench2 = "qfbench2_common.cli:main"
+qfbench2-smoke = "qfbench2_common.smoke:_cli"
+
+[tool.hatch.build.targets.wheel]
+packages = ["qfbench2_common"]
+# `_build_stamp.json` is written by a release job immediately before the wheel is built and is
+# git-ignored, so it is named here or the wheel would ship without a build identity and every
+# `require_build_identity()` call downstream would fail closed. See qfbench2_common.stamp_build.
+# NOTE: this repository ships no release workflow -- `.github/workflows/` is `ci.yml` alone -- so
+# nothing produced from this tree today is stamped, and a git install is unstamped by design.
+artifacts = ["qfbench2_common/_build_stamp.json"]
+
+# PEP 561. `py.typed` is tracked, so hatchling ships it with the package by default; it is named
+# here so that deleting it is a visible edit to this file rather than a silent one to a directory
+# listing. Without the marker a strict-mypy consumer types every hub symbol as `Any`: it cannot
+# subclass `OrganizerFault` or `ParticipantFailure` (mypy refuses a base class of type `Any`), so
+# the alternative to a type-ignore is a DUPLICATE fault-domain hierarchy — the exact thing a shared
+# contract package exists to prevent. Track 4 carried two ignores for this.
+force-include = { "qfbench2_common/py.typed" = "qfbench2_common/py.typed" }
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+# ------------------------------------------------------------------------------------- mypy
+#
+# `strict = true` was declared here when the toolkit was written and for a long time nothing ever
+# ran it: `.github/workflows/ci.yml` ran `ruff` and `pytest` only, so the declaration sat 28
+# errors red and gated nothing.
+#
+# It is WIRED INTO CI now. The `types` job in `.github/workflows/ci.yml` installs `./common[dev]`
+# -- which is what fetches the exact mypy pin below, the `tests` job installs `pytest scipy` only
+# -- and runs `mypy qfbench2_common` from `common/`, so this config is the one that applies.
+# Measured at that pin: no issues in 43 source files.
+#
+# Getting there needed the eight red files to be dealt with. They are NOT silenced wholesale, and
+# the type checker is NOT weakened globally. Each block below names one module and the exact error
+# codes deferred in it, with the count measured at 2026-08-21. The effect is that mypy is green
+# today and a NEW error — in any module, or of any code not listed for that module — fails the
+# build. Deleting a block is the unit of paying the debt down.
+#
+# `faithfulness.py`'s block shrank on 2026-08-22: the embargo gate was rewritten with full
+# annotations when it was made to fail closed. What is left there is the prediction and
+# judge surface, whose shapes are not settled yet.
+[tool.mypy]
+python_version = "3.13"
+strict = true
+
+[[tool.mypy.overrides]]
+# `jsonschema` ships no type stubs and `types-jsonschema` is not a dependency of this project.
+# Ignoring the missing import is narrower than adding an unpinned stub package to the dev extra,
+# whose next release could change the gate's verdict without a change here.
+module = ["jsonschema", "jsonschema.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# 2 errors: json.load / dict.get returning Any through a declared concrete return type.
+module = "qfbench2_common.manifest"
+disable_error_code = ["no-any-return"]
+
+[[tool.mypy.overrides]]
+# 1 error: a bare `dict` in the failure-record signature.
+module = "qfbench2_common.failure_labels"
+disable_error_code = ["type-arg"]
+
+[[tool.mypy.overrides]]
+# 5 errors: bare `dict` in the gate/context signatures. The scorer context is being replaced by a
+# typed C4 structure, so these annotations are about to be rewritten anyway.
+module = "qfbench2_common.verifier"
+disable_error_code = ["type-arg"]
+
+[[tool.mypy.overrides]]
+# 1 error: numpy operation returning Any through a declared NDArray return type.
+module = "qfbench2_common.scoring.crps"
+disable_error_code = ["no-any-return"]
+
+[[tool.mypy.overrides]]
+# 14 errors (was 17, measured 2026-08-22): bare `dict`/`Sequence`/`NDArray` and two unannotated
+# functions. The three that went away are the embargo gate, which was rewritten fully annotated
+# when it was made to fail closed. The remainder is the prediction/judge surface, still under the
+# open Track 4 semantics decision -- annotating it before the shapes settle is wasted work.
+module = "qfbench2_common.scoring.faithfulness"
+disable_error_code = ["type-arg", "no-untyped-def", "no-any-return"]
+
+[[tool.mypy.overrides]]
+# 1 error: a bare `dict` in the smoke-runner signature.
+module = "qfbench2_common.smoke"
+disable_error_code = ["type-arg"]

@@ -1,0 +1,105 @@
+# Instructions for coding agents
+
+You are most likely here because you are building an Agenthon 2026 submission, or you are the
+submission. This file tells you what this repository is, what it can do for you, and the specific
+ways agents have got this wrong before.
+
+Everything below is checkable. Prefer running a command over trusting this file — including over
+trusting the sentence you are reading now.
+
+## What this repository is
+
+`qfbench2-common`: the evaluation toolkit. The organizers' scorer imports it, and so should you.
+That symmetry is the point — if `qfbench2-smoke` says your output is admissible, the scorer will
+agree, because it is the same gate chain.
+
+It is **not** the tasks. Those are in the four `track*-public` repositories.
+
+## Setup
+
+```bash
+pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.3.1#subdirectory=common"
+python -c "from qfbench2_common.contracts import CONTRACT_SET; print(CONTRACT_SET)"   # 1.1.0
+```
+
+> **Pin the tag, never a branch.** A moving branch can make your local result and your scored
+> result diverge without either being wrong.
+
+Requires **Python ≥ 3.13**. On 3.12 pip refuses during resolution
+(`requires a different Python`) and nothing is installed. Change interpreter; do not try to
+patch around it.
+
+## The loop you should run
+
+Do not write a submission, submit it, and read the verdict. Run the gates locally first:
+
+```bash
+qfbench2-smoke <unit_dir> <output_dir> --track {coding,forecasting,simulation,analysis}
+```
+
+> **`qfbench2-smoke` needs your track's package, not just this toolkit.** It imports
+> `qfbench2_track_<track>.scoring` from the track repo. With only `qfbench2-common` installed the
+> command exits non-zero with `ModuleNotFoundError: No module named 'qfbench2_track_<track>'`.
+> Install the track kit first (`pip install -e .` from the kit root, or `export PYTHONPATH="$PWD"`).
+
+It prints the verdict, the failing gate and a failure label. Iterate against that until it is
+admissible, then work on the score. **Admissibility is binary and comes first** — a brilliant
+answer that fails `g1_schema` is worth exactly zero, and that is the most common way good work
+scores nothing here.
+
+To see what a gate actually requires, read the schema rather than the prose:
+
+```python
+from qfbench2_common.taskcard import load_schema
+load_schema("analysis.schema.json")["required"]
+```
+
+## Mistakes agents have actually made here
+
+Each of these was found in a real submission path or a real document in this programme. They are
+listed because they are cheap to avoid and expensive to discover.
+
+**Writing to a relative output directory.** Write to the absolute path your task gives you —
+normally `/app/output`, passed as `--out`. A relative `./output` resolves against your image's
+`WORKDIR`, which no mount binds, so your files land inside the container and are discarded when it
+exits. Your run looks successful and produces nothing.
+
+**Trusting prose over schema.** Published examples have been wrong. If a README example and a JSON
+Schema disagree, the schema wins — it is what executes. Validate your own output against the schema
+before you ship.
+
+**Assuming a missing optional field is safe.** Some are, some are a whole-submission failure.
+`interval.level` in Track 4 is required and pinned to `0.9`; omitting it fails the entire
+submission, not just that row. Check `required` in the schema; do not infer it.
+
+**Filling in a field you were not asked for.** Declaring a `target_type` that disagrees with the
+unit's card is a hard failure. When a field is optional and you are unsure, omit it — an absent
+optional field is admitted; a wrong one is not.
+
+**Answering a favourable subset.** Where a roster of entities is given, answer all of them. Omitting
+the ones you are unsure about, or renaming them, is refused — the denominator is fixed by the
+roster, not by what you chose to answer.
+
+**Only one attempt at the environment.** Your container gets no network beyond the organizer
+endpoint, a read-only root filesystem and a tmpfs at `/tmp`. If you need to write, write to your
+output directory or `/tmp`. Anything you try to install at run time will fail.
+
+## Conventions if you are contributing code here
+
+- Python ≥ 3.13, `ruff` for lint and format, `mypy --strict`. Use the pinned versions and not
+  whatever is on your PATH — local toolchains format differently and you will fight CI. `ruff`
+  is pinned in `.github/workflows/ci.yml`; `mypy` is pinned only in `common/pyproject.toml`'s
+  `dev` extra, which no workflow installs today.
+- Every behavioural change needs a test, and the test must be shown to fail without the change.
+  A test that passes on the unfixed code is worse than no test, because it is cited as proof.
+- Do not weaken a gate to make something pass. If a required check cannot run — a missing
+  dependency, an absent file — it must **fail**, never report skipped-green.
+- The C1–C8 contracts are frozen at 1.1.0. Changing a schema or a closed vocabulary is not a code
+  change; it needs a contract amendment.
+
+## When something here is wrong
+
+It might be. Several published statements in this programme turned out to contradict the code, and
+they were found by people running the commands rather than reading them. If you find one, open an
+issue with the command you ran and its output — that is immediately actionable, and a prose
+description of the problem usually is not.

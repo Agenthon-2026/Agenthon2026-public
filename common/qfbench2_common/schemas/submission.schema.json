@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agenthon.net/qfbench2/schemas/submission.schema.json",
+  "title": "C5 canonical submission descriptor (submission.json)",
+  "description": "Structural validation only. Cross-field invariants -- digest self-consistency, W == the worst end of the domain, roster digest over the ordered handle array, provenance/value agreement -- are enforced by qfbench2_common.contracts, which is the authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "interface_version",
+    "competition_id",
+    "team_id",
+    "track",
+    "phase",
+    "category",
+    "image",
+    "image_access",
+    "models",
+    "license",
+    "descriptor_digest"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "interface_version": {
+      "const": "2.0"
+    },
+    "competition_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "team_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "track": {
+      "enum": [
+        "coding",
+        "forecasting",
+        "simulation",
+        "analysis"
+      ]
+    },
+    "phase": {
+      "enum": [
+        "dev",
+        "final",
+        "verification"
+      ]
+    },
+    "category": {
+      "enum": [
+        "api",
+        "byo-large",
+        "byo-small",
+        "simulator"
+      ],
+      "description": "R-1: REQUIRED on every track, with 'simulator' for Track 3. An absent category is a validation error, not an implied 'api'."
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "registry",
+        "repository",
+        "digest"
+      ],
+      "description": "Three validated fields, reassembled by the consumer. Replaces both the un-pullable bare image_digest and the free-string form.",
+      "properties": {
+        "registry": {
+          "type": "string",
+          "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?(:[0-9]{1,5})?$"
+        },
+        "repository": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+([._-][a-z0-9]+)*(/[a-z0-9]+([._-][a-z0-9]+)*)*$"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "image_access": {
+      "enum": [
+        "public",
+        "organizer_mirror"
+      ]
+    },
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "description": "ONE array. model_disclosure is removed.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "version",
+          "training_cutoff",
+          "access",
+          "revision"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "training_cutoff": {
+            "type": "string",
+            "minLength": 1
+          },
+          "access": {
+            "enum": [
+              "api",
+              "local"
+            ]
+          },
+          "revision": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "license": {
+      "type": "string",
+      "minLength": 1,
+      "description": "SPDX identifier for the prize-eligible source release."
+    },
+    "descriptor_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "Digest of this object with descriptor_digest removed."
+    }
+  }
+}

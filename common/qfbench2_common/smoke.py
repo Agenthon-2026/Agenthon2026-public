@@ -49,8 +49,7 @@ TWO TABLES EXIST AND THEY MUST AGREE. The CodaBench scoring driver
 (`scoring_program/score.py` in the competition bundles) carries its own
 `_DEVELOPER_FACTORIES = ("build_developer_verifier", "build_smoke_verifier")`, added in hub PR #81,
 which already resolves the preview names correctly for the scoring driver. That file is not in this
-repository and this one is not in that bundle, so neither can import the other's table today; the
-duplication is real and is not resolved here. What is enforced instead is that the two lists carry
+repository, so the duplication is real and is not resolved here. What is enforced instead is that the two lists carry
 the same names in the SAME ORDER, so that a track exposing both names cannot be scored by one
 factory on the board and previewed by the other on a laptop. No track exposes both today — Track 3
 has `build_verifier` + `build_developer_verifier`, Track 4 has `build_verifier` +

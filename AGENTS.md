@@ -73,6 +73,29 @@ admissible, then work on the score. **Admissibility is binary and comes first** 
 answer that fails `g1_schema` is worth exactly zero, and that is the most common way good work
 scores nothing here.
 
+The line it prints also names the factory it ran, and that differs by track:
+
+```
+[t1-EXAMPLE-bs-greeks-pde]        factory=build_verifier            admissible=False ...
+[t2-EXAMPLE-ust-curve-1m]         factory=build_verifier            admissible=False ...
+[t3-EXAMPLE-vectorized-matching]  factory=build_developer_verifier  admissible=False ...
+[t4-EXAMPLE-eps-beat]             factory=build_smoke_verifier      admissible=False ...
+```
+
+Tracks 3 and 4 have a scoring factory that cannot run on your machine — Track 4's needs the pinned
+NLI judge, Track 3's needs timing the organizers measured — so `qfbench2-smoke` runs their
+non-rankable preview factory instead. That is what you want here: it is the path that answers the
+admissibility question locally, and it stamps everything it produces `rankable=False` because the
+number it computes is not the one the leaderboard uses. Track 3's preview runs the identical gate
+chain as its production factory and differs only in scoring a rate you reported rather than one the
+organizers measured; Track 4's substitutes a lexical judge for the NLI one and therefore does not
+enforce the faithfulness gate. Read the factories in your track's `scoring.py` before assuming a
+preview pass means a production pass.
+
+`--profile production` asks for the rankable factory by name. On Tracks 3 and 4 it refuses
+off-platform, loudly and by design — that refusal is an organizer fault, not something you can fix
+in your submission. Tracks 1 and 2 expose one factory and the flag changes nothing.
+
 To see what a gate actually requires, read the schema rather than the prose:
 
 ```python

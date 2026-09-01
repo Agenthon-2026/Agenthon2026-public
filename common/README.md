@@ -36,6 +36,12 @@ expose `qfbench2_track_<track>.scoring.build_verifier(ctx)` returning a `Hierarc
 keep all ground-truth artifacts out of the public repo (`manifest.assert_public_safe` is wired
 into public CI).
 
+A track whose `build_verifier` refuses off-platform — because it needs a pinned judge (Track 4) or
+trusted organizer telemetry (Track 3) — must additionally expose a non-rankable preview factory
+under one of the two names in `smoke.PREVIEW_FACTORIES`, `build_developer_verifier` or
+`build_smoke_verifier`. `qfbench2-smoke` prefers those and falls back to `build_verifier` for a
+track that has neither. `--profile production` reaches `build_verifier` and no other name.
+
 Quickstart — run from the root of a **track kit**, not from this repository:
 ```bash
 pip install -e "./common[data,dev]"      # quote the extras: zsh globs the brackets

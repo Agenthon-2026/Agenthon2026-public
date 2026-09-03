@@ -30,10 +30,10 @@ The invocation contract is the **verb and its arguments**:
 solve --task-dir /input --out /app/output
 ```
 
-How you make that resolve is your choice. The FinanceZero baseline uses an explicit entrypoint:
+How you make that resolve is your choice. An explicit entrypoint looks like this:
 
 ```
-ENTRYPOINT ["python", "/agent/finance_zero.py"]
+ENTRYPOINT ["python", "/agent/agent.py"]
 CMD ["solve", "--task-dir", "/input", "--out", "/app/output"]
 LABEL qfbench2.interface_version="2.0"
 ```
@@ -246,8 +246,6 @@ pass. Before any score is computed you must clear four admissibility gates in or
 A submission that fails any gate scores **zero**, no partial credit. `g3` is where a plausible-looking
 answer usually dies, and it is the gate the invariant tests implement.
 
-The baseline to beat is **FinanceZero**, a single language-model call. It is in `baselines/`.
-
 **If you see `-1000000000.0`, that is not a score.** It is the sentinel for *zero admissible units*,
 and it is what you get for a missing file, a wrong filename, a schema mismatch or a failed
 invariant — all rendered identically. It means nothing you submitted was admissible, not that your
@@ -368,7 +366,7 @@ misreports CPU time by roughly 4×. Measure work completed, not CPU seconds.
 | `docs/CONCEPTS.md` | plain-English explainer of pass@k, gates, images |
 | `docs/CATEGORIES.md` | the ten task categories |
 | `qfbench2_track_coding/scoring.py` | the actual verifier and pass@k scorer |
-| `baselines/` | FinanceZero, the baseline to beat |
+| `baselines/` | the submission contract a baseline must satisfy — documentation, not a runnable agent |
 | `templates/` | blank `card.toml`, `Dockerfile`, test templates |
 | `SUBMISSION_CLI.md` | packaging and submitting |
 

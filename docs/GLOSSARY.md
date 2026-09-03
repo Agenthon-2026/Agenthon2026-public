@@ -419,8 +419,8 @@ Agenthon's cross-track verifier and failure-mode map — no dual maintenance.
 **Everyday:** an AI system that can read a programming problem and write working code.
 **Precise:** in T1, a Docker image implementing `solve --task-dir /input --out /output`. The
 image typically contains a planning loop, code-writing tools (LLM calls), an execution sandbox,
-and a retry mechanism. The official baseline, **FinanceZero**, is a single-LLM-call agent with
-no planning — it is deliberately minimal so that better architectures can beat it.
+and a retry mechanism. Track 1 ships **no official baseline agent** — there is no reference
+implementation to run, and no published score to clear.
 **Why it matters:** T1 tests whether AI can produce **correct** quant-finance code, not just
 plausible-looking code. The `pytest` and financial-invariant checks are the judge.
 
@@ -458,16 +458,19 @@ task of which c pass all checks: pass@k = 1 − C(n−c, k) / C(n, k), where C i
 sometimes produce a correct answer even if not every attempt works — a realistic capability
 that matters in practice.
 
-### Oracle / FinanceZero
-**Everyday:** the "answer key solution" (oracle) and the "simplest possible baseline" (FinanceZero).
-**Precise:**
-- **Oracle:** a reference solution that definitively passes all tests on a task. Lives in the
-  private repo under `reference/`. Used to verify that the task is solvable.
-- **FinanceZero:** a minimal T1 baseline — one LLM call, no planning, no retry. Any submitted
-  agent must beat FinanceZero to be competitive.
+### Oracle
+**Everyday:** the "answer key solution".
+**Precise:** a reference solution that definitively passes all tests on a task. Lives in the
+private repo under `reference/`. Used to verify that the task is solvable.
 
 **Why it matters:** without an oracle, organizers cannot be sure a task is actually solvable.
-Without a public baseline, participants have no calibration for what "good" looks like.
+
+**There is no counterpart public baseline.** Track 1 ships no official baseline agent, so there is
+no score to beat and no reference implementation to calibrate against — see
+`track1-coding-public/baselines/README.md`, which documents the submission contract a baseline
+would have to satisfy rather than shipping one. Earlier revisions of this glossary named a
+`FinanceZero` baseline and said a submission "must beat FinanceZero to be competitive"; no such
+agent ships in any Agenthon 2026 repository, and that sentence has been withdrawn.
 
 ---
 

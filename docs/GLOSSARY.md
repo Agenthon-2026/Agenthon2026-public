@@ -34,9 +34,9 @@ applies to all tracks (like "admissibility gate") may look different inside each
 **Precise:** the smallest independently-scored piece of a track: a coding task (T1), a forecast
 card (T2), a simulation scenario (T3), or a tabular task (T4). Each unit has a `card.toml`
 that describes it and a `manifest.json` that records the integrity of its files.
-**Why it matters:** scores are averaged over units; bootstrap confidence intervals are resampled
-over units; a submission that passes all gates on unit X and fails on unit Y still gets a partial
-score.
+**Why it matters:** scores are aggregated over units; tracks that publish bootstrap confidence
+intervals resample over units. A submission that passes all gates on unit X and fails on unit Y
+still gets a partial score.
 
 ### Task card (`card.toml`)
 **Everyday:** the metadata file that describes one unit — like a label on a homework problem.
@@ -289,9 +289,10 @@ failure-mode map.
 **Everyday:** the ranking board that shows each team's current score.
 **Precise:** during the dev phase, the leaderboard is updated after every submission run (live).
 During the final phase, it is hidden. After the verification phase, the final leaderboard is
-published with bootstrap confidence intervals around every score.
-**Why it matters:** the leaderboard is the competition's output. The confidence intervals prevent
-"noise-driven" rankings where two similar systems are falsely separated.
+published with each track's declared columns. T1 publishes fixed-denominator `pass@1` with no
+confidence interval; other tracks retain their declared interval columns.
+**Why it matters:** the leaderboard is the competition's output. Its columns must match the exact
+fields emitted by the scorer so missing or stale statistics are never presented as results.
 
 ### Bootstrap confidence interval
 **Everyday:** a range around a score that says "the true score is probably in here."
@@ -350,11 +351,16 @@ because `checks/test.sh` writes both reward artifacts (see "reward.txt vs reward
 **Everyday:** the real, working glue that lets the Agenthon toolkit drive Harbor and score Track-1
 results from it — plus the optional install that turns it on.
 **Precise:** **`qfbench2_common.track1.harbor`** is the Track-1 Harbor adapter: it launches Harbor on
-the Track-1 units, parses Harbor's job artifacts, and scores `pass@1`/`pass@3` (with bootstrap CIs)
-over the **true observed attempts** in a Harbor job directory. It is exposed through the `qfbench2`
+the Track-1 units, parses Harbor's job artifacts, and produces an offline `pass@1`/`pass@3`
+development report (with bootstrap CIs) over the **true observed attempts** in a Harbor job
+directory. It is exposed through the `qfbench2`
 CLI's **`track1`** subcommand group:
 - `qfbench2 track1 harbor-run --units-dir <dir> --jobs-dir <dir> --job-name <name> [--n-attempts N] [--agent oracle]` — launch Harbor on the units.
-- `qfbench2 track1 score-harbor-job --job-dir <dir> --units-dir <dir> [--n-attempts N] [--out <file>]` — official Track-1 pass@1 / pass@3 from a Harbor job dir.
+- `qfbench2 track1 score-harbor-job --job-dir <dir> --units-dir <dir> [--n-attempts N] [--out <file>]` — offline Track-1 pass@1 / pass@3 report from a Harbor job dir.
+
+This report is not the official CodaBench aggregate. CodaBench runs each signed-roster task once
+and publishes the single-pass share of tasks solved (`pass@1` with a fixed denominator), with no
+confidence interval.
 
 **Track 4 has a second adapter on the same dependency.** `qfbench2_common.track4.harbor_exec`
 backs `qfbench2 track4 harbor-run` and `qfbench2 track4 score-exec-job`, which score the T4

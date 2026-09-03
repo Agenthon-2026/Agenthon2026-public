@@ -48,7 +48,7 @@ __all__ = [
     "SubmissionDescriptor",
 ]
 
-SCHEMA_VERSION = "1.0.0"
+SCHEMA_VERSION = "1.1.0"
 INTERFACE_VERSION = "2.0"
 CATEGORIES = ("api", "byo-large", "byo-small", "simulator")
 IMAGE_ACCESS = ("public", "organizer_mirror")
@@ -157,7 +157,10 @@ class SubmissionDescriptor:
         if not _SPDX_RE.match(license_id):
             raise ContractError(f"descriptor.license={license_id!r} is not an SPDX identifier")
 
-        models_raw = req_list(raw, "models", path="descriptor", min_items=1)
+        # [] is valid: a model-free submission (deterministic simulator, text-blind baseline)
+        # declares the empty array. The KEY stays required, so "no model" is a positive
+        # statement rather than an omission (#62).
+        models_raw = req_list(raw, "models", path="descriptor")
         models = tuple(
             ModelDisclosure.from_mapping(entry, path=f"descriptor.models[{i}]")
             for i, entry in enumerate(models_raw)

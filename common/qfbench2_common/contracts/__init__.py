@@ -43,7 +43,8 @@ Per-contract versioning is what makes a bump cheap: only the documents that actu
 | C7 `hardware` | **1.1.0** | `worker_env` has a required role set, including `scratch_root` |
 | C8 `release` | **1.1.0** | Required `phase_visibility`; ratified competition ids; sign-off roles |
 | — `heartbeat` | 1.0.0 | New: promoted from the operator repo |
-| C3, C4, C5, C6 | 1.0.0 | Unchanged |
+| C5 `descriptor` | **1.1.0** | `models` may be empty: a model-free submission declares `models: []` instead of inventing a row (every declared row still needs all five fields) |
+| C3, C4, C6 | 1.0.0 | Unchanged |
 
 `contracts/MIGRATIONS.md` is the participant-facing summary: it lists only the parts of the set
 that constrain a submission (C5, C3, C4). 1.1.0 is the first published contract set, so there is

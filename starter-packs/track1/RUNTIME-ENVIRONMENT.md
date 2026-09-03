@@ -77,8 +77,13 @@ it cost roughly 91–95% of native throughput, which is the tax every `api` subm
 - **The image must accept the track verb as its first argument.** `SUBMISSION_CLI.md` sanctions
   **two** ways to satisfy that: build with no `ENTRYPOINT` so the verb resolves on `PATH`, **or**
   set an `ENTRYPOINT` that takes the verb as an argument — which is the form Track 1's
-  `baselines/README.md` documents (lines 96-97; note the `ENTRYPOINT` is **verbless** and the verb
-  arrives on the next line in `CMD ["solve", ...]`). Both are fine. A submission that satisfies
+  `baselines/README.md` documents, under its Dockerfile sketch: a **verbless** `ENTRYPOINT`, with
+  the verb arriving on the following line as `CMD ["solve", "--task-dir", "/input", ...]`. Both
+  are fine.
+
+  (Cited by shape rather than by line number on purpose. This bullet previously pointed at
+  `baselines/README.md:120-121`, which drifted once and would drift again — the file is edited
+  often and an open Track 1 PR removes the block entirely.) A submission that satisfies
   neither never starts, and the error is not shown to you.
 - **`LABEL qfbench2.interface_version="2.0"` is required** (`SUBMISSION_CLI.md:28`) and it must
   match the `interface_version` in your descriptor. This one is genuinely checked; an unlabelled

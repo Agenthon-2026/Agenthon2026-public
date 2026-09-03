@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "qfbench2-common"
-version = "2.3.1"
+version = "2.4.0"
 description = "Shared evaluation harness for Agenthon 2026 / QFBench 2.0 (all four tracks)"
 readme = "README.md"
 requires-python = ">=3.13"

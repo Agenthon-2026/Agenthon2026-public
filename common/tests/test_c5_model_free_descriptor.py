@@ -1,4 +1,5 @@
 """C5 1.1.0: a model-free descriptor is valid; every 1.0.0 vector still validates unchanged."""
+
 from __future__ import annotations
 
 import glob
@@ -10,16 +11,28 @@ import pytest
 from qfbench2_common.contracts import SubmissionDescriptor
 from qfbench2_common.contracts.descriptor import SCHEMA_VERSION, seal_descriptor_digest
 
-FIXTURES = pathlib.Path(__file__).resolve().parents[1] / "qfbench2_common" / "contracts" / "fixtures" / "c5"
+FIXTURES = (
+    pathlib.Path(__file__).resolve().parents[1]
+    / "qfbench2_common"
+    / "contracts"
+    / "fixtures"
+    / "c5"
+)
 
 
 def _body(schema_version: str) -> dict:
     return {
-        "schema_version": schema_version, "interface_version": "2.0",
-        "competition_id": "agenthon2026-simulation-dev", "team_id": "team", "track": "simulation",
-        "phase": "dev", "category": "simulator",
+        "schema_version": schema_version,
+        "interface_version": "2.0",
+        "competition_id": "agenthon2026-simulation-dev",
+        "team_id": "team",
+        "track": "simulation",
+        "phase": "dev",
+        "category": "simulator",
         "image": {"registry": "ghcr.io", "repository": "org/image", "digest": "sha256:" + "a" * 64},
-        "image_access": "organizer_mirror", "models": [], "license": "MIT",
+        "image_access": "organizer_mirror",
+        "models": [],
+        "license": "MIT",
     }
 
 

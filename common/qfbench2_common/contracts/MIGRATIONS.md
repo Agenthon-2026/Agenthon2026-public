@@ -43,8 +43,8 @@ all five fields. `schema_version` may be `1.0.0` or `1.1.0`; the parser checks t
 every valid 1.0.0 descriptor is still valid with an unchanged digest.
 
 **Why.** Model-free entries are a normal, intended shape: a deterministic Track 3 simulator,
-Track 2's text-blind baselines, Track 4's minimal RAG baseline and Track 1's Finance-Zero baseline
-all call no model, and 1.0.0 forced each of them to invent a placeholder row — which makes
+Track 2's text-blind baselines and Track 4's minimal RAG baseline call no model, and 1.0.0
+forced each of them to invent a placeholder row — which makes
 `models` unusable as evidence exactly where the disclosure rule matters.
 
 **What a producer must change.** Nothing. A model-free submission may now write `models: []`

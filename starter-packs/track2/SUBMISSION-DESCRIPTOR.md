@@ -65,7 +65,7 @@ toolkit's parser. Validate with `SubmissionDescriptor.from_mapping` and reseal w
 
 | field | notes |
 |---|---|
-| `schema_version` | `"1.0.0"` |
+| `schema_version` | `"1.0.0"` or `"1.1.0"` (the toolkit that ships this doc implements 1.1.0) |
 | `interface_version` | `"2.0"` — must match the image's `qfbench2.interface_version` label |
 | `competition_id` | `agenthon2026-<track>-<phase>`. The suffixed form is what the C5 golden fixtures and accepted submissions use. Note the toolkit contradicts itself — `contracts/release.py:106` defines the form WITHOUT the phase suffix — and **neither the schema nor the parser enforces either form**, so nothing catches a wrong value locally. Use the suffix. |
 | `team_id` | **your team id — this documentation cannot tell you what yours is.** Take it from your CodaBench profile or a prior submission. There is no default, and any non-empty string validates, so a wrong value is not caught. |
@@ -74,7 +74,7 @@ toolkit's parser. Validate with `SubmissionDescriptor.from_mapping` and reseal w
 | `category` | `api` \| `byo-small` \| `byo-large` \| `simulator` — the enum the schema validates. The `byo-*` names are **legacy** names the schema retains: there is no small-weights tier (no permitted Nemotron is under ~7B), and a BYO submission ships a **LoRA adapter, not weights**. Use the value in this track's callout at the top of this page. The enum is **not validated against `track`** (a wrong pairing passes), so getting it right is on you. |
 | `image` | **an object** — see below |
 | `image_access` | `public` \| `organizer_mirror` |
-| `models` | array, **`minItems: 1`** — required even when your submission uses no model |
+| `models` | array — one entry per model you actually use; **`[]` when your submission uses no model** (C5 1.1.0) |
 | `license` | An OSI-approved identifier for **your own submission** — this is your code's licence, not the task data's. Any well-formed identifier validates, so nothing catches a wrong choice. The task data are a corpus of central-bank speeches and statements, government statistical releases and macro panels, wrapped in cards and indexes the organizers wrote. Rights differ file by file: U.S. federal material is public domain and organizer-written material is under this kit's own licence, but for most non-U.S. central-bank and corporate documents the kit records the rights position as undetermined and grants nothing, so those are not yours to redistribute either. Each unit's `manifest.json` carries the source and licence for every file, and the kit's `DATA-LICENSE.md` sets out the categories. Do not vendor task data into your submission. |
 | `descriptor_digest` | Self-referential — see below. **Prefixed**, e.g. `sha256:4a7f532e...`, not bare hex — the same *format* as `image.digest`. The two values are different; they are digests of different things. |
 
@@ -109,22 +109,20 @@ belonged to the old schema. With `additionalProperties: false` each one is a har
 error — `unknown field(s) [...]; the vocabulary is closed`. This deserves more attention than the
 legacy fields above: those you have to dig up, whereas this one the kit actively recommends.
 
-### `models` is required even with no model
+### `models` is required, and `[]` is the model-free answer
 
-A submission that loads no weights and calls no endpoint still needs one entry. Describe what you
-actually use:
+The key must be present — an absent key is refused, because silence is not a disclosure. A
+submission that loads no weights and calls no endpoint writes the empty list, which is a positive
+statement ("this submission calls no model"), not a placeholder:
 
 ```json
-"models": [{
-  "name": "none-deterministic-engine",
-  "version": "my-engine-1",
-  "training_cutoff": "not-applicable",
-  "access": "local",
-  "revision": "<a commit sha or build id>"
-}]
+"models": []
 ```
 
-All five keys are required per entry.
+(Until C5 1.1.0 the validator demanded at least one entry, so a model-free submission had to
+invent a row such as `"name": "none-deterministic-engine"`. Do not do that any more: an invented
+row makes `models` useless as evidence exactly where the disclosure rule matters.) Every entry you
+DO declare still needs all five keys: `name`, `version`, `training_cutoff`, `access`, `revision`.
 
 **Two of them you may not be able to fill truthfully, and you should know that going in.** For an
 `api` submission calling the house model, nothing published names the pinned model id —

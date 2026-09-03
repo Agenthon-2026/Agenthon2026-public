@@ -65,7 +65,7 @@ explicitly rather than relying on any default.
 
 > **The descriptor is twelve required fields, not one.** See
 > [SUBMISSION-DESCRIPTOR.md](SUBMISSION-DESCRIPTOR.md) for the full set, why `image` is an object,
-> why `models` is required even though a simulator uses no model, and how to compute the
+> why `models` must be present and is `[]` for a simulator that uses no model, and how to compute the
 > self-referential `descriptor_digest`. The toolkit that validates it installs in one command.
 > Install it and start from its fixture; do **not** write your own shim — a shim does not fail, it
 > agrees with you.

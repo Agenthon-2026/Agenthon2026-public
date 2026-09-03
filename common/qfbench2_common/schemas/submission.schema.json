@@ -21,7 +21,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "1.0.0"
+      "enum": ["1.0.0", "1.1.0"]
     },
     "interface_version": {
       "const": "2.0"
@@ -90,8 +90,7 @@
     },
     "models": {
       "type": "array",
-      "minItems": 1,
-      "description": "ONE array. model_disclosure is removed.",
+      "description": "ONE array. model_disclosure is removed. [] is the model-free submission: the key is required, so an empty array is a positive statement, distinct from omission.",
       "items": {
         "type": "object",
         "additionalProperties": false,

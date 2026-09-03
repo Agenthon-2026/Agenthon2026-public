@@ -17,6 +17,15 @@ if [[ -z "$PUBLIC_REPO" ]]; then
   # staging repo is <public-name>-staging; strip the suffix.
   origin="$(git config --get remote.origin.url || true)"
   name="$(basename "${origin%.git}")"
+  # Without the suffix there is nothing to strip, and the line below would set
+  # PUBLIC_REPO to this very repository -- which then compares equal to itself and
+  # reports OK forever. A check that cannot run is not a pass (exit 2), so refuse.
+  if [[ "$name" != *-staging ]]; then
+    echo "staging : $(git rev-parse --abbrev-ref HEAD) @ $(git rev-parse --short HEAD)"
+    echo "RESULT: UNDETERMINED -- '$name' is not a staging repo, so there is no public"
+    echo "counterpart to compare against. Set PUBLIC_REPO explicitly to run this here."
+    exit 2
+  fi
   PUBLIC_REPO="Agenthon-2026/${name%-staging}"
 fi
 echo "staging : $(git rev-parse --abbrev-ref HEAD) @ $(git rev-parse --short HEAD)"

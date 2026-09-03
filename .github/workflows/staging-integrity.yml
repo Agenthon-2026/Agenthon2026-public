@@ -15,6 +15,10 @@ permissions:
 jobs:
   public-not-bypassed:
     name: public has nothing this repo is missing
+    # Only meaningful on the staging repo. This file is fast-forwarded to the public
+    # repo verbatim, and there the comparison target would be the repo itself: a daily
+    # cron job on a participant-facing repository that can never fail. Skip it there.
+    if: endsWith(github.repository, '-staging')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0

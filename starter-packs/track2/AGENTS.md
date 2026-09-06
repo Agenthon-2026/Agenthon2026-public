@@ -237,7 +237,10 @@ audited proxy and nothing else — no PyPI, no HuggingFace, no NGC, and **no ven
 `api.openai.com`, `api.anthropic.com` and the rest are refused, and no participant API key is
 injected or injectable. Read `HTTP_PROXY`/`HTTPS_PROXY` from the environment, never hardcode a proxy
 host. Vendor-side tools — web search, code execution, retrieval — **must be disabled** in every
-call. The per-unit budget is 1,000,000 input + 100,000 output tokens, audited from proxy logs.
+call. The selected House API allowance is **25 requests per unit**, with **at most 4,000 output
+tokens per call**. Input limits and failed/retried-request accounting are not yet finalized.
+This House allowance does not define a BYO request limit. Platform availability and deployed
+enforcement will be announced separately.
 Bake everything in at build time and test with `--network=none`; it is stricter than `restricted`.
 
 ## Scoring, and what the metric actually rewards

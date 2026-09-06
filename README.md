@@ -23,7 +23,7 @@ library they all depend on.
 ## Install
 
 ```bash
-pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.3.1#subdirectory=common"
+pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.1#subdirectory=common"
 ```
 
 **Python 3.13 or newer is required** (`requires-python = ">=3.13"`). On 3.12 or below pip refuses

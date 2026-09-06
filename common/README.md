@@ -5,7 +5,7 @@ dev-phase smoke test and the final-phase sealed scorer run *identical* code. It 
 point that makes four heterogeneous tracks reproducible under one protocol.
 
 ```bash
-pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.3.1#subdirectory=common"
+pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.1#subdirectory=common"
 ```
 
 There is no git submodule. Pin the tag: installing from a moving branch means your local result
@@ -61,5 +61,5 @@ toolkit's **Python ≥ 3.13**). Harbor is shelled out (never imported), so `qfbe
 and runs on 3.13 with Harbor absent:
 ```bash
 # operator-only; enables qfbench2 track1 ...
-pip install "qfbench2-common[harbor] @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.3.1#subdirectory=common"
+pip install "qfbench2-common[harbor] @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.1#subdirectory=common"
 ```

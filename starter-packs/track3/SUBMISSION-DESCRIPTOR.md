@@ -11,7 +11,7 @@ in full. Read it before writing anything; the file format is the same for every 
 ## Install the toolkit — one command
 
 ```
-pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.3.1#subdirectory=common"
+pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.1#subdirectory=common"
 ```
 
 > **Pin the tag, never a branch.** A moving branch can make your local result and your scored

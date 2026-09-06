@@ -18,7 +18,7 @@ It is **not** the tasks. Those are in the four `track*-public` repositories.
 ## Setup
 
 ```bash
-pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.3.1#subdirectory=common"
+pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.1#subdirectory=common"
 python -c "from qfbench2_common.contracts import CONTRACT_SET; print(CONTRACT_SET)"   # 1.1.0
 ```
 

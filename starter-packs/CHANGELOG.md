@@ -39,6 +39,26 @@ never happens silently, which is the guarantee that actually protects you.
 
 _Changes land here first._
 
+**`ACTION`** **C5 1.1.0 permits model-free descriptors.** Set `models: []` when your
+submission calls no model. The `models` key remains required, and each declared model still
+needs all five disclosure fields. This relaxation was first published in toolkit `v2.4.0` as
+the September 3 exception to the descriptor freeze; the other frozen interfaces are unchanged.
+
+Both `schema_version: "1.0.0"` and `"1.1.0"` remain accepted. Previously valid descriptors keep
+their existing `descriptor_digest`; declaring a model does not require a descriptor change.
+If you change a descriptor, reseal its digest and validate it with
+`SubmissionDescriptor.from_mapping`, as described in your track's descriptor guide.
+
+**`CLARIFIED`** **Install commands now pin toolkit `v2.4.1`.** Re-run the install command in
+your guide, then check the installed package:
+
+```bash
+python -c "from importlib.metadata import version; assert version('qfbench2-common') == '2.4.1'"
+```
+
+Toolkit `v2.3.1` rejects `models: []`. The older `v2.4.0` tag accepts it but incorrectly reports
+package version `2.3.1`; `v2.4.1` corrects that version label. The existing tags remain unchanged.
+
 **`ACTION`** **Ranking metric: ties are now ties.** Tied predicted values used to be broken by
 position, so every tie silently resolved to whatever order the roster happened to arrive in. Two
 submissions that express no opinion about the ordering — a constant prediction, and a submission

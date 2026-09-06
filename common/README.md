@@ -1,8 +1,8 @@
 # qfbench2-common — shared evaluation harness (Agenthon 2026 / QFBench 2.0)
 
-Every track repo **pip-installs** this package from this repository at a pinned tag, so the
-dev-phase smoke test and the final-phase sealed scorer run *identical* code. It is the single
-point that makes four heterogeneous tracks reproducible under one protocol.
+Every track repo **pip-installs** shared parsing and scoring utilities from this repository at
+a pinned tag. Record the actual program/toolkit pins and runtime configuration when reproducing
+an evaluation; installing this package alone does not establish Development/Final equivalence.
 
 ```bash
 pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.1#subdirectory=common"

@@ -9,9 +9,9 @@ trusting the sentence you are reading now.
 
 ## What this repository is
 
-`qfbench2-common`: the evaluation toolkit. The organizers' scorer imports it, and so should you.
-That symmetry is the point — if `qfbench2-smoke` says your output is admissible, the scorer will
-agree, because it is the same gate chain.
+`qfbench2-common`: shared evaluation utilities imported by the organizers' scorer and local
+checks. Local preview factories can differ from the platform scorer. A successful smoke check
+is local validation; read the selected factory and runtime requirements below.
 
 It is **not** the tasks. Those are in the four `track*-public` repositories.
 

@@ -16,6 +16,9 @@ Headline ranking (lower is better):
 Because the three components live on different scales, each is divided by the official
 baseline's component value (a skill-score normalization) before weighting; pass
 `ref_scale` to do so. Without it the raw components are returned (use for diagnostics).
+A component with both zero weight and exactly zero reference scale contributes zero.
+Missing required scales and zero scales with nonzero weights still raise; a merely tiny
+scale is still divided by, preserving non-finite results for callers to diagnose.
 
 Estimator note: the ensemble CRPS uses the "fair" (almost-unbiased) spread term with
 1/(m(m-1)) (Ferro 2014; Zamo & Naveau 2018); set `fair=False` for the biased 1/m^2 form.
@@ -127,6 +130,30 @@ def tail_penalty(
 # ----------------------------------------------------------------------------- #
 # Composite                                                                      #
 # ----------------------------------------------------------------------------- #
+def _normalize(
+    value: float,
+    ref_scale: dict[str, float] | None,
+    key: str,
+    weight: float,
+    *,
+    optional: bool = False,
+) -> float:
+    """Normalize one component, skipping only a zero-weight, exactly zero-scale pair.
+
+    Read required keys before checking the weight so malformed scale mappings still raise.
+    Do not skip merely small denominators: doing so would hide a non-finite statistic.
+    This helper does not change a caller's reference-scale validation rules.
+    """
+    if not ref_scale:
+        return value
+    if optional and key not in ref_scale:
+        return value
+    scale = ref_scale[key]
+    if scale == 0.0 and weight == 0.0:
+        return 0.0
+    return value / scale
+
+
 def crps_composite(
     samples: NDArray[np.float64],  # [m, d]
     y: NDArray[np.float64],  # [d]
@@ -138,7 +165,9 @@ def crps_composite(
     fair: bool = True,
 ) -> dict[str, float]:
     """Returns {'marginal','joint','tail','composite'}; 'composite' is the leaderboard value
-    (lower better). If ref_scale is given, marginal/joint are skill-normalized by it."""
+    (lower better). If ref_scale is given, marginal/joint are skill-normalized by it.
+    A component with both zero weight and exactly zero scale contributes zero; see
+    `_normalize` for the required-key and non-finite behavior."""
     w_m, w_j, w_t = weights
     marg = crps_marginal(samples, y, fair=fair)
     if joint == "energy":
@@ -153,8 +182,8 @@ def crps_composite(
     # unit-free PIT-coverage penalty, so it is only normalized when ref_scale supplies a
     # 'tail' key; otherwise it is left as-is (its natural scale ~ sum over levels). This keeps
     # all three components on a comparable scale before the (w_m, w_j, w_t) weighting.
-    m_n = marg / ref_scale["marginal"] if ref_scale else marg
-    j_n = jnt / ref_scale["joint"] if ref_scale else jnt
-    t_n = tail / ref_scale["tail"] if (ref_scale and "tail" in ref_scale) else tail
+    m_n = _normalize(marg, ref_scale, "marginal", w_m)
+    j_n = _normalize(jnt, ref_scale, "joint", w_j)
+    t_n = _normalize(tail, ref_scale, "tail", w_t, optional=True)
     composite = w_m * m_n + w_j * j_n + w_t * t_n
     return {"marginal": marg, "joint": jnt, "tail": tail, "composite": float(composite)}

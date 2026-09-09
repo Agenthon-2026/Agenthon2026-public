@@ -50,8 +50,7 @@ contract — the dual `/app/output` mount is **Track 1 only** (`SUBMISSION_CLI.m
 - **12 `card.toml` files** — one per unit plus `templates/card.toml`. All 11 unit cards carry
   `[agent] timeout_sec = 600.0`.
 
-**On families: `docs/CATEGORIES.md` is "an illustrative taxonomy, not a roster" — its own words —
-and the held-out set spans more families than the public one.** The `family` values actually
+**On families: `docs/CATEGORIES.md` is "an illustrative taxonomy, not a roster".** The `family` values actually
 present across the 11 public units are `auction_demand`, `cpi_component_nowcast`, `credit_event`,
 `eps_beat_consensus`, `eps_growth_regression`, `eps_yoy_direction`, `macro_revision_direction`,
 `positioning_shift`, `post_earnings_reaction`, `rate_curve_cross_section`. **Hardcode none of
@@ -112,13 +111,13 @@ per entity     required: entity_id, interval, claims (minItems 1)
   interval     required: level, lo, hi   —   level is "const": 0.90
   claim        required: doc_id, span_start, span_end, claim
 notes          must be an OBJECT if present
-label, point_forecast, target_type, evidence_trace   — all OPTIONAL in the schema
-                                                       AND NOT OPTIONAL IN PRACTICE:
-                                                       alignment.py:337 rejects a missing `label`
-                                                       on a classification unit, and :353 rejects a
-                                                       missing `point_forecast` on regression or
-                                                       ranking. The schema is not a sufficient
-                                                       pre-submission check on this track.
+label, point_forecast, target_type, evidence_trace   — OPTIONAL in the schema
+
+Additional alignment requirements:
+  classification     label is required and must belong to the task's label vocabulary
+  regression/ranking point_forecast is required and must be finite
+  target_type        optional; if supplied, it must match the task
+  evidence_trace     optional
 ```
 
 The real contract is `entity_predictions[]`, one object per entity row — never a flat
@@ -144,21 +143,20 @@ any metric.
 
 ## Traps that are invisible until they cost a run
 
-**1. Corpus documents are flat `text`. Write that path first.** All 87 public corpus documents
-carry a plain `text` field and no `spans[]` — and the organizers measured the same across all 52
-sealed held-out units (`track4-analysis-public#30`). The schema still permits a `spans[]` shape,
-so keep the four-line fallback, but do not build on it:
+**1. Support the public loader's two text representations.** Read a document's `text` field
+when present; otherwise join `spans[].text` with a single space. Compute citation offsets
+against that exact string:
 
 ```python
 def document_text(doc):
-    if "text" in doc:                       # every unit, public and sealed
+    if "text" in doc:
         return doc["text"]
     return " ".join(sp["text"] for sp in doc["spans"])   # schema-permitted fallback
 ```
 
 **2. Never pass a corpus-declared offset into a citation. Compute it against the text you
 resolved.** Historic exemplar data shipped declared `start`/`end` offsets that matched nothing
-under the scorer's rule; that data is fixed, but the habit is what protects you on sealed data:
+under the scorer's rule; compute offsets yourself to avoid relying on stale metadata:
 slice the string you actually built, and verify your citation resolves non-empty before emitting
 it. A citation that resolves to nothing gives the NLI judge an empty premise and scores zero
 entailment on a track where faithfulness is the **gate**, not a component.
@@ -172,9 +170,7 @@ So the canary sits in **`card.toml`, inside the `/input` mount you can read**, a
 clean**. Quoting corpus evidence does not risk a canary echo on any public unit; echoing `card.toml`
 does. **Never copy card or manifest text into the answer.**
 
-Two caveats, stated rather than inferred. **(a)** The held-out corpora are unverifiable from here;
-if an organiser ever plants a canary in a corpus document, verbatim quoting becomes the exposure
-and nothing in the public kit would warn you. **(b)** T4's `_g2_cutoff_resource` **is active**:
+T4's `_g2_cutoff_resource` **is active**:
 `scoring.py:417` compares `answer["task_id"]` against the unit's and raises `TASK_ID_MISMATCH`, so
 **echo `task_id` through**. A leakage scan additionally lives in shared `qfbench2_common.leakage`,
 verdict-only (`clean`/`hit` plus counts), over **all bytes at any depth with no extension
@@ -187,13 +183,12 @@ is safe. Read it from `task.json["target"]["type"]` / `card.toml [scoring].param
 if you cannot resolve it, omit it. The shipped baseline's `build_answer` takes it as a parameter
 and warns against hardcoding — do not reintroduce a constant.
 
-**5. The shipped baseline's fallback commits an embargo violation.** With no in-embargo retrieval
-hit, `baseline_agent/cli.py` emits a placeholder claim citing `docs[0]` — the alphabetically first
-indexed document, with **no `doc_date` filter applied** — and `doc_date` is confirmed by the
-organizers as the field every dated corpus document carries, exemplar and held-out alike, and the
-one the retriever's embargo filter already reads. On the `stale_evidence_trap` family, whose
-corpus is deliberately seeded with post-cutoff documents, that path cites the poison and returns
-`T4_STALE_EVIDENCE`: ineligible. Filter your fallback too.
+**5. Apply the embargo filter to fallback retrieval too.** The baseline's corrected
+`_newest_eligible` helper selects only documents with `doc_date <= cutoff`. The older fallback
+used the first indexed document without checking its date. Keep the corrected filter when
+adapting the baseline, and test it with a synthetic post-cutoff document in a copy of a public
+unit. If no eligible document exists, the baseline cannot produce a valid supporting citation;
+a placeholder does not make an answer admissible.
 
 **6. Never crash, and never write an empty file.** A missing, empty, unparseable or
 not-an-object `answer.json` is all the same outcome — "no usable output", **attributed to you** as
@@ -205,11 +200,11 @@ shapes defensively" sounds prudent and is actively harmful, proved by execution:
 The premise the judge sees is built by `qfbench2_common.scoring.faithfulness._doc_text`, which knows
 **exactly two** shapes — `text`, then `spans[].text` joined with a single space — and returns `""`
 for anything else. So if you reconstruct text from `span_index` and cite offsets into it, the
-citation **resolves**, **passes the embargo check**, **passes every gate you can run locally**, and
-then slices to an **empty premise**: zero entailment, no error, no signal.
+citation can pass structural smoke checks yet resolve to an **empty premise**, which cannot
+support the prediction under the real judge.
 
-Such a citation passes every gate you can run locally and fails in the one place you cannot
-measure.
+Structural smoke checks do not substitute for inspecting the resolved premise and running
+the judge diagnostic.
 
 **Treat a `span_index`-only document as not citable and leave it out.** A document the scorer renders
 as empty cannot support anything, and citing into a void is strictly worse than citing nothing,
@@ -224,13 +219,13 @@ it.** The schema marks `point_forecast` optional. It is not optional in practice
 **Put the ordering in `point_forecast`.** Any monotone score works: it is rank-correlated, not
 compared to a true magnitude. `label` feeds *classification* accuracy and does nothing for ranking.
 
-**A CONSTANT `point_forecast` scores full marks — silently.** `align_predictions` re-indexes
-against the trusted roster before any metric runs, and a correlation over a constant vector
-resolves to the roster's own order — so a constant and a correct ranking are indistinguishable on
-the leaderboard. Put a real ordering in `point_forecast`.
+**A constant `point_forecast` has neutral ranking quality, 0.5.** The toolkit assigns average
+ranks to ties; a constant prediction has no ordering information and cannot become a perfect
+ranking through roster order. This is the predictive-quality component, before calibration
+and admissibility gates. Put a real ordering in `point_forecast`.
 
 **A MISSING `point_forecast` is a different case and does fail loudly** — `alignment.py:353` raises
-`SCHEMA_INVALID` before any metric. Absent is caught; present-but-constant is not.
+`SCHEMA_INVALID` before any metric. A constant is valid input but receives neutral ranking quality.
 
 **And on a `classification` unit `label` is REQUIRED**, and must be one of
 `task["target"]["labels"]` — `alignment.py:337` raises `LABEL_INVALID` when it is missing and again
@@ -257,8 +252,8 @@ unset, because ruling R-5 requires a device **UUID** and refuses `device=0`. `--
 only in the smoke profile, which stamps the run **unrankable**. Detect CUDA at runtime and fall
 back to a CPU path rather than crashing.
 
-**Timeouts: 600 s.** Every unit card carries `[agent] timeout_sec = 600.0`, and the organizers
-confirm every held-out card does too. (`[environment].timeout` does not exist on any card, despite
+**Public practice timeouts: 600 s.** The public unit cards carry `[agent] timeout_sec = 600.0`.
+(`[environment].timeout` does not exist on these cards, despite
 `SUBMISSION_CLI.md` naming it.) Budget for 600 s — a third of Track 1's typical 1800 s, and not
 much for per-row retrieval plus a model call across up to 30 rows. Read the card anyway. Image
 size: **≤ 15 GB recommended, over 20 GB may be rejected**.
@@ -284,18 +279,20 @@ are x86-64 B200 (sm_100); build `linux/amd64`.
 ## Scoring, and what a public run can and cannot tell you
 
 `composite = 0.70 × predictive_quality − 0.30 × |interval_coverage − 0.90|`, gated on **citation
-faithfulness ≥ 0.80** and **zero embargo violations**. A claim counts as supported when — under
+faithfulness ≥ 0.80** and **zero embargo violations**. An entity counts as supported when — under
 `hypothesis.py`, which derives the hypothesis from your PREDICTION fields rather than your prose —
-ensemble-NLI entailment of `(cited span, claim)` exceeds `tau_citation = 0.5`; at least 80% of
-claims must be supported. `predictive_quality` is accuracy / MAE skill score / rescaled Spearman by
+ensemble-NLI entailment of `(cited span, canonical prediction hypothesis)` exceeds
+`tau_citation = 0.5`. Each roster entity passes when at least one of its citations exceeds that
+threshold; at least 80% of roster entities must pass. `predictive_quality` is accuracy / MAE
+skill score / rescaled Spearman by
 `target_type`.
 
 **An ineligible or inadmissible unit does not drop out of the aggregate.** `scoring.py`: *"An
 inadmissible unit scores W, not `None`. The frozen policy is a pre-committed worst value that stays
 in the denominator."* `W = 0·w_a − w_c·interval_level = **−0.27**` (`DOMAIN_MIN`), and
 `UnitOutcome.score` is documented "ALWAYS a float in the frozen domain — never `None`". So a risky
-answer that might be ruled ineligible is **not free** — it costs more than the worst admissible
-answer you could have submitted instead. Answer conservatively rather than omitting. (The one
+answer that might be ruled ineligible stays in the denominator at the **same floor as the
+worst admissible score**. Omitting a unit cannot remove its penalty. (The one
 surviving `None` is the public practice path, where no `reference/outcome.json` is mounted.)
 
 **The calibration term is a penalty on miscoverage, not a reward for coverage — and it is not
@@ -306,20 +303,26 @@ symmetric, but with `interval_level = 0.90` and coverage in `[0,1]` the worst ov
 wide is far cheaper than erring tight. Note also that `:216-230` compares your `interval.level`
 against the **unit's** `interval_level`, not a hardcoded 0.90; the schema's `const: 0.9` happens to
 agree today. A unit whose reference roster carries no numeric target has **no calibration leg** at
-all — the term is dropped and `composite = 0.70 × predictive_quality`. And **text-blind is
-ineligible, not merely weak**: TabPFN and gradient boosting are documented at ~0.45–0.58 accuracy
-with a **0% faithfulness pass rate**. Use them for your predictive floor; you cannot submit one.
+all — the term is dropped and `composite = 0.70 × predictive_quality`.
+A statistical prediction alone does not establish admissibility: the submitted answer must
+also satisfy the citation and embargo checks. This guide makes no measured accuracy or
+faithfulness-pass-rate claim for a text-blind baseline.
 
-**What a local public run cannot show you — two things, both verified in the scorer.** Public units
-carry no `reference/outcome.json`, so `_score` returns `{"score": None, "note": "no resolved
-outcome (public smoke)"}` — a clean run tells you *admissible*, never *good*. And the faithfulness
+**What a local public run cannot show you.** Public practice units carry no resolved outcome,
+so the smoke verifier returns no numerical score and marks the result non-rankable.
+A clean smoke run demonstrates only the checks that smoke performs,
+not predictive quality or rankable admissibility. And the faithfulness
 gate needs a judge: `_g3_domain_semantics` **raises `T4OrganizerFault` when no judge is present**
 (*"skipping it and defaulting faithfulness to 1.0 is the defect this scorer exists to remove"*) —
 the judge is mandatory in every rankable factory, and `build_smoke_verifier` is a separately named
-factory that stamps `rankable=False`. So **nothing you can run locally clears the faithfulness
-gate**. Run `faithfulness/judge.py --answer ...` yourself — it needs `transformers` + `torch` and
-the two pinned DeBERTa models cached locally (~3.5 GB, minutes to load on CPU) — and treat 0.80 as
-a hard floor, because nothing else will tell you.
+factory that stamps `rankable=False`.
+
+You can run `python faithfulness/judge.py --answer <answer.json> --unit <public-unit-directory>`
+as a diagnostic with its model dependencies cached. That result
+does not establish platform acceptance: the rankable scorer must use the selected model
+revisions, calibration and complete gate chain. See the track README's faithfulness section
+for the retained two-way entailment definition and its limitations. Resolved outcomes are also
+needed to measure predictive quality; an unlabeled practice run cannot supply it.
 
 ## Your image must be publicly pullable, and a private one fails silently
 
@@ -354,10 +357,10 @@ Expect **exit 0** and a schema-valid `/tmp/run/output/answer.json`. Then, in ord
 2. Run a citation rail: every `doc_id` resolves, every `doc_date <= cutoff_date`, every
    `(span_start, span_end)` slices to non-empty text **under the join-with-space convention**.
    `baselines/guardrails_example/citation_rail.py` is std-lib and does this; advisory, never scored.
-3. `faithfulness/judge.py` for the NLI gate.
+3. Run `faithfulness/judge.py --answer <answer.json> --unit <public-unit-directory>` for a
+   local NLI diagnostic; this does not produce a leaderboard score.
 4. Re-run with a synthetic post-cutoff document dropped into a copy of the corpus and confirm your
-   agent neither cites it nor crashes — that is the `stale_evidence_trap` family, and the shipped
-   baseline fails it (trap 5).
+   agent neither cites it nor crashes, including through its fallback path (trap 5).
 5. Test the shapes the exemplar never exercises: 30 entity rows, a `regression` target, a `ranking`
    target, a document with a flat `text` field, and an all-post-cutoff corpus.
 
@@ -365,7 +368,7 @@ Expect **exit 0** and a schema-valid `/tmp/run/output/answer.json`. Then, in ord
 
 | Path | What it gives you |
 |---|---|
-| `units/t4-EXAMPLE-eps-beat/` | the exemplar — one of 12; one entity, one family, one target type |
+| `units/t4-EXAMPLE-eps-beat/` | a public exemplar; one entity, one family, one target type |
 | `qfbench2_track_analysis/scoring.py` | the real gates and composite. Read `_g3_domain_semantics` and `_score` |
 | `baselines/strong_rag_baseline/indexer.py` | offset arithmetic; handles flat `text` first, `spans` second |
 | `baselines/strong_rag_baseline/span_finder.py` | locate model quotes as exact substrings; never trust model offsets |

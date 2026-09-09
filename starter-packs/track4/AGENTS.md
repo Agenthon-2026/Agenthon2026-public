@@ -183,11 +183,12 @@ is safe. Read it from `task.json["target"]["type"]` / `card.toml [scoring].param
 if you cannot resolve it, omit it. The shipped baseline's `build_answer` takes it as a parameter
 and warns against hardcoding — do not reintroduce a constant.
 
-**5. The shipped baseline's fallback commits an embargo violation.** With no in-embargo retrieval
-hit, `baseline_agent/cli.py` emits a placeholder claim citing `docs[0]` — the alphabetically first
-indexed document, with **no `doc_date` filter applied**. Apply the same date filter to fallback
-retrieval as to ordinary retrieval. A post-cutoff citation can trigger `T4_STALE_EVIDENCE` and
-make the unit ineligible. Test this with a synthetic post-cutoff document in a copy of a public unit.
+**5. Apply the embargo filter to fallback retrieval too.** The baseline's corrected
+`_newest_eligible` helper selects only documents with `doc_date <= cutoff`. The older fallback
+used the first indexed document without checking its date. Keep the corrected filter when
+adapting the baseline, and test it with a synthetic post-cutoff document in a copy of a public
+unit. If no eligible document exists, the baseline cannot produce a valid supporting citation;
+a placeholder does not make an answer admissible.
 
 **6. Never crash, and never write an empty file.** A missing, empty, unparseable or
 not-an-object `answer.json` is all the same outcome — "no usable output", **attributed to you** as
@@ -199,8 +200,8 @@ shapes defensively" sounds prudent and is actively harmful, proved by execution:
 The premise the judge sees is built by `qfbench2_common.scoring.faithfulness._doc_text`, which knows
 **exactly two** shapes — `text`, then `spans[].text` joined with a single space — and returns `""`
 for anything else. So if you reconstruct text from `span_index` and cite offsets into it, the
-citation **resolves**, **passes the embargo check**, **passes every gate you can run locally**, and
-then slices to an **empty premise**: zero entailment, no error, no signal.
+citation can pass structural smoke checks yet resolve to an **empty premise**, which cannot
+support the prediction under the real judge.
 
 Structural smoke checks do not substitute for inspecting the resolved premise and running
 the judge diagnostic.
@@ -307,9 +308,9 @@ A statistical prediction alone does not establish admissibility: the submitted a
 also satisfy the citation and embargo checks. This guide makes no measured accuracy or
 faithfulness-pass-rate claim for a text-blind baseline.
 
-**What a local public run cannot show you — two things, both verified in the scorer.** Public units
-carry no `reference/outcome.json`, so `_score` returns `{"score": None, "note": "no resolved
-outcome (public smoke)"}` — a clean smoke run demonstrates only the checks that smoke performs,
+**What a local public run cannot show you.** Public practice units carry no resolved outcome,
+so the smoke verifier returns no numerical score and marks the result non-rankable.
+A clean smoke run demonstrates only the checks that smoke performs,
 not predictive quality or rankable admissibility. And the faithfulness
 gate needs a judge: `_g3_domain_semantics` **raises `T4OrganizerFault` when no judge is present**
 (*"skipping it and defaulting faithfulness to 1.0 is the defect this scorer exists to remove"*) —

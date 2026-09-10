@@ -39,6 +39,17 @@ never happens silently, which is the guarantee that actually protects you.
 
 _Changes land here first._
 
+**`ACTION`** **Your `team_id` is derived, and `submission.zip` carries a second file.** There is
+no registration page. `team_id` is computed from your website team number and Team Key
+(`qfbench2 submission alias --team-number <N>`), and the zip must contain `team-claim.json`
+beside `submission.json` on the first upload from your CodaBench account in each competition
+(harmless afterwards). `qfbench2 submission pack --descriptor submission.json --team-number <N>
+--out submission.zip` writes both. The Team Key is entered on a hidden prompt or read from
+`--team-key-file`, never given as an argument. Read `TEAM-CLAIM.md` in your starter pack for
+what happens on a missing or wrong claim: everything except a wrong `team_id` holds the upload
+for your next attempt instead of cancelling it. The descriptor contract itself is unchanged;
+this is the value of one existing field and one extra file in the zip.
+
 **`ACTION`** **C5 1.1.0 permits model-free descriptors.** Set `models: []` when your
 submission calls no model. The `models` key remains required, and each declared model still
 needs all five disclosure fields. This relaxation was first published in toolkit `v2.4.0` as

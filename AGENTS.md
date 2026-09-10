@@ -103,6 +103,13 @@ optional field is admitted; a wrong one is not.
 the ones you are unsure about, or renaming them, is refused — the denominator is fixed by the
 roster, not by what you chose to answer.
 
+**Inventing or copying a `team_id`.** It is derived, not assigned: `qfbench2 submission alias
+--team-number <N>` computes it from your website team number and Team Key, and `qfbench2
+submission pack` writes it into `submission.json` and the `team-claim.json` the organizer needs
+beside it. A descriptor that names another team's id is cancelled; a zip without the claim on
+your account's first upload is held until you add it. Never put the Team Key on a command line,
+in a commit, in an image or in a prompt — the CLI asks for it hidden, or reads `--team-key-file`.
+
 **Only one attempt at the environment.** Your container gets no network beyond the organizer
 endpoint, a read-only root filesystem and a tmpfs at `/tmp`. If you need to write, write to your
 output directory or `/tmp`. Anything you try to install at run time will fail.

@@ -68,7 +68,7 @@ toolkit's parser. Validate with `SubmissionDescriptor.from_mapping` and reseal w
 | `schema_version` | `"1.0.0"` or `"1.1.0"` (the toolkit that ships this doc implements 1.1.0) |
 | `interface_version` | `"2.0"` — must match the image's `qfbench2.interface_version` label |
 | `competition_id` | `agenthon2026-<track>-<phase>`. The suffixed form is what the C5 golden fixtures and accepted submissions use. Note the toolkit contradicts itself — `contracts/release.py:106` defines the form WITHOUT the phase suffix — and **neither the schema nor the parser enforces either form**, so nothing catches a wrong value locally. Use the suffix. |
-| `team_id` | **your team id — this documentation cannot tell you what yours is.** Take it from your CodaBench profile or a prior submission. There is no default, and any non-empty string validates, so a wrong value is not caught. |
+| `team_id` | **derived, not assigned.** `team-` + the first 32 hex characters of `sha256("agenthon2026-team-alias:" + str(team_number) + ":" + team_key)`, computed by `qfbench2 submission alias` / `pack` from your website team number and Team Key (hidden prompt or `--team-key-file`; never an argument). Any non-empty string validates locally, so a hand-typed wrong value is not caught here; `pack` refuses a `team_id` that disagrees with the derived one, and the organizer cancels a descriptor whose `team_id` names a team other than the one linked to your account. See `TEAM-CLAIM.md`. |
 | `track` | `coding` \| `forecasting` \| `simulation` \| `analysis` |
 | `phase` | `dev` \| `final` \| `verification` |
 | `category` | `api` \| `byo-small` \| `byo-large` \| `simulator` — the enum the schema validates. The `byo-*` names are **legacy** names the schema retains: there is no small-weights tier (no permitted Nemotron is under ~7B), and a BYO submission ships a **LoRA adapter, not weights**. Use the value in this track's callout at the top of this page. The enum is **not validated against `track`** (a wrong pairing passes), so getting it right is on you. |
@@ -155,4 +155,22 @@ not a defect in your work.
 
 ## The zip
 
-One file, `submission.json`, at the root of the archive. Nothing else.
+Two files at the root of the archive, nothing else:
+
+| file | what it is |
+|---|---|
+| `submission.json` | this descriptor, sealed |
+| `team-claim.json` | `{"schema_version": "1.0", "site_team_id": <your team number>, "team_key": "<your Team Key>"}` |
+
+`team-claim.json` is required on the **first upload from your CodaBench account** in a
+competition and harmless afterwards: keep writing it. It is how the organizer links your account
+to your team; there is no registration page. Let the toolkit write both:
+
+```bash
+qfbench2 submission pack --descriptor submission.json --team-number <N> --out submission.zip
+```
+
+It asks for the Team Key without echo (or reads `--team-key-file`), sets `team_id` to the derived
+id, reseals the digest, validates, and writes the zip. What happens on a missing or wrong claim
+is in [`TEAM-CLAIM.md`](TEAM-CLAIM.md): everything except a wrong `team_id` *holds* the upload
+for your next attempt rather than cancelling it.

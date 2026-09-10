@@ -64,11 +64,22 @@ useful thing in the repository — it tells you whether your submission would be
 a different and more urgent question than whether it would score well.
 
 ```bash
-qfbench2 {smoke,card,manifest,eval,track1,track4}
+qfbench2 {smoke,card,manifest,eval,track1,track4,submission}
 ```
 
 The fuller CLI: validate a `card.toml`, verify a manifest's checksums, lint an entire `units/`
-tree, or drive the Track 1 / Track 4 runner adapters.
+tree, drive the Track 1 / Track 4 runner adapters, or pack your submission:
+
+```bash
+qfbench2 submission alias --team-number <N>        # prints your team_id (asks for the Team Key, hidden)
+qfbench2 submission pack  --descriptor submission.json --team-number <N> --out submission.zip
+```
+
+There is no registration page. Your `team_id` is derived from your website team number and Team
+Key, and `pack` writes `submission.zip` with `submission.json` (sealed) and `team-claim.json`,
+which links your CodaBench account to your team on its first upload. The key is asked for on a
+hidden prompt or read from `--team-key-file`; it is never a command-line argument. See
+`starter-packs/<track>/TEAM-CLAIM.md`.
 
 And the library:
 

@@ -11,6 +11,12 @@ library functions so authors and CI run identical code.
     qfbench2 eval     --track <track> --units <units_dir>      # lint every unit in a tree
     qfbench2 track1   score-harbor-job --job-dir <job_dir>     # score a Harbor job
     qfbench2 track4   score-exec-job --job-dir <job_dir>       # score a T4 exec Harbor job
+    qfbench2 submission alias --team-number N                  # print the derived team_id
+    qfbench2 submission pack --descriptor submission.json --team-number N --out submission.zip
+
+``submission`` asks for the Team Key on a hidden prompt (or reads ``--team-key-file``); the key
+is never a command-line argument and is written to exactly one place, ``team-claim.json`` inside
+the zip. See ``qfbench2_common.team_claim``.
 
 ``qfbench2-smoke`` remains as a thin alias for ``qfbench2 smoke`` (back-compat).
 
@@ -25,6 +31,7 @@ from __future__ import annotations
 import argparse
 import json
 import pathlib
+import re
 import sys
 from typing import Any, Callable
 
@@ -327,8 +334,108 @@ def _cmd_track4_harbor_run(args: argparse.Namespace) -> int:
     return 0
 
 
+def _team_key(args: argparse.Namespace) -> str:
+    """The Team Key from `--team-key-file`, else a hidden terminal prompt; never from argv.
+
+    Without a terminal `getpass` would fall back to echoing the key, so that case is refused
+    outright, and the echo-fallback warning is turned into a refusal too.
+    """
+    from .team_claim import TeamClaimError, read_team_key_file, validate_team_key
+
+    if args.team_key_file:
+        return read_team_key_file(args.team_key_file)
+    import getpass
+    import warnings
+
+    if not sys.stdin.isatty():
+        raise TeamClaimError("no terminal to hide the Team Key prompt; use --team-key-file")
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", getpass.GetPassWarning)
+        try:
+            key = getpass.getpass("Team Key (hidden): ")
+        except getpass.GetPassWarning:
+            raise TeamClaimError("this terminal cannot hide input; use --team-key-file") from None
+    return validate_team_key(key)
+
+
+def _cmd_submission(args: argparse.Namespace) -> int:
+    """`alias` prints the derived team_id; `pack` writes submission.zip with both files."""
+    from .team_claim import TeamClaimError, derive_team_alias, pack_submission
+
+    try:
+        if args.action == "alias":
+            print(derive_team_alias(args.team_number, _team_key(args)))
+            return 0
+        descriptor_path = pathlib.Path(args.descriptor)
+        try:
+            descriptor = json.loads(descriptor_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, ValueError):
+            raise TeamClaimError("descriptor is not a readable JSON file") from None
+        out = pathlib.Path(args.out)
+        if out.exists() and not args.force:
+            raise TeamClaimError(f"{out} exists; pass --force to replace it")
+        team_id = pack_submission(descriptor, args.team_number, _team_key(args), out)
+    except TeamClaimError as exc:
+        # The message is closed by construction: it names a rule, never the key.
+        print(f"refused: {exc}", file=sys.stderr)
+        return 1
+    print(f"wrote {out} (submission.json + team-claim.json, team_id {team_id})")
+    return 0
+
+
+def _refuse_key_in_argv(argv: list[str]) -> bool:
+    """`--team-key <key>` is not an option and must not become one by prefix matching.
+
+    argparse abbreviates `--team-key` to `--team-key-file`, and its "unrecognized arguments"
+    error would echo the value. Either way the key would be on a command line, in shell
+    history and in `ps`; refuse before parsing, without repeating a single argument.
+    """
+    for arg in argv:
+        # Every prefix of --team-key-file that is not the exact option: `--team-k`,
+        # `--team-key`, `--team-key=...`. The exact spelling (and its `=path` form) passes.
+        if arg.startswith("--team-k") and not (
+            arg == "--team-key-file" or arg.startswith("--team-key-file=")
+        ):
+            print(
+                "refused: the Team Key is never a command-line argument; use the hidden "
+                "prompt or --team-key-file",
+                file=sys.stderr,
+            )
+            return True
+    return False
+
+
+class _Usage(Exception):
+    """A command-line error already reported on stderr without repeating any argument."""
+
+
+class _Parser(argparse.ArgumentParser):
+    """argparse whose error messages never quote what was typed.
+
+    "unrecognized arguments: ...", "invalid int value: '...'" and "invalid choice: '...'"
+    all echo user text, so a mistyped option (`-team-key KEY`, `--key KEY`, a stray `KEY`)
+    would print the Team Key. Only messages that name the parser's own option strings
+    are passed through; everything else becomes one closed line. Subparsers inherit
+    this class through `add_subparsers` (parser_class defaults to type(self)).
+    """
+
+    _SAFE = re.compile(r"(the following arguments are required: |argument [^:'\"]+: expected )")
+
+    def error(self, message: str) -> None:  # type: ignore[override]
+        self.print_usage(sys.stderr)
+        if not self._SAFE.match(message):
+            message = (
+                "invalid command line (arguments are not repeated here; the Team Key is "
+                "never a command-line argument; use the hidden prompt or --team-key-file)"
+            )
+        print(f"{self.prog}: error: {message}", file=sys.stderr)
+        raise _Usage()
+
+
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="qfbench2", description="QFBench 2.0 shared toolkit CLI")
+    if _refuse_key_in_argv(sys.argv[1:] if argv is None else list(argv)):
+        return EXIT_USAGE
+    ap = _Parser(prog="qfbench2", description="QFBench 2.0 shared toolkit CLI")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     p_smoke = sub.add_parser("smoke", help="run the track verifier on a produced output dir")
@@ -424,7 +531,32 @@ def main(argv: list[str] | None = None) -> int:
     p_t4_run.add_argument("--no-score", action="store_true")
     p_t4_run.set_defaults(func=_cmd_track4_harbor_run)
 
-    args = ap.parse_args(argv)
+    p_sub = sub.add_parser("submission", help="derive your team_id and pack submission.zip")
+    sub_sub = p_sub.add_subparsers(dest="action", required=True)
+    for action, help_text in (
+        ("alias", "print the team_id derived from your team number and Team Key"),
+        ("pack", "seal submission.json with your team_id and zip it with team-claim.json"),
+    ):
+        p_action = sub_sub.add_parser(action, help=help_text, allow_abbrev=False)
+        p_action.add_argument(
+            "--team-number", required=True, type=int, help="your website team number"
+        )
+        p_action.add_argument(
+            "--team-key-file",
+            help="file holding the Team Key alone (mode 600); default: hidden terminal prompt",
+        )
+        if action == "pack":
+            p_action.add_argument("--descriptor", required=True, help="path to submission.json")
+            p_action.add_argument("--out", default="submission.zip", help="zip to write")
+            p_action.add_argument(
+                "--force", action="store_true", help="replace an existing output file"
+            )
+        p_action.set_defaults(func=_cmd_submission)
+
+    try:
+        args = ap.parse_args(argv)
+    except _Usage:
+        return EXIT_USAGE
     return int(args.func(args))
 
 

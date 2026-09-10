@@ -31,6 +31,7 @@ from __future__ import annotations
 import argparse
 import json
 import pathlib
+import re
 import sys
 from typing import Any, Callable
 
@@ -404,10 +405,37 @@ def _refuse_key_in_argv(argv: list[str]) -> bool:
     return False
 
 
+class _Usage(Exception):
+    """A command-line error already reported on stderr without repeating any argument."""
+
+
+class _Parser(argparse.ArgumentParser):
+    """argparse whose error messages never quote what was typed.
+
+    "unrecognized arguments: ...", "invalid int value: '...'" and "invalid choice: '...'"
+    all echo user text, so a mistyped option (`-team-key KEY`, `--key KEY`, a stray `KEY`)
+    would print the Team Key. Only messages that name the parser's own option strings
+    are passed through; everything else becomes one closed line. Subparsers inherit
+    this class through `add_subparsers` (parser_class defaults to type(self)).
+    """
+
+    _SAFE = re.compile(r"(the following arguments are required: |argument [^:'\"]+: expected )")
+
+    def error(self, message: str) -> None:  # type: ignore[override]
+        self.print_usage(sys.stderr)
+        if not self._SAFE.match(message):
+            message = (
+                "invalid command line (arguments are not repeated here; the Team Key is "
+                "never a command-line argument; use the hidden prompt or --team-key-file)"
+            )
+        print(f"{self.prog}: error: {message}", file=sys.stderr)
+        raise _Usage()
+
+
 def main(argv: list[str] | None = None) -> int:
     if _refuse_key_in_argv(sys.argv[1:] if argv is None else list(argv)):
         return EXIT_USAGE
-    ap = argparse.ArgumentParser(prog="qfbench2", description="QFBench 2.0 shared toolkit CLI")
+    ap = _Parser(prog="qfbench2", description="QFBench 2.0 shared toolkit CLI")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     p_smoke = sub.add_parser("smoke", help="run the track verifier on a produced output dir")
@@ -525,7 +553,10 @@ def main(argv: list[str] | None = None) -> int:
             )
         p_action.set_defaults(func=_cmd_submission)
 
-    args = ap.parse_args(argv)
+    try:
+        args = ap.parse_args(argv)
+    except _Usage:
+        return EXIT_USAGE
     return int(args.func(args))
 
 

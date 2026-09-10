@@ -323,15 +323,32 @@ def test_cli_hidden_prompt_is_used_only_on_a_terminal(tmp_path, monkeypatch, cap
         ["submission", "pack", "--descriptor", "x", "--team-number", "11", "--team-key", TEAM_KEY],
         ["submission", "alias", "--team-number", "11", "--team-ke", TEAM_KEY],
         ["submission", "alias", "--team-number", "11", "--team-k=" + TEAM_KEY],
+        # Round-1 review: spellings the prefix guard does not see must not reach
+        # argparse's "unrecognized arguments" echo either.
+        ["submission", "alias", "--team-number", "11", "-team-key", TEAM_KEY],
+        ["submission", "alias", "--team-number", "11", "--Team-Key", TEAM_KEY],
+        ["submission", "alias", "--team-number", "11", "--key", TEAM_KEY],
+        ["submission", "alias", "--team-number", "11", TEAM_KEY],
+        ["submission", "alias", "--team-number", TEAM_KEY],
+        ["submission", TEAM_KEY, "--team-number", "11"],
+        ["submission", "pack", "--descriptor", "x", "--team-number", "11", "--key", TEAM_KEY],
     ],
 )
 def test_cli_never_accepts_or_echoes_the_key_as_an_argument(argv, capsys):
-    # Neither argparse's prefix matching (`--team-key` -> `--team-key-file`) nor its
-    # "unrecognized arguments" message may see the value.
+    # Neither argparse's prefix matching (`--team-key` -> `--team-key-file`), its
+    # "unrecognized arguments" / "invalid ... value" / "invalid choice" messages, nor
+    # a SystemExit from inside parse_args may see or carry the value.
     assert cli.main(argv) == cli.EXIT_USAGE
     captured = capsys.readouterr()
     assert "never a command-line argument" in captured.err
     assert TEAM_KEY not in captured.out + captured.err
+
+
+def test_cli_usage_errors_that_name_only_the_parsers_own_options_still_explain(capsys):
+    assert cli.main(["submission", "alias"]) == cli.EXIT_USAGE
+    assert "the following arguments are required: --team-number" in capsys.readouterr().err
+    assert cli.main(["submission", "alias", "--team-number"]) == cli.EXIT_USAGE
+    assert "argument --team-number: expected one argument" in capsys.readouterr().err
 
 
 def test_pack_output_is_what_the_organizer_side_reads(tmp_path):

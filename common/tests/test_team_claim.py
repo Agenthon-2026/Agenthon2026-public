@@ -7,6 +7,7 @@ import hashlib
 import io
 import json
 import os
+import stat
 import sys
 import warnings
 import zipfile
@@ -124,6 +125,55 @@ def test_pack_refuses_a_symlinked_or_non_regular_output(tmp_path):
     with pytest.raises(team_claim.TeamClaimError):
         team_claim.pack_submission(body(), 11, TEAM_KEY, link)
     assert target.read_bytes() == b""
+
+
+def test_pack_never_reuses_a_pre_existing_world_readable_file(tmp_path):
+    """A reader who already holds the old file open (or another link to it) never sees the key."""
+    out = tmp_path / "submission.zip"
+    out.write_bytes(b"OLD-WORLD-READABLE")
+    out.chmod(0o644)
+    other_link = tmp_path / "hard-link-to-old.zip"
+    os.link(out, other_link)
+    with out.open("rb") as already_open:
+        team_claim.pack_submission(body(), 11, TEAM_KEY, out)
+        assert already_open.read() == b"OLD-WORLD-READABLE"
+    assert other_link.read_bytes() == b"OLD-WORLD-READABLE"
+    assert stat.S_IMODE(other_link.stat().st_mode) == 0o644
+    assert stat.S_IMODE(out.stat().st_mode) == 0o600
+    assert not os.path.samefile(out, other_link)
+    fresh = out.read_bytes()
+    assert fresh.count(TEAM_KEY.encode()) == 1 and b"OLD" not in fresh
+
+
+def test_pack_output_is_0600_before_the_first_byte(tmp_path, monkeypatch):
+    """The mode is checked from inside write(): no byte lands in a wider-than-0600 file."""
+    out = tmp_path / "submission.zip"
+    out.write_bytes(b"old")
+    out.chmod(0o666)
+    modes_at_write = []
+
+    class Raw(io.FileIO):
+        def write(self, data):
+            modes_at_write.append(stat.S_IMODE(os.fstat(self.fileno()).st_mode))
+            return super().write(data)
+
+    monkeypatch.setattr(team_claim.os, "fdopen", lambda fd, mode="r", *a, **k: Raw(fd, mode))
+    previous = os.umask(0o000)  # the widest umask: only an explicit mode can make it 0600
+    try:
+        team_claim.pack_submission(body(), 11, TEAM_KEY, out)
+    finally:
+        os.umask(previous)
+    assert modes_at_write and all(mode == 0o600 for mode in modes_at_write)
+    assert stat.S_IMODE(out.stat().st_mode) == 0o600
+    assert out.read_bytes().count(TEAM_KEY.encode()) == 1
+
+
+def test_pack_refuses_an_unwritable_output_without_naming_the_key(tmp_path):
+    out = tmp_path / "missing-directory" / "submission.zip"
+    with pytest.raises(team_claim.TeamClaimError) as caught:
+        team_claim.pack_submission(body(), 11, TEAM_KEY, out)
+    assert TEAM_KEY not in str(caught.value)
+    assert not out.exists()
 
 
 def test_key_file_must_be_private_regular_and_the_key_alone(tmp_path):

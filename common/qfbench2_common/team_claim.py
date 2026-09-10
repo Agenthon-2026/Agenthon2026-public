@@ -27,6 +27,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import os
 import pathlib
 import re
 import stat
@@ -177,8 +178,12 @@ def pack_submission(
     """Write `submission.zip` with exactly `submission.json` and `team-claim.json`; return the id.
 
     The archive is deterministic for the same inputs (fixed timestamps, stored entries, mode
-    0644), so two packs of one descriptor produce byte-identical zips. The output file is
-    created with mode 0600: it contains the key.
+    0644), so two packs of one descriptor produce byte-identical zips. The output file holds
+    the key, so it is mode 0600 from its first byte: a symlink or non-regular path is refused,
+    a pre-existing regular file is unlinked rather than reused (whoever already had it open,
+    or holds another link to it, never sees the new content), and the file is created with
+    `os.open(..., O_CREAT | O_EXCL | O_NOFOLLOW, 0o600)` plus `fchmod` so the umask cannot
+    widen it. No byte is written before the mode is in place.
     """
     sealed = seal_for_team(descriptor, team_number, team_key)
     claim = build_team_claim(team_number, team_key)
@@ -190,13 +195,47 @@ def pack_submission(
             entry.external_attr = (stat.S_IFREG | 0o644) << 16
             entry.compress_type = zipfile.ZIP_STORED
             archive.writestr(entry, payload)
-    path = pathlib.Path(out)
-    if path.exists() and (path.is_symlink() or not path.is_file()):
-        raise TeamClaimError("output path exists and is not a regular file")
-    fd = path.open("wb")
-    try:
-        path.chmod(0o600)
-        fd.write(buffer.getvalue())
-    finally:
-        fd.close()
+    _write_private_file(pathlib.Path(out), buffer.getvalue())
     return str(sealed["team_id"])
+
+
+_CREATE_FLAGS = (
+    os.O_WRONLY
+    | os.O_CREAT
+    | os.O_EXCL
+    | os.O_TRUNC
+    | getattr(os, "O_NOFOLLOW", 0)
+    | getattr(os, "O_CLOEXEC", 0)
+)
+
+
+def _write_private_file(path: pathlib.Path, payload: bytes) -> None:
+    """Create `path` fresh with mode 0600 and write `payload`; never reuse an existing file."""
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        info = None
+    except OSError:
+        raise TeamClaimError("output path cannot be written") from None
+    if info is not None:
+        if stat.S_ISLNK(info.st_mode) or not stat.S_ISREG(info.st_mode):
+            raise TeamClaimError("output path exists and is not a regular file")
+        try:
+            path.unlink()
+        except OSError:
+            raise TeamClaimError("output path cannot be replaced") from None
+    try:
+        fd = os.open(path, _CREATE_FLAGS, 0o600)
+    except OSError:
+        raise TeamClaimError("output path cannot be created privately") from None
+    try:
+        os.fchmod(fd, 0o600)
+        handle = os.fdopen(fd, "wb")
+    except OSError:
+        os.close(fd)
+        raise TeamClaimError("output file could not be made private") from None
+    try:
+        with handle:
+            handle.write(payload)
+    except OSError:
+        raise TeamClaimError("output file could not be written") from None

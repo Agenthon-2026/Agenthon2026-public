@@ -19,9 +19,9 @@ account your team will use for every upload. This page is everything a team need
 | `team-claim.json` | `{"schema_version": "1.0", "site_team_id": <your team number>, "team_key": "<your Team Key>"}` |
 
 `team-claim.json` is **required on the first upload from your account** in a competition
-and **harmless afterwards**: keep writing it into every zip. It is read once, in memory, by
-the organizer's intake to bind your account to your team; it is never stored, logged or
-shown to anyone.
+and **harmless afterwards**: keep writing it into every zip. It is read in memory only,
+never stored, by the organizer's intake to bind your account to your team; it is never
+logged or shown to anyone.
 
 ## Your team id is derived, not assigned
 

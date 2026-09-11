@@ -155,7 +155,14 @@ Two files at the root of the archive, nothing else:
 | file | what it is |
 |---|---|
 | `submission.json` | this descriptor, sealed |
-| `team-claim.json` | `{"schema_version": "1.0", "site_team_id": <your team number>, "team_key": "<your Team Key>"}` |
+| `team-claim.json` | `{"schema_version": "2.0", "site_team_id": <your team number>, "descriptor_sha256": "<sha256 of the exact `submission.json` bytes in this zip>", "proof": "<64 hex>"}` |
+
+**Your Team Key never goes into the zip, and must not.** An uploaded submission zip is
+downloadable by anyone once the run is placed on a leaderboard, so nothing secret may travel in
+it. `team-claim.json` carries a *proof* instead — an HMAC computed under the key and bound to the
+digest of this zip's `submission.json`. A `schema_version` `"1.0"` document, the superseded shape
+that carried a `team_key` field, is refused rather than read; if you ever uploaded one, treat that
+key as published and ask the organizers to rotate it.
 
 `team-claim.json` is required on the **first upload from your CodaBench account** in a
 competition and harmless afterwards: keep writing it. It is how the organizer links your account
@@ -166,6 +173,8 @@ qfbench2 submission pack --descriptor submission.json --team-number <N> --out su
 ```
 
 It asks for the Team Key without echo (or reads `--team-key-file`), sets `team_id` to the derived
-id, reseals the digest, validates, and writes the zip. What happens on a missing or wrong claim
+id, reseals the digest, computes the proof over the exact `submission.json` bytes it is about to
+write, and writes the zip. The key is used for those two derivations and nothing else: it is never
+an argument, never printed and never written anywhere. What happens on a missing or wrong claim
 is in [`TEAM-CLAIM.md`](TEAM-CLAIM.md): everything except a wrong `team_id` *holds* the upload
 for your next attempt rather than cancelling it.

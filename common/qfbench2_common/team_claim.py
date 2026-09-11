@@ -3,10 +3,23 @@
 ## Executive summary (read this first)
 
 There is no registration page. A team proves who it is by putting its website **team number**
-and **Team Key** into `team-claim.json` beside `submission.json`, once, from the CodaBench
-account it will use for every upload; the organizer's intake reads that file in memory on the
-account's first upload and links the account. The C5 `team_id` is not assigned by anyone: it is
-**derived** from the same pair,
+and a **proof computed under its Team Key** into `team-claim.json` beside `submission.json`,
+from the CodaBench account it will use for every upload; the organizer's intake reads that file
+on the account's first upload and links the account.
+
+**The Team Key itself never enters the zip.** An uploaded submission zip is downloadable by
+anyone -- measured on the platform, 2026-09-10: an unauthenticated request lists the submission
+and returns a presigned link to the archive as soon as the run is placed on a leaderboard, which
+the leaderboard rule does automatically for every team. So the claim carries an HMAC bound to
+*this* upload's descriptor. What that provably buys: a zip reader gets neither the Team Key nor
+the fingerprint the organizer stores, and the tag verifies for this one descriptor and no other,
+so it cannot be lifted into a different submission. What it does not buy: the *whole* archive,
+re-uploaded unchanged, still carries a claim that verifies, and that links the uploading account
+only for as long as the team is not yet linked -- after which a second account claiming it is
+refused. Nor does any of it remove guessing; the searchable value there is the published
+`team_id`, not the claim (see the organizer's TEAM-CLAIM-PROOF-DECISION.md).
+
+The C5 `team_id` is not assigned by anyone: it is **derived** from the number and the key,
 
     team_id = "team-" + sha256(b"agenthon2026-team-alias:" + str(team_number).encode()
                                + b":" + team_key.encode()).hexdigest()[:32]
@@ -17,14 +30,15 @@ as issued: no trimming, no case folding, no Unicode normalization. A different k
 team id.
 
 What this module guarantees about the key: it enters through a hidden prompt or a file the
-participant owns, it is written to exactly one place (the `team-claim.json` member of the zip),
-and no function here puts it in a message, an exception, a log line or a return value other than
-the claim bytes themselves. `qfbench2 submission pack|alias` in `cli.py` is the entry point.
+participant owns, it is **never written anywhere at all**, and no function here puts it in a
+message, an exception, a log line, a return value or a file. It is used only to derive the
+`team_id` and the claim proof. `qfbench2 submission pack|alias` in `cli.py` is the entry point.
 """
 
 from __future__ import annotations
 
 import hashlib
+import hmac
 import io
 import json
 import os
@@ -47,21 +61,29 @@ __all__ = [
     "TeamClaimError",
     "build_team_claim",
     "derive_team_alias",
+    "descriptor_digest",
     "pack_submission",
     "read_team_key_file",
     "seal_for_team",
+    "team_claim_proof",
     "validate_team_key",
     "validate_team_number",
 ]
 
 TEAM_CLAIM_FILE = "team-claim.json"
-CLAIM_SCHEMA_VERSION = "1.0"
-ALIAS_RE = re.compile(r"^team-[a-f0-9]{32}$")
+CLAIM_SCHEMA_VERSION = "2.0"
+# `\A`/`\Z`, never `^`/`$`: `$` also matches immediately before a trailing newline, so an
+# anchored `^...$` accepts "<64 hex>\n" -- which the organizer's reader, which uses
+# `fullmatch`, refuses as `claim_malformed`. Both spellings are pinned in the tests.
+ALIAS_RE = re.compile(r"\Ateam-[a-f0-9]{32}\Z")
+HEX64_RE = re.compile(r"\A[0-9a-f]{64}\Z")
 MIN_KEY_CHARS = 8
 MAX_KEY_CHARS = 256
 MAX_CLAIM_BYTES = 1024
 MAX_TEAM_NUMBER = 2**63 - 1
 _ALIAS_PREFIX = b"agenthon2026-team-alias:"
+_PROOF_KEY_PREFIX = b"agenthon2026-team-proof-key:v2:"
+_CLAIM_MESSAGE_PREFIX = b"agenthon2026-team-claim:v2:"
 _KEY_FILE_BYTES = 4096
 
 
@@ -99,12 +121,60 @@ def derive_team_alias(team_number: int, team_key: str) -> str:
     return "team-" + hashlib.sha256(material).hexdigest()[:32]
 
 
-def build_team_claim(team_number: int, team_key: str) -> bytes:
-    """The exact bytes of `team-claim.json`: three keys, compact, UTF-8, at most 1024 bytes."""
+def descriptor_digest(descriptor_bytes: bytes) -> str:
+    """The digest a claim is bound to: sha256 of the zip's `submission.json` member bytes.
+
+    The exact bytes, not a canonicalization of them, so the two ends cannot drift: the
+    organizer hashes the member it reads out of the archive, and this hashes the member
+    about to be written into it.
+    """
+    if type(descriptor_bytes) is not bytes or not descriptor_bytes:
+        raise TeamClaimError("descriptor bytes must be non-empty bytes")
+    return hashlib.sha256(descriptor_bytes).hexdigest()
+
+
+def team_claim_proof(team_number: int, team_key: str, descriptor_sha256: str) -> str:
+    """Prove possession of the Team Key for one specific descriptor, without revealing it.
+
+        proof_key = sha256(b"agenthon2026-team-proof-key:v2:" + team_key.encode())
+        message   = (b"agenthon2026-team-claim:v2:" + str(team_number).encode()
+                     + b":" + descriptor_sha256.encode())
+        proof     = hmac_sha256(proof_key, message).hexdigest()
+
+    The organizer recomputes this from the website's own copy of the key. Binding it to the
+    descriptor digest is what makes a copied claim worthless: it verifies for that one
+    upload and no other. The HMAC key is a hash of the Team Key rather than the Team Key
+    itself, so the value the organizer stores privately is never a usable HMAC key either.
+    """
     number = validate_team_number(team_number)
     key = validate_team_key(team_key)
+    if type(descriptor_sha256) is not str or HEX64_RE.fullmatch(descriptor_sha256) is None:
+        raise TeamClaimError("descriptor digest must be 64 lowercase hex characters")
+    proof_key = hashlib.sha256(_PROOF_KEY_PREFIX + key.encode("utf-8")).digest()
+    message = (
+        _CLAIM_MESSAGE_PREFIX
+        + str(number).encode("ascii")
+        + b":"
+        + descriptor_sha256.encode("ascii")
+    )
+    return hmac.new(proof_key, message, hashlib.sha256).hexdigest()
+
+
+def build_team_claim(team_number: int, team_key: str, descriptor_sha256: str) -> bytes:
+    """The exact bytes of `team-claim.json`: four keys, compact, UTF-8, at most 1024 bytes.
+
+    Nothing in the result is secret. It is safe in an archive anyone can download, which is
+    the point: submission zips are public once the run is placed on a leaderboard.
+    """
+    number = validate_team_number(team_number)
+    proof = team_claim_proof(number, team_key, descriptor_sha256)
     raw = json.dumps(
-        {"schema_version": CLAIM_SCHEMA_VERSION, "site_team_id": number, "team_key": key},
+        {
+            "schema_version": CLAIM_SCHEMA_VERSION,
+            "site_team_id": number,
+            "descriptor_sha256": descriptor_sha256,
+            "proof": proof,
+        },
         ensure_ascii=False,
         separators=(",", ":"),
         sort_keys=True,
@@ -178,16 +248,20 @@ def pack_submission(
     """Write `submission.zip` with exactly `submission.json` and `team-claim.json`; return the id.
 
     The archive is deterministic for the same inputs (fixed timestamps, stored entries, mode
-    0644), so two packs of one descriptor produce byte-identical zips. The output file holds
-    the key, so it is mode 0600 from its first byte: a symlink or non-regular path is refused,
-    a pre-existing regular file is unlinked rather than reused (whoever already had it open,
-    or holds another link to it, never sees the new content), and the file is created with
-    `os.open(..., O_CREAT | O_EXCL | O_NOFOLLOW, 0o600)` plus `fchmod` so the umask cannot
-    widen it. No byte is written before the mode is in place.
+    0644), so two packs of one descriptor produce byte-identical zips. The zip holds no
+    secret -- the claim is a proof, not the key -- but it is still written mode 0600: a
+    symlink or non-regular path is refused, a pre-existing regular file is unlinked rather
+    than reused (whoever already had it open, or holds another link to it, never sees the
+    new content), and the file is created with `os.open(..., O_CREAT | O_EXCL | O_NOFOLLOW,
+    0o600)` plus `fchmod` so the umask cannot widen it. No byte is written before the mode
+    is in place.
+
+    The descriptor is sealed and serialized *first*, because the claim's proof is computed
+    over the digest of the exact `submission.json` bytes this archive will carry.
     """
     sealed = seal_for_team(descriptor, team_number, team_key)
-    claim = build_team_claim(team_number, team_key)
     descriptor_bytes = (json.dumps(sealed, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    claim = build_team_claim(team_number, team_key, descriptor_digest(descriptor_bytes))
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_STORED) as archive:
         for name, payload in (("submission.json", descriptor_bytes), (TEAM_CLAIM_FILE, claim)):

@@ -15,8 +15,9 @@ library functions so authors and CI run identical code.
     qfbench2 submission pack --descriptor submission.json --team-number N --out submission.zip
 
 ``submission`` asks for the Team Key on a hidden prompt (or reads ``--team-key-file``); the key
-is never a command-line argument and is written to exactly one place, ``team-claim.json`` inside
-the zip. See ``qfbench2_common.team_claim``.
+is never a command-line argument and is never written anywhere at all. ``team-claim.json`` inside
+the zip carries a proof computed under it and bound to that zip's ``submission.json``, because an
+uploaded zip is downloadable by anyone. See ``qfbench2_common.team_claim``.
 
 ``qfbench2-smoke`` remains as a thin alias for ``qfbench2 smoke`` (back-compat).
 

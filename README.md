@@ -77,9 +77,11 @@ qfbench2 submission pack  --descriptor submission.json --team-number <N> --out s
 
 There is no registration page. Your `team_id` is derived from your website team number and Team
 Key, and `pack` writes `submission.zip` with `submission.json` (sealed) and `team-claim.json`,
-which links your CodaBench account to your team on its first upload. The key is asked for on a
-hidden prompt or read from `--team-key-file`; it is never a command-line argument. See
-`starter-packs/<track>/TEAM-CLAIM.md`.
+which links your CodaBench account to your team on its first upload. **The Team Key itself never
+enters the zip** — an uploaded zip is downloadable by anyone once the run is placed on a
+leaderboard, so the claim carries a proof bound to that one descriptor instead. The key is asked
+for on a hidden prompt or read from `--team-key-file`; it is never a command-line argument, and
+the toolkit never writes it anywhere. See `starter-packs/<track>/TEAM-CLAIM.md`.
 
 And the library:
 

@@ -5,6 +5,10 @@ name: CI
 on:
   push:
     branches: [main]
+    # Tags are built too, so `release-integrity` below can refuse a tag whose metadata does not
+    # match its name. Without this, pushing a tag ran nothing at all -- which is how v2.4.0 came
+    # to carry `version = "2.3.1"` and report 2.3.1 to `pip show` forever.
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
@@ -159,3 +163,31 @@ jobs:
               sys.exit(f"{len(bad)} broken relative link(s)")
           print("all relative links resolve")
           PY
+
+  release-integrity:
+    name: A release tag must match the version it ships
+    # Only meaningful on a tag. On branches and PRs there is no tag to compare against.
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Compare the tag against common/pyproject.toml
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          declared="$(sed -n 's/^version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' common/pyproject.toml | head -n 1)"
+          echo "tag:      ${tag}"
+          echo "declared: ${declared}"
+          if [ -z "${declared}" ]; then
+            echo "::error::common/pyproject.toml declares no version"
+            exit 1
+          fi
+          if [ "${tag}" != "v${declared}" ]; then
+            echo "::error::tag ${tag} ships version ${declared}"
+            echo "::error::A participant installing from ${tag} sees ${declared} from 'pip show',"
+            echo "::error::and any record naming the version names the wrong one. This is how"
+            echo "::error::v2.4.0 came to ship 2.3.1."
+            echo "::error::Bump common/pyproject.toml to match the tag, or tag the declared version."
+            exit 1
+          fi
+          echo "tag and declared version agree"

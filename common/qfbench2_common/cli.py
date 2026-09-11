@@ -63,10 +63,32 @@ def _print_errs(label: str, errs: list[str]) -> bool:
 def _cmd_smoke(args: argparse.Namespace) -> int:
     from importlib import import_module
     from .smoke import resolve_verifier_factory, run_smoke
+    from .contracts.errors import OrganizerFault
 
     mod = import_module(f"qfbench2_track_{args.track}.scoring")
     _name, factory = resolve_verifier_factory(mod, getattr(args, "profile", "smoke"))
-    v = run_smoke(args.unit_dir, args.output_dir, factory)
+    try:
+        v = run_smoke(args.unit_dir, args.output_dir, factory)
+    except OrganizerFault as exc:
+        # A track whose only factory is the rankable one raises here, because that factory needs
+        # organizer-held evidence (a signed plan, a trusted run record) that a participant cannot
+        # have and should not be asked for. Measured 2026-09-11: `--track simulation` does exactly
+        # this, and `--profile smoke` raises identically because that track has no preview factory.
+        #
+        # Never let that reach a participant as a traceback. "Organizer fault" is OUR word for OUR
+        # failure; printing it at someone for running a command we accept teaches the opposite of
+        # what the fault vocabulary means, and reads as though our infrastructure is broken.
+        print(
+            f"This track has no local preview: {exc}\n"
+            "\n"
+            "That is not a problem with your submission and nothing you did caused it. The "
+            f"'{args.track}' verifier is the rankable one, and it requires evidence only the "
+            "organizer holds.\n"
+            "\n"
+            "Use the local route documented in that track's README instead.",
+            file=sys.stderr,
+        )
+        return 2
     return 0 if v.admissible else 1
 
 

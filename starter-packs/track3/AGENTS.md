@@ -178,16 +178,30 @@ this track's inputs do not give you.
 
 `telemetry._assert_repeats_reproduce_scored_tree` requires **every measured repeat** to produce an
 identical `output_tree_digest` and `event_count` to the tree that was scored. Repeats that disagree
-are a **participant failure**, not a flake (`every_repeat_must_pass` is asserted in
-`tests/test_contract_boundary.py`). So parquet writes must be byte-reproducible: fixed compression
-(`snappy`, as the baseline uses), `index=False`, no wall-clock or hostname in metadata,
+are a **participant failure**, not a flake. So parquet writes must be byte-reproducible: fixed
+compression (`snappy`, as the baseline uses), `index=False`, no wall-clock or hostname in metadata,
 deterministic row order.
 
-The timing fields (`wall_clock_sec`, `events_per_sec`, `peak_memory_bytes`) measure time; they
-cannot be byte-stable and are the harness's concern, not yours. **What you control:** make the
-parquet outputs byte-identical across runs, keep `events.json` to the required keys plus
-`peak_memory_bytes` / `gpu_seconds`, and put nothing else volatile in `/output`. Do not burn time
-trying to make the timing fields deterministic — they measure time; they cannot be.
+> **Known defect, and you do not need to work around it.** The digest half of that requirement is
+> currently unsatisfiable by an honest submission, and the fix is ours. `output_tree_digest` is a
+> byte hash of the whole `/output` tree, `events.json` is inside it, and `events.json` must carry a
+> real `wall_clock_sec`, so the digest changes between repeats for reasons that have nothing to do
+> with your simulator. Reported in `track3-simulation-public#5`, tracked as `Agenthon2026#116`.
+> **Report your real numbers.** Do not try to make `events.json` byte-stable to satisfy the check:
+> a submission that emitted a constant there would be misreporting. The repaired contract will
+> arrive in a weekly update with a version and worked examples, and the determinism requirement on
+> the **parquet** outputs is unaffected.
+
+The timing fields measure the run and cannot be byte-stable. They are the harness's concern, not
+yours. The authoritative list is `qfbench2_track_simulation.limits.VOLATILE_EVENTS_FIELDS`, which
+is `wall_clock_sec`, `events_per_sec`, `peak_memory_bytes` and `gpu_seconds`. Everything else in
+`events.json` is reproducible from the scenario and the seed: `scenario_id`, `n_events`, `seed`,
+`trace_sha256`.
+
+**What you control:** make the parquet outputs byte-identical across runs, keep `events.json` to
+the required keys plus `peak_memory_bytes` and `gpu_seconds`, and put nothing else volatile in
+`/output`. Do not burn time trying to make the timing fields deterministic, because they measure
+time and cannot be.
 
 ## The resource contract, verified
 

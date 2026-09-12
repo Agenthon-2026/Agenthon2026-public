@@ -8,10 +8,8 @@ traceback — our own word for OUR failure, printed at someone for running a com
 from __future__ import annotations
 
 import argparse
-import io
 import sys
 
-import pytest
 
 from qfbench2_common import cli
 from qfbench2_common.contracts.errors import OrganizerFault

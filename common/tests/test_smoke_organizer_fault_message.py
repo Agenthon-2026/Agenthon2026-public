@@ -25,17 +25,20 @@ class TestATrackWithNoPreviewFactoryFailsLegibly:
         monkeypatch.setitem(sys.modules, "qfbench2_track_simulation.scoring", mod)
 
         from qfbench2_common import smoke as smoke_mod
+
         monkeypatch.setattr(smoke_mod, "resolve_verifier_factory", lambda m, p: ("f", object()))
 
         def boom(*a, **k):
             raise exc
+
         monkeypatch.setattr(smoke_mod, "run_smoke", boom)
         rc = cli._cmd_smoke(_args())
         return rc, capsys.readouterr()
 
     def test_it_exits_two_and_explains_rather_than_raising(self, monkeypatch, capsys):
         rc, out = self._run(
-            monkeypatch, capsys,
+            monkeypatch,
+            capsys,
             OrganizerFault("the production Track 3 verifier requires the trusted C2 run record"),
         )
         assert rc == 2, "a missing preview factory is not 'inadmissible' (1) and not success (0)"
@@ -55,10 +58,13 @@ class TestATrackWithNoPreviewFactoryFailsLegibly:
 
     def test_a_genuine_inadmissible_result_is_still_exit_one(self, monkeypatch, capsys):
         import sys as _sys
+
         mod = type(_sys)("qfbench2_track_simulation.scoring")
         monkeypatch.setitem(_sys.modules, "qfbench2_track_simulation.scoring", mod)
         from qfbench2_common import smoke as smoke_mod
+
         monkeypatch.setattr(smoke_mod, "resolve_verifier_factory", lambda m, p: ("f", object()))
-        monkeypatch.setattr(smoke_mod, "run_smoke",
-                            lambda *a, **k: type("V", (), {"admissible": False})())
+        monkeypatch.setattr(
+            smoke_mod, "run_smoke", lambda *a, **k: type("V", (), {"admissible": False})()
+        )
         assert cli._cmd_smoke(_args()) == 1, "the ordinary refusal path must be untouched"

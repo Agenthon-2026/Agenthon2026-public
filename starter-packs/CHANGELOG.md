@@ -39,6 +39,10 @@ never happens silently, which is the guarantee that actually protects you.
 
 _Changes land here first._
 
+## Toolkit `v2.4.1`
+
+Every install command in the guides pins this tag. Everything in this section ships with it.
+
 **`ACTION`** **Your `team_id` is derived, and `submission.zip` carries a second file.** There is
 no registration page. `team_id` is computed from your website team number and Team Key
 (`qfbench2 submission alias --team-number <N>`), and the zip must contain `team-claim.json`
@@ -54,16 +58,6 @@ except a wrong `team_id` holds the upload for your next attempt instead of cance
 descriptor contract itself is unchanged; this is the value of one existing field and one extra
 file in the zip.
 
-**`ACTION`** **C5 1.1.0 permits model-free descriptors.** Set `models: []` when your
-submission calls no model. The `models` key remains required, and each declared model still
-needs all five disclosure fields. This relaxation was first published in toolkit `v2.4.0` as
-the September 3 exception to the descriptor freeze; the other frozen interfaces are unchanged.
-
-Both `schema_version: "1.0.0"` and `"1.1.0"` remain accepted. Previously valid descriptors keep
-their existing `descriptor_digest`; declaring a model does not require a descriptor change.
-If you change a descriptor, reseal its digest and validate it with
-`SubmissionDescriptor.from_mapping`, as described in your track's descriptor guide.
-
 **`CLARIFIED`** **Install commands now pin toolkit `v2.4.1`.** Re-run the install command in
 your guide, then check the installed package:
 
@@ -73,6 +67,51 @@ python -c "from importlib.metadata import version; assert version('qfbench2-comm
 
 Toolkit `v2.3.1` rejects `models: []`. The older `v2.4.0` tag accepts it but incorrectly reports
 package version `2.3.1`; `v2.4.1` corrects that version label. The existing tags remain unchanged.
+
+**`CLARIFIED`** **Local `crps_composite` now agrees with the leaderboard on a zero-weight
+component.** A component whose weight is zero and whose reference scale is exactly zero used to
+divide zero by zero in the public toolkit and poison the local composite with `NaN`. The
+leaderboard never scored it that way; the public copy did. It now contributes `0.0`, as the
+scorer on the backend always has. A zero scale under a **non-zero** weight still raises, and a
+merely small scale is still divided by — a non-finite local composite still means something is
+wrong with the inputs, not with the tool.
+
+**`ACTION`** **Track 3: report your real `wall_clock_sec`; do not make it byte-stable.** The
+repeat check as published requires an identical `output_tree_digest` across measured repeats,
+and `events.json` inside that tree is required to carry a real wall-clock figure, which cannot be
+identical across repeats. Both statements describe the code; together they refuse an honest
+submission. The Track 3 starter pack now carries the defect as a callout: report real numbers,
+do not work around the check, and the repair (the side that produces the per-repeat digest has
+to change) is tracked at `Agenthon2026#116`. If you built a workaround that pins the timing
+fields, remove it — the check is what is wrong, not your output. This does not affect
+Development, which ranks through the practice factory.
+
+**`CLARIFIED`** **`qfbench2 smoke` no longer shows you a traceback for a failure that is ours.**
+A track with no local preview factory, or a preview that fails on our side, used to end in an
+uncaught `OrganizerFault` traceback. It now says plainly that nothing you did caused it and
+where to report it. No track hits this today; it is there so that the first time it happens the
+message is right.
+
+**`CLARIFIED`** Guide corrections, no behaviour change: the Track 4 guide describes the retained
+scoring, baseline fallback and smoke behaviour as they are; the Track 2 guide and `common/README`
+state the House API allowance and what a local preview does and does not cover; Track 1 ships no
+official baseline agent, and the guide no longer promises one.
+
+## Shipped earlier, never dated
+
+The three entries below have been live in every toolkit you could install — the ranking and
+public-safety changes since `v2.3.1`, `models: []` since `v2.4.0` — but sat under *Unreleased*
+without a date. They move here unchanged; nothing about them is new in `v2.4.1`.
+
+**`ACTION`** **C5 1.1.0 permits model-free descriptors.** Set `models: []` when your
+submission calls no model. The `models` key remains required, and each declared model still
+needs all five disclosure fields. This relaxation was first published in toolkit `v2.4.0` as
+the September 3 exception to the descriptor freeze; the other frozen interfaces are unchanged.
+
+Both `schema_version: "1.0.0"` and `"1.1.0"` remain accepted. Previously valid descriptors keep
+their existing `descriptor_digest`; declaring a model does not require a descriptor change.
+If you change a descriptor, reseal its digest and validate it with
+`SubmissionDescriptor.from_mapping`, as described in your track's descriptor guide.
 
 **`ACTION`** **Ranking metric: ties are now ties.** Tied predicted values used to be broken by
 position, so every tie silently resolved to whatever order the roster happened to arrive in. Two

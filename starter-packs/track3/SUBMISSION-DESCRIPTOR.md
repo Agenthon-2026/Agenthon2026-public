@@ -123,14 +123,10 @@ invent a row such as `"name": "none-deterministic-engine"`. Do not do that any m
 row makes `models` useless as evidence exactly where the disclosure rule matters.) Every entry you
 DO declare still needs all five keys: `name`, `version`, `training_cutoff`, `access`, `revision`.
 
-**Two of them you may not be able to fill truthfully, and you should know that going in.** For an
-`api` submission calling the house model, nothing published names the pinned model id —
-`SUBMISSION_CLI.md` only says it "is published with the model pin". Yet the same document says
-floating aliases "are rejected at verification" and cutoffs "MUST be declared". So
-`models[].version` and `models[].training_cutoff` are unknowable from the documentation in the same
-way `team_id` is, and a descriptor that validates may still be wrong at verification. Put in the
-most honest value you can and raise it with the organizers, rather than inventing a
-plausible-looking pin.
+The shared [House model identity](../../docs/HOUSE-MODEL.md) guide now supplies the reported
+identity for authorized House API use. It does not grant House access to a Track 3 simulator.
+Keep `category: "simulator"` and `models: []` for an engine that loads no model and calls no
+endpoint; do not add a House row to that model-free declaration.
 
 ### `descriptor_digest`
 

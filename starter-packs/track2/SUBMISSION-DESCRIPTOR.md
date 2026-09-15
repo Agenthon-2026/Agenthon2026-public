@@ -124,14 +124,12 @@ invent a row such as `"name": "none-deterministic-engine"`. Do not do that any m
 row makes `models` useless as evidence exactly where the disclosure rule matters.) Every entry you
 DO declare still needs all five keys: `name`, `version`, `training_cutoff`, `access`, `revision`.
 
-**Two of them you may not be able to fill truthfully, and you should know that going in.** For an
-`api` submission calling the house model, nothing published names the pinned model id —
-`SUBMISSION_CLI.md` only says it "is published with the model pin". Yet the same document says
-floating aliases "are rejected at verification" and cutoffs "MUST be declared". So
-`models[].version` and `models[].training_cutoff` are unknowable from the documentation in the same
-way `team_id` is, and a descriptor that validates may still be wrong at verification. Put in the
-most honest value you can and raise it with the organizers, rather than inventing a
-plausible-looking pin.
+For an authorized `api` submission using the House model, copy the five-field disclosure row in
+[House model identity](../../docs/HOUSE-MODEL.md). It records the reported model and tokenizer
+snapshot and explicitly declares the unpublished training cutoff. The runtime route alias `house`
+is distinct from the model identity in `models[].name`; use the injected `MODEL_NAME` for calls.
+The guide explains the existing narrow base-pretraining exception and the cutoffs that still
+apply to participant tuning. Reseal the descriptor after updating the row.
 
 ### `descriptor_digest`
 

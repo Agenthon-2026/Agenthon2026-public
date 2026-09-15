@@ -37,7 +37,35 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
-_Changes land here first._
+### Toolkit `v2.4.2` — prepared for the next release
+
+This patch updates the packaged simulation example and participant guidance. It does not
+change scoring, descriptor acceptance or submission limits. Publication follows the release
+announcement; this entry records the prepared changes.
+
+**`CLARIFIED`** **The simulation Development fixture is model-free.** The packaged
+`contracts/fixtures/c5/simulation_dev.json` now uses schema `1.1.0` and `models: []`, with its
+matching descriptor digest. It no longer declares a model that the simulator does not call.
+Existing valid schema `1.0.0` and `1.1.0` descriptors remain accepted.
+
+**`CLARIFIED`** **Local packaging is free; uploads consume submission attempts.** All four
+`TEAM-CLAIM.md` guides now distinguish local alias/pack commands from uploaded submissions.
+Held or cancelled uploads count against the phase's platform submission limit even when they
+receive no score. Validate locally before uploading a replacement.
+
+**`CLARIFIED`** **Track 3 Development timing is provisional.** The starter guidance describes
+current practice feedback from checked self-reported throughput on a shared Development queue.
+Trusted repeat evidence and a dedicated timing instance remain official Final requirements;
+the repeat-evidence repair is not delivered by this patch.
+
+**`CLARIFIED`** **Current install commands pin toolkit `v2.4.2`.** After the release, reinstall
+using the command in your guide and confirm the installed package:
+
+```bash
+python -c "from importlib.metadata import version; assert version('qfbench2-common') == '2.4.2'"
+```
+
+Earlier tags, including `v2.4.1`, remain unchanged.
 
 ## Toolkit `v2.4.1`
 

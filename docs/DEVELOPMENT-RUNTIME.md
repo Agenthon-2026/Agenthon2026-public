@@ -1,7 +1,8 @@
 # Development runtime and House requests
 
-This page describes the selected **Development** execution path. Participant access remains held
-pending activation and verification; this page does not certify Final resources or scoring.
+This page describes the selected **Development** resources and the planned execution-relative
+House timing release. The timing change is pending deployment and verification; participant
+access remains held. This page does not certify Final resources or scoring.
 Read your track's task card alongside this guide; the card supplies CPU, memory, GPU and network
 settings, and may supply a per-unit timeout.
 
@@ -53,17 +54,28 @@ runs the submission's units sequentially. It is not 12 hours per unit, and it do
 that every unit can use its full individual ceiling. Scoring is a separate program stage with
 its own platform clock. Time waiting in the platform queue is outside these stage clocks.
 
-The **House deadline** is absolute and starts when a submission is staged. The existing
-Development allocation gives each House unit one hour from staging. Waiting in the queue or for
-earlier units consumes that time; resuming the same allocation does not reset it. House access
-can therefore expire before a later unit starts.
+**Planned House timing — pending deployment and verification.** Each House unit will activate
+once, when the organizer begins that unit's execution setup. This is not the participant's
+first generation call. Queue waiting and earlier units
+will not consume that unit's House window. Setup and provisioning after activation, followed by
+container creation, any required image pull and execution, can consume its own window.
 
-The pending release configuration gives later Coding units cumulative deadlines, with a one-hour
-minimum and a 24-hour cap. House access credentials will last at most two hours from issue and
-never beyond the unit deadline. **This configuration is not yet confirmed active.** Forecasting
-and Analysis retain the one-hour absolute deadline and its limitation for later units. These
-changes do not extend a unit's container ceiling, the platform's 12-hour stage limit, or its
-request allowance.
+The unit's end time will be the earlier of its activation time plus the card's container ceiling
+(or the existing launcher fallback), and the end of the actual 43,200-second ingestion stage.
+The stage clock starts with the actual platform ingestion stage, not submission staging or a
+fresh per-unit clock. Earlier units still consume the shared stage budget, so a later unit may
+have less stage time remaining than its full individual ceiling.
+
+The activation and end time will remain fixed for that allocation. Restarting or retrying the
+same unit will not renew its window or reset its request counters. Each House bearer credential
+will last at most 7,200 seconds from issue and never beyond the unit's fixed end time; issuing a
+credential does not extend the unit window. This timing change adds no container time, platform
+stage time, request allowance or other compute resources. Simulation remains offline.
+
+The initial opening is planned for House/API and permitted offline submissions. BYO adapter
+serving is planned for a later opening under its existing eligibility contract, with separate
+availability instructions. Neither the planned timing release nor this page announces that
+participant intake or a BYO route is open.
 
 ## House request allowance
 

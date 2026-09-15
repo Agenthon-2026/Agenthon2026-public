@@ -1,105 +1,67 @@
-# The machine your submission runs on
+# Development runtime and image builds
 
-Everything here is **measured on the evaluation fleet**, not quoted from a spec sheet. You vendor
-your dependencies at build time and the host is not something you can adapt to at run time — so if
-you build against the wrong CUDA or the wrong architecture, you find out during evaluation, on the
-sealed set, once. Treat this page as the contract.
+The [shared Development runtime guide](../../docs/DEVELOPMENT-RUNTIME.md) gives the applied
+per-track CPU, memory, process, temporary-space, output and time limits, plus House request
+accounting. It also distinguishes the pending deadline update from activated behavior.
+These Development settings do not certify Final resources or comparable Final timing.
 
-## Hardware
+## Hardware and CUDA builds
 
-| | |
+The GPU model, memory and driver below were rechecked through read-only worker observations on
+2026-09-15. The architecture guidance identifies the image build target; these observations are
+not a fresh compatibility test of your CUDA libraries.
+
+| Item | Observed value |
 |---|---|
-| GPU | **NVIDIA B200** |
-| GPUs per unit | **1** — not multi-GPU |
-| GPU memory | 183,359 MiB (~183 GB) |
-| **Compute capability** | **10.0** (Blackwell, `sm_100`) |
+| Architecture | x86-64; build images for `linux/amd64` |
+| GPU | NVIDIA B200, one device on the selected worker |
+| GPU memory | 183,359 MiB reported by the driver |
+| Compute capability | 10.0 (Blackwell, `sm_100`) |
 | Driver | 580.173.02 |
-| **Maximum CUDA runtime** | **13.0** |
 
-### The trap: `sm_100`
+`gpu = true` on the task card grants a device for permitted local code. The `api` category means
+House model access; it does not cancel that grant or authorize an additional model server.
+The shared guide explains [GPU and network access](../../docs/DEVELOPMENT-RUNTIME.md#gpu-and-network-access).
 
-**Compute capability 10.0 is the single most likely thing to break a submission that works on your
-laptop.** A great many prebuilt wheels ship cubins for `sm_70` through `sm_90` and stop there,
-because Blackwell is newer than they are. On this fleet such a wheel either:
+### Building for `sm_100`
 
-- falls back to **JIT-compiling from PTX**, which works but adds seconds to minutes on first kernel
-  launch and can push a unit past its wall-clock budget; or
-- **fails outright** with `no kernel image is available for execution on the device`, if the wheel
-  shipped no PTX either.
+A prebuilt wheel containing only older GPU cubins may need to JIT-compile compatible PTX, adding
+startup time, or fail with `no kernel image is available for execution on the device` if it
+contains neither compatible native code nor usable PTX.
 
-If you ship CuPy, PyTorch, TensorRT or anything with compiled kernels, check it targets `sm_100` or
-carries PTX. Building against CUDA 12.8+ is the usual way to get that.
+For CuPy, PyTorch, TensorRT or other compiled kernels, check the artifact for `sm_100` support or
+compatible PTX. CUDA 12.8 and later toolchains support this architecture, but the toolkit version
+alone does not prove that a particular wheel includes the needed kernels. Test the exact image
+and libraries you intend to submit. The driver's reported CUDA version is not a guarantee that
+every library or newer runtime will work. First-use compilation consumes execution time.
 
-Do not build against a CUDA newer than **13.0** — the driver will refuse to load it.
+## Container and network settings
 
-## Whether you get a GPU at all
+The selected Development runtime is `runc`, with a non-root user, a read-only root filesystem
+and a small non-executable `/tmp`. Read the [container limits](../../docs/DEVELOPMENT-RUNTIME.md#container-limits)
+before choosing writable paths. Historical gVisor tests do not establish current runtime
+compatibility or performance.
 
-`gpu = true` on a unit card is what grants the device. Across the public cards:
-
-| track | public cards granting a GPU | practical meaning |
-|---|---|---|
-| Track 1 | **87/87** | GPU present, but ranking is **correctness**, so acceleration only turns a timeout into a pass |
-| Track 2 | **104/104** | GPU present; the scored payload is small, so the benefit is limited |
-| Track 3 | **72/72** | GPU present and **throughput is the score** |
-| Track 4 | **11/11** | GPU present — but see the caveat below before designing around it |
-
-**Do not design around the GPU.** The public cards grant a device. The held-out evaluation cards
-are not visible to you, and their resource grants are not published — so treat a GPU as available
-for development **and make sure your submission still completes without one**. A submission that
-only works with a device is a submission that may not finish.
-
-## The sandbox
-
-Units run under **gVisor** (`runsc`, release-20260803.0) with `nvproxy`, not under stock `runc`.
-Consequences worth knowing:
-
-- Syscalls are mediated. Exotic syscalls, some `ioctl`s and direct device pokes may behave
-  differently or be refused. Ordinary CUDA work through the driver API is fine — measured:
-  `cuInit`, context creation, a 4 MiB device round trip and 183 GB of visible memory all work.
-- **Container-name DNS is not reliable.** Address anything you need by IP, or expect it to be
-  supplied. This is a property of the sandboxed network stack, not of your image.
-- Startup is slower than `runc`. Budget for it.
-
-## Network
-
-`network = restricted` reaches **only** `$MODEL_ENDPOINT`, through an egress proxy. Everything else
-is refused, including package indexes — **vendor every dependency at build time.**
-
-`network = none` units get nothing at all.
-
-`$MODEL_ENDPOINT` is injected into your container; do not hardcode a host. Cross-container calls to
-it cost roughly 91–95% of native throughput, which is the tax every `api` submission pays.
+Restricted units reach only the injected House route through the supplied proxy settings.
+Offline units have no network. Include dependencies in the image at build time; do not hardcode
+an endpoint or attempt package downloads during evaluation.
 
 ## Your image
 
-- Build **`linux/amd64`**. The fleet is x86-64; an `arm64` image will not run, and building on an
-  Apple-silicon machine produces one by default.
-- **The image must accept the track verb as its first argument.** `SUBMISSION_CLI.md` sanctions
-  **two** ways to satisfy that: build with no `ENTRYPOINT` so the verb resolves on `PATH`, **or**
-  set an `ENTRYPOINT` that takes the verb as an argument — which is the form Track 1's
-  `baselines/README.md` documents, under its Dockerfile sketch: a **verbless** `ENTRYPOINT`, with
-  the verb arriving on the following line as `CMD ["solve", "--task-dir", "/input", ...]`. Both
-  are fine.
+Build a Linux/amd64 image and set `LABEL qfbench2.interface_version="2.0"` to match the descriptor.
+The image must accept the track verb as its first argument: either resolve the verb on `PATH`
+with no `ENTRYPOINT`, or use an `ENTRYPOINT` that consumes that leading argument. Follow your
+track's `SUBMISSION_CLI.md` for the verb, arguments and output paths.
 
-  (Cited by shape rather than by line number on purpose. This bullet previously pointed at
-  `baselines/README.md:120-121`, which drifted once and would drift again — the file is edited
-  often and an open Track 1 PR removes the block entirely.) A submission that satisfies
-  neither never starts, and the error is not shown to you.
-- **`LABEL qfbench2.interface_version="2.0"` is required** (`SUBMISSION_CLI.md:28`) and it must
-  match the `interface_version` in your descriptor. This one is genuinely checked; an unlabelled
-  image is rejected.
-- The image must be **publicly pullable**. Ingestion holds no registry credential. Check this with
-  an anonymous token request — `docker pull`, `docker manifest inspect` and `buildx imagetools
-  inspect` all use *your* credential and succeed on a private package, telling you nothing. On
-  GHCR specifically, a freshly pushed package is **private by default** and flipping it public is
-  a UI-only action (Package settings → Change visibility); no API does it.
-
+The [image submission guide](../../docs/IMAGE-SUBMISSIONS.md) explains anonymous public pulls,
+immutable digests and the organizer confirmation required for a private mirror. Selecting
+`organizer_mirror` does not arrange image transfer or registry access.
 
 ### The anonymous pullability check
 
-Run this before every submission — `docker pull`, `docker manifest inspect` and
-`buildx imagetools inspect` all use *your* credential and succeed on a private package, telling you
-nothing:
+Test without workstation registry credentials. A normal `docker pull`, `docker manifest inspect`
+or `buildx imagetools inspect` may use your saved login and therefore cannot by itself prove
+anonymous access. For GHCR, request an anonymous pull token and check the exact manifest digest:
 
 ```bash
 REPO=your-org/your-image
@@ -110,13 +72,6 @@ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TOKEN" \
   "https://ghcr.io/v2/$REPO/manifests/sha256:<your-digest>"
 ```
 
-`200` means an unauthenticated client can fetch the manifest. Anything else means your submission
-will not start.
-
-## Resource limits
-
-Taken from the unit card, which is the authority on resources — read the card you are running
-against rather than assuming an exemplar's values hold. The cards are not uniform across tracks,
-and they are not complete either: not every track's cards declare every knob (Track 2's declare no
-timeout at all — its budgets live in the track README). Where the card is silent, the track
-README's numbers are the only ones that exist.
+`200` confirms anonymous access to that manifest at the time of the check. Also verify that the
+image's layers can be pulled from a credential-free environment. Manifest access alone does not
+prove architecture, entrypoint, dependency or execution compatibility.

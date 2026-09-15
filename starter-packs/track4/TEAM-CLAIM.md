@@ -71,9 +71,18 @@ cannot hide input; use `--team-key-file` there.
 
 ## What happens when something is wrong
 
-Nothing here costs you a submission attempt. Only a **descriptor whose `team_id` names a
-different team than your linked account** is cancelled; every other problem *holds* the
-upload until the next intake pass, so fixing it and uploading again is enough.
+Running `qfbench2 submission alias` or `qfbench2 submission pack` locally does not upload
+anything or use a submission attempt. **An upload to CodaBench counts against the phase's
+platform submission limits even when it is held or cancelled and receives no score.** Check
+the limits on the competition's Submission Format page before uploading. Fix and validate
+locally first; uploading a replacement uses another attempt.
+
+For the team-claim checks below, a **descriptor whose `team_id` names a different team than
+your linked account** is cancelled. The other claim problems hold the upload for a later
+intake pass; retrying the same unchanged invalid claim will not fix it. A held upload may
+not show an individual explanation. If the cause is unclear, contact the organizers through
+the competition's support channel with your submission ID and visible status before uploading
+again. Never include your Team Key, proof, password or API token in a support message.
 
 | situation | outcome |
 |---|---|

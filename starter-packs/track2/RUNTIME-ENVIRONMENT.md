@@ -2,8 +2,17 @@
 
 The [shared Development runtime guide](../../docs/DEVELOPMENT-RUNTIME.md) gives the applied
 per-track CPU, memory, process, temporary-space, output and time limits, plus House request
-accounting. It also distinguishes the pending deadline update from activated behavior.
+accounting. The planned execution-relative House timing change remains pending deployment and
+verification; it is not a statement of live availability.
 These Development settings do not certify Final resources or comparable Final timing.
+
+## Planned timing and access
+
+The planned House window begins when the organizer begins that unit's execution setup; its
+existing unit and remaining platform-stage ceilings still apply. See the [shared execution
+clocks](../../docs/DEVELOPMENT-RUNTIME.md#execution-clocks) for queue, setup, credential and retry
+rules. Deployment and verification are pending; House/API and permitted offline submissions are
+planned first, with BYO adapter operation later under its existing eligibility contract.
 
 ## Hardware and CUDA builds
 

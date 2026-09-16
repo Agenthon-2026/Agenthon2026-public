@@ -26,7 +26,7 @@ qfbench2_common/
     passk.py          T1 unbiased pass@k (Chen et al. 2021)
     crps.py           T2 CRPS composite (Gneiting & Raftery 2007; Scheuerer & Hamill 2015)
     stylized_facts.py T3 KS/ACF/Hill/depth divergences + admissibility (Cont 2001; Hill 1975)
-    faithfulness.py   T4 NLI citation gate + analysis composite (Laurer et al. 2024)
+    faithfulness.py   T4 NLI citation gate + Explainability composite (Laurer et al. 2024)
     bootstrap.py      cluster bootstrap CIs (reported for every leaderboard number)
   schemas/           taskcard, manifest, submission, forecast, analysis, sim_scenario (JSON Schema 2020-12)
 ```

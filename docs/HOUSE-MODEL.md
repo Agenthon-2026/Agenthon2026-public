@@ -33,6 +33,35 @@ participant-provided data and artifacts.
 This disclosure does not expand BYO permissions. A model-free Track 3 simulator keeps
 `category: "simulator"` and `models: []`; this guide grants it no House API permission.
 
+## Development thinking controls
+
+The selected House Development model uses **thinking by default**, with **low-effort reasoning
+off by default**. These defaults were checked against the serving chat template and synthetic
+request rendering on September 16, 2026. They do not announce participant access or establish
+identical outputs from a different local serving stack.
+
+To disable thinking for one request with the OpenAI Python client, pass:
+
+```python
+extra_body={"chat_template_kwargs": {"enable_thinking": False}}
+```
+
+For raw HTTP JSON, include `chat_template_kwargs` at the top level of the request body:
+
+```json
+{"chat_template_kwargs": {"enable_thinking": false}}
+```
+
+Use the supplied `MODEL_NAME` for the runtime alias. The selected model accepts this API option;
+use it to control thinking instead of the older `detailed thinking on|off` system-prompt
+instruction. Omitting the option keeps thinking enabled. This changes neither the approved
+model/snapshot disclosure above nor the applicable request, output-token and input-token limits.
+
+The corresponding public FP8 checkpoint is
+[NVIDIA-Nemotron-3-Super-120B-A12B-FP8](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-FP8).
+Its model card documents the same thinking option. The checkpoint family and format do not
+replace the selected snapshot identity or the unpublished training-cutoff disclosure above.
+
 ## Reported model and tokenizer metadata
 
 The service operator reported the following metadata from a read-only live inspection. They have

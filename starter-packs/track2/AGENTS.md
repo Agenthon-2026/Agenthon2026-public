@@ -160,7 +160,7 @@ that is right on all 104 units.
 **1. Install the toolkit before any local check, and use exactly this line.**
 
 ```bash
-pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.1#subdirectory=common"
+pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.2#subdirectory=common"
 ```
 
 > **Pin the tag, never a branch.** A moving branch can make your local result and your scored
@@ -326,7 +326,7 @@ baking any card's target into your image from any source.
 
 ```bash
 pip install "numpy==2.1.3" "pandas==2.2.3" "pyarrow==18.1.0" "jsonschema==4.23.0"
-pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.1#subdirectory=common"
+pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.2#subdirectory=common"
 
 mkdir -p /tmp/run/output
 docker run --rm --network=none --cpus=16 --memory=128g \

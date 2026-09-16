@@ -23,7 +23,7 @@ library they all depend on.
 ## Install
 
 ```bash
-pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.1#subdirectory=common"
+pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.2#subdirectory=common"
 ```
 
 **Python 3.13 or newer is required** (`requires-python = ">=3.13"`). On 3.12 or below pip refuses
@@ -82,6 +82,16 @@ enters the zip** — an uploaded zip is downloadable by anyone once the run is p
 leaderboard, so the claim carries a proof bound to that one descriptor instead. The key is asked
 for on a hidden prompt or read from `--team-key-file`; it is never a command-line argument, and
 the toolkit never writes it anywhere. See `starter-packs/<track>/TEAM-CLAIM.md`.
+
+At the participant Development opening, **Track 1 allows 1 upload per team per day**;
+**Tracks 2, 3 and 4 allow 5 per team per day**. Each track retains a **20-upload Development
+total per team**. Held or cancelled uploads also consume attempts; local validation and
+packaging do not. See [Development submission limits](docs/DEVELOPMENT-RUNTIME.md#submission-limits-at-the-development-opening).
+
+Development runs through **October 12, 2026**. The joint **Final + Verification phase runs
+October 13–25, 2026**. Each team makes **one final submission per track**; organizers perform
+verification within that same phase, with no separate participant Verification submission.
+Registration and Development close together on October 12, 2026 at **23:59 Anywhere on Earth (AoE, UTC−12)**. The joint Final + Verification phase closes on October 25, 2026 at **23:59 AoE**. Other competition dates and task/data cutoffs are unchanged.
 
 And the library:
 

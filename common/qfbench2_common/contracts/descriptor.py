@@ -25,7 +25,8 @@ Other frozen rulings:
   array**. The overlapping pair is the source of the generated-example drift.
 * `descriptor_digest` is self-referential and checked: it is the digest of the descriptor with that
   field removed.
-* Hub publishes **one valid fixture per (track, phase)** — four tracks by three phases. CodaBench
+* Hub publishes **one valid fixture per (track, phase)** — four tracks by three internal phase values. The calendar combines Final and Verification;
+  the technical descriptor values remain compatible. CodaBench
   ships those verbatim and the website renders from the same bytes. Nobody hand-writes a third
   example.
 """

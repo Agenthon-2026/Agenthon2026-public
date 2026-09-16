@@ -26,7 +26,10 @@ we want to hear about it:
 
 - the submission descriptor contract (`submission.json` fields and their meanings)
 - the answer schema each track validates against
-- the phase dates
+
+**The phase dates have been amended:** Development now ends October 12, 2026, followed by a
+joint Final + Verification phase on October 13–25. Other competition dates are unchanged.
+See the `ACTION` entry below.
 
 **The metric each track is scored on was on this list, and is not any more.** The ranking metric
 changed — see the `ACTION` entry below. Removing it is the honest thing to do: the list is only
@@ -37,7 +40,48 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
-_Changes land here first._
+### Toolkit `v2.4.2` — prepared for the next release
+
+This patch updates the packaged simulation example and participant guidance. It does not
+change scoring or descriptor acceptance. The Development opening also introduces the Track 1
+submission limit below. Publication follows the release announcement; this entry records the
+prepared changes.
+
+**`ACTION`** **Track 1: one Development upload per team per day at opening.** Tracks 2, 3 and 4
+retain 5 uploads per team per day. Every track retains a total of 20 Development uploads per
+team. Use your team's designated CodaBench account; held or cancelled uploads also count.
+Local validation and packaging use no attempts.
+
+**`ACTION`** **Revised Development deadline and joint Final + Verification phase.**
+Development runs through October 12, 2026. Final submission evaluation and organizer
+verification share October 13–25, 2026. Each team makes one final submission per track;
+there is no separate participant Verification submission. Registration and Development close together on October 12, 2026 at **23:59 Anywhere on Earth (AoE, UTC−12)**. The joint Final + Verification phase closes on October 25, 2026 at **23:59 AoE**. Other competition dates and all
+task/data cutoffs are unchanged. Technical descriptor values `dev`, `final` and `verification`
+remain supported; the schema has not been renamed.
+
+**`CLARIFIED`** **The simulation Development fixture is model-free.** The packaged
+`contracts/fixtures/c5/simulation_dev.json` now uses schema `1.1.0` and `models: []`, with its
+matching descriptor digest. It no longer declares a model that the simulator does not call.
+Existing valid schema `1.0.0` and `1.1.0` descriptors remain accepted.
+
+**`CLARIFIED`** **Local packaging is free; uploads consume submission attempts.** All four
+`TEAM-CLAIM.md` guides now distinguish local alias/pack commands from uploaded submissions.
+Held or cancelled uploads count against the phase's platform submission limit even when they
+receive no score. Validate locally before uploading a replacement.
+
+**`CLARIFIED`** **Track 3 Development timing is provisional.** The starter guidance describes
+current practice feedback from checked self-reported throughput on a shared Development queue.
+Trusted repeat evidence and a dedicated timing instance remain official Final requirements;
+the repeat-evidence repair is not delivered by this patch.
+
+**`CLARIFIED`** **Current install commands pin toolkit `v2.4.2`.** After the release, reinstall
+using the command in your guide and confirm the installed package:
+
+```bash
+python -c "from importlib.metadata import version; assert version('qfbench2-common') == '2.4.2'"
+```
+
+Earlier tags, including `v2.4.1`, remain unchanged.
 
 ## Toolkit `v2.4.1`
 

@@ -5,7 +5,7 @@ a pinned tag. Record the actual program/toolkit pins and runtime configuration w
 an evaluation; installing this package alone does not establish Development/Final equivalence.
 
 ```bash
-pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.1#subdirectory=common"
+pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.2#subdirectory=common"
 ```
 
 There is no git submodule. Pin the tag: installing from a moving branch means your local result
@@ -26,7 +26,7 @@ qfbench2_common/
     passk.py          T1 unbiased pass@k (Chen et al. 2021)
     crps.py           T2 CRPS composite (Gneiting & Raftery 2007; Scheuerer & Hamill 2015)
     stylized_facts.py T3 KS/ACF/Hill/depth divergences + admissibility (Cont 2001; Hill 1975)
-    faithfulness.py   T4 NLI citation gate + analysis composite (Laurer et al. 2024)
+    faithfulness.py   T4 NLI citation gate + Explainability composite (Laurer et al. 2024)
     bootstrap.py      cluster bootstrap CIs (reported for every leaderboard number)
   schemas/           taskcard, manifest, submission, forecast, analysis, sim_scenario (JSON Schema 2020-12)
 ```
@@ -61,5 +61,5 @@ toolkit's **Python ≥ 3.13**). Harbor is shelled out (never imported), so `qfbe
 and runs on 3.13 with Harbor absent:
 ```bash
 # operator-only; enables qfbench2 track1 ...
-pip install "qfbench2-common[harbor] @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.1#subdirectory=common"
+pip install "qfbench2-common[harbor] @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.2#subdirectory=common"
 ```

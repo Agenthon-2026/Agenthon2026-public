@@ -158,7 +158,7 @@ out-of-contract connections; any submission that tries to fetch live data is ina
 **Why it matters:** a submission that calls a financial data API or browses the web during
 scoring has an unfair advantage and its performance cannot be reproduced after the contest —
 while supervised model-API access lets teams compete on prompts and harnesses without owning
-GPUs. The connection log is the audit artifact for the verification phase.
+GPUs. The connection log is the audit artifact for verification within the joint Final + Verification phase.
 
 ### T3 throughput box (the pinned timing instance)
 **Everyday:** one specific machine, kept idle and reserved, on which every Track-3 speed run is
@@ -204,14 +204,13 @@ separately in each of the 8 track repos. With inheritance, one fix in the shared
 **Precise:** CodaBench (https://codabench.org) is an open-source competition platform. Organizers
 upload a "bundle" (a ZIP of `competition.yaml` + ingestion program + scoring program); teams
 submit Docker images; CodaBench runs them and posts scores.
-**Why it matters:** CodaBench handles submission caps, phase transitions (dev → final →
-verification), and the public leaderboard display. It is the participant-facing competition
-interface.
+**Why it matters:** CodaBench handles submission caps and upload status for Development and
+the joint Final + Verification phase. Agenthon.net hosts the public leaderboard.
 
 ### Reproducibility
 **Everyday:** if you run the exact same thing twice, you get the exact same result.
 **Precise:** Agenthon 2026 fixes a random seed (`QFBENCH_SEED`) for every official run; the
-verification phase re-runs the top-K submissions on fresh seeds and flags any whose results
+organizer verification within the joint Final + Verification phase re-runs the top-K submissions on fresh seeds and flags any whose results
 differ beyond a tolerance threshold. A submission that passes only because of a lucky random
 seed is "non-reproducible" and may be disqualified.
 **Why it matters:** a scientific competition should produce results that others can verify.
@@ -287,9 +286,9 @@ failure-mode map.
 
 ### Leaderboard
 **Everyday:** the ranking board that shows each team's current score.
-**Precise:** during the dev phase, the leaderboard is updated after every submission run (live).
-During the final phase, it is hidden. After the verification phase, the final leaderboard is
-published with each track's declared columns. T1 publishes fixed-denominator `pass@1` with no
+**Precise:** the public Development leaderboard is on agenthon.net. The final board is hidden
+during the joint Final + Verification phase; it is published after verification with each
+track's declared columns. T1 publishes fixed-denominator `pass@1` with no
 confidence interval; other tracks retain their declared interval columns.
 **Why it matters:** the leaderboard is the competition's output. Its columns must match the exact
 fields emitted by the scorer so missing or stale statistics are never presented as results.
@@ -373,7 +372,7 @@ pulls in `harbor>=0.15.0` (its **Python ≥ 3.12** floor is already met by the o
 `track1-harbor` and `track4-harbor` are aliases of it. The toolkit is not on PyPI, so the extra
 is installed the same way as the toolkit itself -- by keeping the git reference:
 ```bash
-pip install "qfbench2-common[harbor] @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.1#subdirectory=common"
+pip install "qfbench2-common[harbor] @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.2#subdirectory=common"
 ```
 Harbor is **shelled out, never imported**, so the **core toolkit keeps `requires-python >=3.13`** and
 `qfbench2_common` imports and runs on 3.13 with Harbor absent — the extra is only for an operator
@@ -930,19 +929,27 @@ The verb is the first argument after the image name: `docker run <image> <verb> 
 **Why it matters:** if the verb changes mid-competition, every team's container breaks. Stability
 is a fairness requirement.
 
-### Phase (dev / final / verification)
-**Everyday:** the three stages of the competition.
+### Competition phases (Development / joint Final + Verification)
+**Everyday:** the practice stage and the final evaluation-and-verification stage.
 **Precise:**
-- **Dev phase** (Aug 28 – Sep 28): public repos are open; teams practice and iterate;
-  validation leaderboard is live; up to 20 submissions per team (5 per day).
-- **Final phase** (Sep 29 – Oct 12): sealed private-test units are evaluated; exactly 1
-  submission per team; leaderboard is hidden.
-- **Verification phase** (Oct 13 – Oct 25): organizers re-run the top-K submissions on fresh
-  random seeds and check reproducibility; disputed results go to manual review.
+- **Development** (August 28 – October 12, 2026): teams practice and iterate. Each team has
+  up to 20 submissions per track. At the participant Development opening, Track 1 allows
+  1 submission per team per day; Tracks 2, 3 and 4 allow 5 per team per day. See
+  [Development submission limits](DEVELOPMENT-RUNTIME.md#submission-limits-at-the-development-opening).
+- **Joint Final + Verification** (October 13–25, 2026): sealed private-test units are evaluated
+  from one final submission per team per track. Organizers rerun the top submissions on fresh
+  seeds and check reproducibility within the same phase; disputed results go to manual review.
+  There is no separate participant Verification submission. The final board remains hidden
+  until results are verified and published.
 
-**Why it matters:** the three-phase structure separates development (practice) from evaluation
-(exam) from audit (verify). Each phase has different data, different leaderboard visibility, and
-different submission caps.
+The internal descriptor values `dev`, `final` and `verification` remain supported for
+compatibility; this calendar change does not rename schema values. Follow the organizer's
+phase-specific descriptor instructions. Registration and Development close together on October 12, 2026 at **23:59 Anywhere on Earth (AoE, UTC−12)**. The joint Final + Verification phase closes on October 25, 2026 at **23:59 AoE**. Other competition dates and task/data cutoffs
+are unchanged.
+
+**Why it matters:** Development provides practice feedback. Final evaluation and verification
+share a single period, so teams prepare one final submission and retain the material needed
+for the organizers' verification checks.
 
 ### Baseline
 **Everyday:** a simple, already-working solution that participants must beat.

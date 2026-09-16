@@ -13,7 +13,7 @@ settings, and may supply a per-unit timeout.
 | Coding | 16 CPUs | 128 GiB | The card's `agent.timeout_sec` | Restricted House access |
 | Forecasting | 16 CPUs | 128 GiB | 1,800 seconds | Restricted House access |
 | Simulation | 4 CPUs | 16 GiB | 1,800 seconds | None |
-| Analysis | 16 CPUs | 128 GiB | 600 seconds | Restricted House access |
+| Explainability | 16 CPUs | 128 GiB | 600 seconds | Restricted House access |
 
 CPU values are quotas, not exclusive physical cores. Swap is disabled. Forecasting and Simulation
 use the launcher's 1,800-second fallback where the card supplies no timeout; an absent timeout
@@ -79,7 +79,7 @@ participant intake or a BYO route is open.
 
 ## House request allowance
 
-For Coding, Forecasting and Analysis, the selected House allowance is **25 admitted generation
+For Coding, Forecasting and Explainability, the selected House allowance is **25 admitted generation
 requests per unit**, with **at most 4,000 output tokens per request**. An omitted output limit
 uses 4,000; a larger requested limit is reduced to 4,000, and a smaller valid limit is preserved.
 Requests for multiple generated alternatives are refused.

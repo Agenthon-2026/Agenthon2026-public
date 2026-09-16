@@ -69,11 +69,32 @@ it to compute your team id and your proof, and that is all. `pack` refuses a des
 whose `team_id` disagrees with the derived id, and it refuses to run where the prompt
 cannot hide input; use `--team-key-file` there.
 
+## Development submission limits
+
+At the participant Development opening, **Track 2 allows 5 uploads per team per day**,
+with **20 total uploads per team for this track during Development**. Use the same designated
+CodaBench account for every upload. Track 1 has a 1-per-day limit; Tracks 2, 3 and 4 retain
+5 per day.
+
+Development runs through **October 12, 2026**. The joint **Final + Verification phase runs
+October 13–25, 2026**. Each team makes **one final submission per track**; organizers perform
+verification within that same phase, with no separate participant Verification submission.
+Registration and Development close together on October 12, 2026 at **23:59 Anywhere on Earth (AoE, UTC−12)**. The joint Final + Verification phase closes on October 25, 2026 at **23:59 AoE**. Other competition dates and task/data cutoffs are unchanged.
+
 ## What happens when something is wrong
 
-Nothing here costs you a submission attempt. Only a **descriptor whose `team_id` names a
-different team than your linked account** is cancelled; every other problem *holds* the
-upload until the next intake pass, so fixing it and uploading again is enough.
+Running `qfbench2 submission alias` or `qfbench2 submission pack` locally does not upload
+anything or use a submission attempt. **An upload to CodaBench counts against the phase's
+platform submission limits even when it is held or cancelled and receives no score.** Check
+the limits on the competition's Submission Format page before uploading. Fix and validate
+locally first; uploading a replacement uses another attempt.
+
+For the team-claim checks below, a **descriptor whose `team_id` names a different team than
+your linked account** is cancelled. The other claim problems hold the upload for a later
+intake pass; retrying the same unchanged invalid claim will not fix it. A held upload may
+not show an individual explanation. If the cause is unclear, contact the organizers through
+the competition's support channel with your submission ID and visible status before uploading
+again. Never include your Team Key, proof, password or API token in a support message.
 
 | situation | outcome |
 |---|---|

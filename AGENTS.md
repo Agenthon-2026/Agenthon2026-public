@@ -18,7 +18,7 @@ It is **not** the tasks. Those are in the four `track*-public` repositories.
 ## Setup
 
 ```bash
-pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.1#subdirectory=common"
+pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.2#subdirectory=common"
 python -c "from qfbench2_common.contracts import CONTRACT_SET; print(CONTRACT_SET)"   # 1.1.0
 ```
 
@@ -60,10 +60,12 @@ Tracks 3 and 4 have a scoring factory that cannot run on your machine — Track 
 NLI judge, Track 3's needs timing the organizers measured — so `qfbench2-smoke` runs their
 non-rankable preview factory instead. That is what you want here: it is the path that answers the
 admissibility question locally, and it stamps everything it produces `rankable=False` because the
-number it computes is not the one the leaderboard uses. Track 3's preview runs the identical gate
-chain as its production factory and differs only in scoring a rate you reported rather than one the
-organizers measured; Track 4's substitutes a lexical judge for the NLI one and therefore does not
-enforce the faithfulness gate. Read the factories in your track's `scoring.py` before assuming a
+number it computes does not establish official production scoring. Track 3's current provisional
+Development service also selects the developer profile, using checked self-reported throughput on
+a shared worker queue. Its practice standings are not official comparable Final timing. The
+production factory's trusted timing and repeat-evidence requirements remain separate. Track 4's
+preview substitutes a lexical judge for the NLI one and therefore does not enforce the
+faithfulness gate. Read the factories in your track's `scoring.py` before assuming a
 preview pass means a production pass.
 
 `--profile production` asks for the rankable factory by name. On Tracks 3 and 4 it refuses

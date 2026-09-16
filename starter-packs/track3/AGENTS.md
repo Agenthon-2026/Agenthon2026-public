@@ -174,7 +174,15 @@ enforced at the container boundary (`--network=none`) rather than by inspecting 
 copy input text into your output, and do not port the T1 canary defence — it is solving a problem
 this track's inputs do not give you.
 
-## Determinism is a gate, not a nicety
+## Determinism and planned official Final repeats
+
+The current provisional Development service uses checked self-reported throughput and the
+developer scoring profile (`rankable = False`) on a shared worker queue. It does not run the
+production repeat-timing check below. Development practice scores and standings are not proof
+of official comparable timing or Final readiness. The existing semantic correctness gates still
+apply, and all timing values must be real measurements.
+
+The following repeat requirement belongs to the planned official Final path:
 
 `telemetry._assert_repeats_reproduce_scored_tree` requires **every measured repeat** to produce an
 identical `output_tree_digest` and `event_count` to the tree that was scored. Repeats that disagree
@@ -186,7 +194,7 @@ deterministic row order.
 > currently unsatisfiable by an honest submission, and the fix is ours. `output_tree_digest` is a
 > byte hash of the whole `/output` tree, `events.json` is inside it, and `events.json` must carry a
 > real `wall_clock_sec`, so the digest changes between repeats for reasons that have nothing to do
-> with your simulator. Reported in `track3-simulation-public#5`, tracked as `Agenthon2026#116`.
+> with your simulator. Reported in [the public timing issue](https://github.com/Agenthon-2026/track3-simulation-public/issues/5).
 > **Report your real numbers.** Do not try to make `events.json` byte-stable to satisfy the check:
 > a submission that emitted a constant there would be misreporting. The repaired contract will
 > arrive in a weekly update with a version and worked examples, and the determinism requirement on
@@ -378,12 +386,19 @@ get 130-byte pointer stubs and every reference comparison silently compares garb
 
 ## What the leaderboard is, and what it is not
 
-Admissible submissions rank on **`events/sec`, descending**, and nothing else. Both halves of that
-fraction are the organizer's: the numerator is the Runner's parquet-footer row count (frozen ruling
-R-3, and it must equal the reference count exactly — padding is refused at the numerator *and* by the
-semantic gate), the denominator host-measured wall clock, median over the measured repeats after the
-warm-up discard. **Your `events_per_sec` is never the ranked number**; it is only cross-checked for
-internal consistency. Four gates run in order; failing any is inadmissible, no partial credit:
+Current Development standings are provisional practice feedback, using checked self-reported
+per-unit rates with `rankable = False`. They use the existing score aggregation; this timing
+clarification does not change any score or admissibility rule.
+
+For the planned official Final path, admissible submissions rank on **`events/sec`, descending**.
+Both halves of that fraction must be the organizer's: the numerator is the Runner's
+parquet-footer row count (frozen ruling R-3, and it must equal the reference count exactly — padding is refused at the numerator *and* by the
+semantic gate), the denominator host-measured wall clock, median over the measured repeats with
+exactly the warm-up treatment committed in the official plan. Repeat counts and warm-up choices
+are still Final release requirements, not the local timer's defaults. In the production factory,
+**your `events_per_sec` is never the official ranked number**; it is cross-checked for internal
+consistency. The following table describes the production gates; the trusted timing, exclusive
+instance and repeat-evidence requirements are not part of provisional Development timing:
 
 | Gate | Fails when |
 |---|---|

@@ -201,7 +201,7 @@ were given, and fall back to a CPU path rather than crashing.
 At run time you can reach **`$MODEL_ENDPOINT`** through the audited proxy and nothing else. PyPI,
 conda, HuggingFace Hub, NGC and GitHub are all unreachable. Call it with **`$MODEL_NAME`**, the
 pinned house-model id — it is OpenAI-compatible, free, and metered per run. Every connection is
-logged (domain, bytes, timestamps) and that log is the audit artifact for the verification phase.
+logged (domain, bytes, timestamps) and that log is the audit artifact for verification within the joint Final + Verification phase.
 
 **Every dependency must be baked into the image at build time.** A `pip install` in your agent's
 code path will fail during evaluation even though it worked while you were developing. Same for
@@ -326,7 +326,7 @@ The evaluation fleet is **x86-64 with NVIDIA B200 (sm_100)**. Build for `linux/a
 
 This matters more than it looks if you use floating point: the same agent can produce parquet bytes
 that are **identical within an architecture and different across architectures**, while passing every
-assertion on both. If the verification phase re-runs your submission and compares outputs
+assertion on both. If organizer verification within the joint Final + Verification phase re-runs your submission and compares outputs
 byte-for-byte, an image built only for arm64 — or a multi-arch image whose manifest resolves
 differently between runs — could differ from itself.
 

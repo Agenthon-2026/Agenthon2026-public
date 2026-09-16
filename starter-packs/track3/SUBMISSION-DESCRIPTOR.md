@@ -11,7 +11,7 @@ in full. Read it before writing anything; the file format is the same for every 
 ## Install the toolkit — one command
 
 ```
-pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.1#subdirectory=common"
+pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.2#subdirectory=common"
 ```
 
 > **Pin the tag, never a branch.** A moving branch can make your local result and your scored
@@ -69,7 +69,7 @@ toolkit's parser. Validate with `SubmissionDescriptor.from_mapping` and reseal w
 | `competition_id` | `agenthon2026-<track>-<phase>`. The suffixed form is what the C5 golden fixtures and accepted submissions use. Note the toolkit contradicts itself — `contracts/release.py:106` defines the form WITHOUT the phase suffix — and **neither the schema nor the parser enforces either form**, so nothing catches a wrong value locally. Use the suffix. |
 | `team_id` | **derived, not assigned.** `team-` + the first 32 hex characters of `sha256("agenthon2026-team-alias:" + str(team_number) + ":" + team_key)`, computed by `qfbench2 submission alias` / `pack` from your website team number and Team Key (hidden prompt or `--team-key-file`; never an argument). Any non-empty string validates locally, so a hand-typed wrong value is not caught here; `pack` refuses a `team_id` that disagrees with the derived one, and the organizer cancels a descriptor whose `team_id` names a team other than the one linked to your account. See `TEAM-CLAIM.md`. |
 | `track` | `coding` \| `forecasting` \| `simulation` \| `analysis` |
-| `phase` | `dev` \| `final` \| `verification` |
+| `phase` | `dev` \| `final` \| `verification`. These technical values remain supported. Development and registration close October 12, 2026 at 23:59 Anywhere on Earth (AoE, UTC−12); the joint Final + Verification phase runs October 13–25 and closes October 25 at 23:59 AoE, with one final submission per team per track and no separate participant Verification submission. Follow the organizer’s phase-specific descriptor instructions. |
 | `category` | `api` \| `byo-small` \| `byo-large` \| `simulator` — the enum the schema validates. The `byo-*` names are **legacy** names the schema retains: there is no small-weights tier (no permitted Nemotron is under ~7B), and a BYO submission ships a **LoRA adapter, not weights**. Use the value in this track's callout at the top of this page. The enum is **not validated against `track`** (a wrong pairing passes), so getting it right is on you. |
 | `image` | **an object** — see below |
 | `image_access` | `public` \| `organizer_mirror` |
@@ -123,14 +123,10 @@ invent a row such as `"name": "none-deterministic-engine"`. Do not do that any m
 row makes `models` useless as evidence exactly where the disclosure rule matters.) Every entry you
 DO declare still needs all five keys: `name`, `version`, `training_cutoff`, `access`, `revision`.
 
-**Two of them you may not be able to fill truthfully, and you should know that going in.** For an
-`api` submission calling the house model, nothing published names the pinned model id —
-`SUBMISSION_CLI.md` only says it "is published with the model pin". Yet the same document says
-floating aliases "are rejected at verification" and cutoffs "MUST be declared". So
-`models[].version` and `models[].training_cutoff` are unknowable from the documentation in the same
-way `team_id` is, and a descriptor that validates may still be wrong at verification. Put in the
-most honest value you can and raise it with the organizers, rather than inventing a
-plausible-looking pin.
+The shared [House model identity](../../docs/HOUSE-MODEL.md) guide now supplies the reported
+identity for authorized House API use. It does not grant House access to a Track 3 simulator.
+Keep `category: "simulator"` and `models: []` for an engine that loads no model and calls no
+endpoint; do not add a House row to that model-free declaration.
 
 ### `descriptor_digest`
 

@@ -6,6 +6,29 @@ access remains held. This page does not certify Final resources or scoring.
 Read your track's task card alongside this guide; the card supplies CPU, memory, GPU and network
 settings, and may supply a per-unit timeout.
 
+## Competition schedule
+
+Development runs through **October 12, 2026**. The joint **Final + Verification phase runs
+October 13–25, 2026**. Each team makes **one final submission per track**; organizers perform
+verification within that same phase, with no separate participant Verification submission.
+Registration still closes September 28, 2026; registered teams may continue Development
+through October 12. Other competition dates and task/data cutoffs are unchanged.
+
+## Submission limits at the Development opening
+
+| Track | Uploads per team per day | Total uploads per team in Development |
+|---|---:|---:|
+| 1 — Coding | 1 | 20 |
+| 2 — Forecasting | 5 | 20 |
+| 3 — Simulation | 5 | 20 |
+| 4 — Explainability | 5 | 20 |
+
+Use your team's single designated CodaBench account for all uploads. Local validation and
+packaging do not consume an attempt; an upload does, including a held or cancelled upload
+that receives no score. Validate locally before uploading. These are the limits for the
+participant Development opening. The joint Final + Verification phase retains one final
+submission per team per track, with no separate participant Verification submission.
+
 ## Container limits
 
 | Track | CPU quota per unit | Memory per unit | Container execution ceiling | Network |

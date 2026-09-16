@@ -69,6 +69,19 @@ it to compute your team id and your proof, and that is all. `pack` refuses a des
 whose `team_id` disagrees with the derived id, and it refuses to run where the prompt
 cannot hide input; use `--team-key-file` there.
 
+## Development submission limits
+
+At the participant Development opening, **Track 1 allows 1 upload per team per day**,
+with **20 total uploads per team for this track during Development**. Use the same designated
+CodaBench account for every upload. Track 1 has a 1-per-day limit; Tracks 2, 3 and 4 retain
+5 per day.
+
+Development runs through **October 12, 2026**. The joint **Final + Verification phase runs
+October 13–25, 2026**. Each team makes **one final submission per track**; organizers perform
+verification within that same phase, with no separate participant Verification submission.
+Registration still closes September 28, 2026; registered teams may continue Development
+through October 12. Other competition dates and task/data cutoffs are unchanged.
+
 ## What happens when something is wrong
 
 Running `qfbench2 submission alias` or `qfbench2 submission pack` locally does not upload

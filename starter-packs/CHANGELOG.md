@@ -26,7 +26,10 @@ we want to hear about it:
 
 - the submission descriptor contract (`submission.json` fields and their meanings)
 - the answer schema each track validates against
-- the phase dates
+
+**The phase dates have been amended:** Development now ends October 12, 2026, followed by a
+joint Final + Verification phase on October 13–25. Other competition dates are unchanged.
+See the `ACTION` entry below.
 
 **The metric each track is scored on was on this list, and is not any more.** The ranking metric
 changed — see the `ACTION` entry below. Removing it is the honest thing to do: the list is only
@@ -40,8 +43,22 @@ never happens silently, which is the guarantee that actually protects you.
 ### Toolkit `v2.4.2` — prepared for the next release
 
 This patch updates the packaged simulation example and participant guidance. It does not
-change scoring, descriptor acceptance or submission limits. Publication follows the release
-announcement; this entry records the prepared changes.
+change scoring or descriptor acceptance. The Development opening also introduces the Track 1
+submission limit below. Publication follows the release announcement; this entry records the
+prepared changes.
+
+**`ACTION`** **Track 1: one Development upload per team per day at opening.** Tracks 2, 3 and 4
+retain 5 uploads per team per day. Every track retains a total of 20 Development uploads per
+team. Use your team's designated CodaBench account; held or cancelled uploads also count.
+Local validation and packaging use no attempts.
+
+**`ACTION`** **Revised Development deadline and joint Final + Verification phase.**
+Development runs through October 12, 2026. Final submission evaluation and organizer
+verification share October 13–25, 2026. Each team makes one final submission per track;
+there is no separate participant Verification submission. Registration still closes September 28;
+registered teams may continue Development through October 12. Other competition dates and all
+task/data cutoffs are unchanged. Technical descriptor values `dev`, `final` and `verification`
+remain supported; the schema has not been renamed.
 
 **`CLARIFIED`** **The simulation Development fixture is model-free.** The packaged
 `contracts/fixtures/c5/simulation_dev.json` now uses schema `1.1.0` and `models: []`, with its

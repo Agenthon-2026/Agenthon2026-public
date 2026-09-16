@@ -83,6 +83,17 @@ leaderboard, so the claim carries a proof bound to that one descriptor instead. 
 for on a hidden prompt or read from `--team-key-file`; it is never a command-line argument, and
 the toolkit never writes it anywhere. See `starter-packs/<track>/TEAM-CLAIM.md`.
 
+At the participant Development opening, **Track 1 allows 1 upload per team per day**;
+**Tracks 2, 3 and 4 allow 5 per team per day**. Each track retains a **20-upload Development
+total per team**. Held or cancelled uploads also consume attempts; local validation and
+packaging do not. See [Development submission limits](docs/DEVELOPMENT-RUNTIME.md#submission-limits-at-the-development-opening).
+
+Development runs through **October 12, 2026**. The joint **Final + Verification phase runs
+October 13–25, 2026**. Each team makes **one final submission per track**; organizers perform
+verification within that same phase, with no separate participant Verification submission.
+Registration still closes September 28, 2026; registered teams may continue Development
+through October 12. Other competition dates and task/data cutoffs are unchanged.
+
 And the library:
 
 | Module | What it is for |

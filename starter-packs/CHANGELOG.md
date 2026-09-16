@@ -55,8 +55,7 @@ Local validation and packaging use no attempts.
 **`ACTION`** **Revised Development deadline and joint Final + Verification phase.**
 Development runs through October 12, 2026. Final submission evaluation and organizer
 verification share October 13–25, 2026. Each team makes one final submission per track;
-there is no separate participant Verification submission. Registration still closes September 28;
-registered teams may continue Development through October 12. Other competition dates and all
+there is no separate participant Verification submission. Registration and Development close together on October 12, 2026 at **23:59 Anywhere on Earth (AoE, UTC−12)**. The joint Final + Verification phase closes on October 25, 2026 at **23:59 AoE**. Other competition dates and all
 task/data cutoffs are unchanged. Technical descriptor values `dev`, `final` and `verification`
 remain supported; the schema has not been renamed.
 

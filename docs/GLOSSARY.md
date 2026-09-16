@@ -944,8 +944,7 @@ is a fairness requirement.
 
 The internal descriptor values `dev`, `final` and `verification` remain supported for
 compatibility; this calendar change does not rename schema values. Follow the organizer's
-phase-specific descriptor instructions. Registration still closes September 28, 2026; registered
-teams may continue Development through October 12. Other competition dates and task/data cutoffs
+phase-specific descriptor instructions. Registration and Development close together on October 12, 2026 at **23:59 Anywhere on Earth (AoE, UTC−12)**. The joint Final + Verification phase closes on October 25, 2026 at **23:59 AoE**. Other competition dates and task/data cutoffs
 are unchanged.
 
 **Why it matters:** Development provides practice feedback. Final evaluation and verification

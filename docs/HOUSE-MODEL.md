@@ -3,9 +3,50 @@
 The approved House model is `nvidia/nemotron-3-super-120b-a12b`, with the reported model and
 tokenizer snapshot `rl-030326-fp8`. For an authorized House API submission, use the five-field
 `models[]` row below. Runtime calls use the injected `MODEL_NAME`; the reported route alias is
-`house`, which is separate from the model identity in the descriptor. The training cutoff is
+`house`, which is separate from the model identity in the descriptor. Calls go to
+`$MODEL_ENDPOINT/v1/chat/completions` with `Authorization: Bearer $MODEL_TOKEN` — see
+[Calling the House route](#calling-the-house-route). The training cutoff is
 unpublished. This guide records operator-reported metadata and does not change track permissions,
 scoring, request limits, or participant tuning cutoffs.
+
+## Calling the House route
+
+Read this before you build an image that calls the House model. Every `network = "restricted"`
+unit receives five environment variables. Use them exactly as injected:
+
+| Variable | What it is | How to use it |
+|---|---|---|
+| `MODEL_ENDPOINT` | The **origin** of the House route (`scheme://host:port`, no path). | The OpenAI-compatible API is served **under `/v1`**. Chat completions are `POST $MODEL_ENDPOINT/v1/chat/completions`. A request to `$MODEL_ENDPOINT/chat/completions` (no `/v1`) is refused with HTTP 403. Use the injected scheme as given; do not rewrite it. |
+| `MODEL_NAME` | The runtime alias of the approved House model. | The `model` field of every request. |
+| `MODEL_TOKEN` | The per-unit bearer credential. | Send `Authorization: Bearer $MODEL_TOKEN` on every request. A request without it is refused with HTTP 401. |
+| `http_proxy`, `https_proxy` (also `HTTP_PROXY`, `HTTPS_PROXY`) | The audited proxy, with the per-unit proxy login embedded. | Leave them untouched. Standard HTTP clients and SDKs read them automatically; the route is reachable only through this proxy. |
+
+With the OpenAI Python client:
+
+```python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    base_url=os.environ["MODEL_ENDPOINT"].rstrip("/") + "/v1",
+    api_key=os.environ["MODEL_TOKEN"],
+)
+response = client.chat.completions.create(
+    model=os.environ["MODEL_NAME"],
+    messages=[{"role": "user", "content": "..."}],
+    max_tokens=1024,
+)
+```
+
+With raw HTTP (`urllib`, `requests`, `httpx`, `curl`): `POST` to `$MODEL_ENDPOINT/v1/chat/completions`
+with `Content-Type: application/json` and `Authorization: Bearer $MODEL_TOKEN`; the proxy
+variables carry the request. Only `POST /v1/chat/completions` is admitted; other paths and
+methods are refused.
+
+A request refused with 403 or 401 is refused before admission and does not consume any of the
+unit's request or token allowance. Earlier versions of this guide and of the starter packs did
+not state the `/v1` path or the `MODEL_TOKEN` variable; an agent built on `base_url=$MODEL_ENDPOINT`
+alone was refused on every call. Both facts are now part of the published contract.
 
 ## Descriptor disclosure
 

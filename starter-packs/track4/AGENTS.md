@@ -268,6 +268,15 @@ a proxy host. Vendor every dependency and every weight at build time. `TRANSFORM
 already set in the scoring environment — set it and `HF_HUB_OFFLINE=1` while testing so lazy
 downloads fail on your machine instead of the leaderboard. Test with `--network=none`.
 
+**How to call it.** `$MODEL_ENDPOINT` is the route origin and the API is served under `/v1`:
+`POST $MODEL_ENDPOINT/v1/chat/completions`, with `Authorization: Bearer $MODEL_TOKEN` and
+`model = $MODEL_NAME`. With the OpenAI client that is
+`OpenAI(base_url=os.environ["MODEL_ENDPOINT"].rstrip("/") + "/v1", api_key=os.environ["MODEL_TOKEN"])`.
+`$MODEL_ENDPOINT/chat/completions` (no `/v1`) is refused with 403 and a call without the bearer
+with 401. Leave the injected proxy variables untouched. Full contract:
+[Calling the House route](../../docs/HOUSE-MODEL.md#calling-the-house-route).
+
+
 Anything you serve in-image must run **in-process** (`vllm.LLM(...)`), never as a server you POST
 to over `localhost` — and a BYO submission ships a LoRA adapter, not weights (see the BYO section
 below). Container-name DNS does not resolve for a sandboxed client, and on gVisor sockets cost

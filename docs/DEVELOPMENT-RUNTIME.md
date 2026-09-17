@@ -125,10 +125,16 @@ authorize an additional model server or enable a separate BYO serving route. See
 [runtime page](../starter-packs/track1/RUNTIME-ENVIRONMENT.md#hardware-and-cuda-builds) for hardware
 and CUDA build guidance.
 
-For `network = "restricted"`, use the injected `$MODEL_ENDPOINT`, `$MODEL_NAME` and proxy
-settings. Access is limited to the organizer's House route; package indexes, external model
-APIs and arbitrary Internet access are unavailable. `network = "none"` is offline. Include
-dependencies and permitted artifacts in your image at build time.
+For `network = "restricted"`, use the injected `$MODEL_ENDPOINT`, `$MODEL_NAME`, `$MODEL_TOKEN`
+and proxy settings. `$MODEL_ENDPOINT` is the route origin; the API is served under `/v1`, so
+chat completions are `POST $MODEL_ENDPOINT/v1/chat/completions` with
+`Authorization: Bearer $MODEL_TOKEN`. A request to `$MODEL_ENDPOINT/chat/completions` is refused
+(403) and a request without the bearer is refused (401); neither consumes allowance. The
+variables, an OpenAI-client example and a raw-HTTP example are in
+[Calling the House route](HOUSE-MODEL.md#calling-the-house-route). Access is limited to the
+organizer's House route; package indexes, external model APIs and arbitrary Internet access are
+unavailable. `network = "none"` is offline. Include dependencies and permitted artifacts in your
+image at build time.
 
 Development resources do not establish Final resource grants or comparable Final timing.
 Simulation Development uses the developer profile on a shared queue; its practice results do

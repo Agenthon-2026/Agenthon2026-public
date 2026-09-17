@@ -51,7 +51,8 @@ and a small non-executable `/tmp`. Read the [container limits](../../docs/DEVELO
 before choosing writable paths. Historical gVisor tests do not establish current runtime
 compatibility or performance.
 
-Restricted units reach only the injected House route through the supplied proxy settings.
+Restricted units reach only the injected House route through the supplied proxy settings. Call it at `$MODEL_ENDPOINT/v1/chat/completions` with `Authorization: Bearer $MODEL_TOKEN`
+(see [Calling the House route](../../docs/HOUSE-MODEL.md#calling-the-house-route)).
 Offline units have no network. Include dependencies in the image at build time; do not hardcode
 an endpoint or attempt package downloads during evaluation.
 

@@ -290,6 +290,9 @@ Set `--cpus` and `--memory` from the unit's own `card.toml` rather than copying 
 and expect **exit 0**. Then run the unit's `checks/test.sh` against the same output directory to see
 whether you passed.
 
+> **Before you upload, run one unit with the platform's own container settings** — non-root user, read-only root filesystem, `noexec` `/tmp`, process and file limits — using the command in [Run it locally the way the platform runs it](../../docs/DEVELOPMENT-RUNTIME.md#run-it-locally-the-way-the-platform-runs-it). The quick-start line above does not apply them, and an image that writes to its home directory or install path passes here and fails there.
+
+
 **The verb must resolve, or you score zero on every unit.** It arrives as the first argument after
 the image reference. Three ways to get this wrong, all recorded as *your* failure rather than an
 organizer fault:

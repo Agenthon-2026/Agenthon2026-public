@@ -348,6 +348,9 @@ python scoring/scoring.py score --card units/t2-EXAMPLE-ust-curve-1m/card.toml \
   --forecast /tmp/run/output/forecast.parquet
 ```
 
+> **Before you upload, run one unit with the platform's own container settings** — non-root user, read-only root filesystem, `noexec` `/tmp`, process and file limits — using the command in [Run it locally the way the platform runs it](../../docs/DEVELOPMENT-RUNTIME.md#run-it-locally-the-way-the-platform-runs-it). The quick-start line above does not apply them, and an image that writes to its home directory or install path passes here and fails there.
+
+
 Expect exit 0 and four `"pass"` gates. Without `--realized` you get gates only and
 `"scored": false` — no realized outcomes ship publicly, so **admissibility is the only thing you
 can check locally.** Then run

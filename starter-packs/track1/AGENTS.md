@@ -211,6 +211,15 @@ machine instead of on the leaderboard.
 
 Test locally with `--network=none`. If it passes there, `restricted` will not surprise you.
 
+**How to call it.** `$MODEL_ENDPOINT` is the route origin and the API is served under `/v1`:
+`POST $MODEL_ENDPOINT/v1/chat/completions`, with `Authorization: Bearer $MODEL_TOKEN` and
+`model = $MODEL_NAME`. With the OpenAI client that is
+`OpenAI(base_url=os.environ["MODEL_ENDPOINT"].rstrip("/") + "/v1", api_key=os.environ["MODEL_TOKEN"])`.
+`$MODEL_ENDPOINT/chat/completions` (no `/v1`) is refused with 403 and a call without the bearer
+with 401. Leave the injected proxy variables untouched. Full contract:
+[Calling the House route](../../docs/HOUSE-MODEL.md#calling-the-house-route).
+
+
 ## Never vendor the task data into your image
 
 The competition requires submissions under an **OSI-approved license**, and that licence covers

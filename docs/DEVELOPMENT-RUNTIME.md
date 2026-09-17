@@ -65,6 +65,52 @@ the mounted `/output` directory, and the root filesystem remains read-only. This
 1 GiB writable workspace nor an image-download size limit. Simulation's card field `disk = "10G"`
 is not used by this launcher and does not provide a writable 10 GiB workspace.
 
+### Run it locally the way the platform runs it
+
+The starter packs' quick-start `docker run` lines check that your image starts and writes output.
+They do **not** apply the settings above, so an image can pass them and still fail on the platform.
+Before you upload, run at least one unit with the platform's settings:
+
+```bash
+docker run --rm \
+  --read-only --user 65534:65534 --cap-drop=ALL --security-opt no-new-privileges \
+  --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m \
+  --pids-limit 256 --ulimit nofile=1024:1024 --ulimit nproc=256:256 \
+  --cpus <card cpus> --memory <card memory> --memory-swap <card memory> \
+  --network=none \
+  -v "$PWD/units/<unit>":/input:ro \
+  -v "$PWD/out":/output \
+  -e QFBENCH_SEED=0 -e QFBENCH_NETWORK=none \
+  <image> <verb> <args from your track's starter pack>
+```
+
+Coding also binds the same output directory at `/app/output` (`-v "$PWD/out":/app/output`). Make
+`out/` writable by uid 65534 (`chmod 777 out` is fine locally). Expect exit 0 and your
+deliverables in `out/`.
+
+What this catches, in order of how often it bites:
+
+- **No home directory.** The process runs as uid 65534 with no user entry, so `HOME` is unset or
+  `/nonexistent`, and the root filesystem is read-only: anything that writes under `~`, `/root`,
+  `/app` or its own install directory fails at startup — Hugging Face and Transformers caches,
+  Numba and Matplotlib caches, `pip`, tool state files. Set `ENV HOME=/tmp` in your Dockerfile, or
+  point `HF_HOME`, `NUMBA_CACHE_DIR`, `MPLCONFIGDIR` and `XDG_CACHE_HOME` at `/tmp` (64 MiB) or at
+  a directory you bake into the image read-only.
+- **`/tmp` is `noexec`.** Nothing extracted or compiled into `/tmp` can be executed; JIT caches
+  that write executables there fail. Bake binaries into the image.
+- **Process and file-descriptor limits** (256 PIDs, 1,024 open files) reached by thread pools and
+  data loaders that are sized for a workstation.
+- **Writing outside `/output`.** Only `/output` (and `/app/output` for Coding) is writable and
+  only its contents are scored.
+
+To exercise a House-model code path locally, point your agent at your own OpenAI-compatible
+server instead of `--network=none`: `-e MODEL_ENDPOINT=http://host.docker.internal:<port>
+-e MODEL_NAME=<your local model> -e MODEL_TOKEN=<any string>` and use the platform's call shape,
+`POST $MODEL_ENDPOINT/v1/chat/completions` with `Authorization: Bearer $MODEL_TOKEN` — see
+[Calling the House route](HOUSE-MODEL.md#calling-the-house-route). The platform's proxy
+variables are not present locally; a client that reads them from the environment works in both
+places.
+
 ## Execution clocks
 
 The **per-unit container clock** includes container creation, an image pull when needed, and

@@ -359,6 +359,9 @@ docker run --rm --network=none \
   analyze --task /input/task.json --corpus /input/corpus/ --out /output/answer.json
 ```
 
+> **Before you upload, run one unit with the platform's own container settings** — non-root user, read-only root filesystem, `noexec` `/tmp`, process and file limits — using the command in [Run it locally the way the platform runs it](../../docs/DEVELOPMENT-RUNTIME.md#run-it-locally-the-way-the-platform-runs-it). The quick-start line above does not apply them, and an image that writes to its home directory or install path passes here and fails there.
+
+
 Expect **exit 0** and a schema-valid `/tmp/run/output/answer.json`. Then, in order:
 
 1. Validate against `analysis.schema.json` — the failures in the table above are the ones people

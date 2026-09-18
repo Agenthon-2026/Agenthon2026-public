@@ -355,9 +355,12 @@ docker run --rm --network=none --cpus=4 --memory=16g --gpus all \
 > the next largest unit**. An agent that sweeps in order hangs on unit #1 and looks like an infinite
 > loop. Run it last, or with an event budget.
 
-Expect **exit 0**, and sweep all 72 units for two things first: did it exit 0, and did it write
-every file that unit's gates open. Those are the failures that score zero without ever being about
-your simulation.
+Expect **exit 0** on the other 71, and sweep them for two things first: did it exit 0, and did it
+write every file that unit's gates open. Those are the failures that score zero without ever being
+about your simulation. The exemplar is on the Development roster and is scored like every other
+unit, but no run — ours included — has finished it inside the unit's 4-CPU / 16 GiB / 1,800 s
+box (it fails at the memory limit); that costs every team the same one unit and is not a signal
+about your simulation, so do not calibrate anything on it (trap 5 above).
 
 > **Install the toolkit before self-grading** (the one-command install is on
 > [SUBMISSION-DESCRIPTOR.md](SUBMISSION-DESCRIPTOR.md)). With it,

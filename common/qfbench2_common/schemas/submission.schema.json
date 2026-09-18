@@ -52,8 +52,6 @@
     "category": {
       "enum": [
         "api",
-        "byo-large",
-        "byo-small",
         "simulator"
       ],
       "description": "R-1: REQUIRED on every track, with 'simulator' for Track 3. An absent category is a validation error, not an implied 'api'."

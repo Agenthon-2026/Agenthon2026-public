@@ -11,8 +11,8 @@ These Development settings do not certify Final resources or comparable Final ti
 The planned House window begins when the organizer begins that unit's execution setup; its
 existing unit and remaining platform-stage ceilings still apply. See the [shared execution
 clocks](../../docs/DEVELOPMENT-RUNTIME.md#execution-clocks) for queue, setup, credential and retry
-rules. Deployment and verification are pending; House/API and permitted offline submissions are
-planned first, with BYO adapter operation later under its existing eligibility contract.
+rules. House/API and permitted offline submissions are what this competition runs; bring-your-own
+models and adapters are not part of it (ruling of 2026-09-18).
 
 ## Hardware and CUDA builds
 

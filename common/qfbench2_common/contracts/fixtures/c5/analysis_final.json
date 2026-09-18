@@ -5,7 +5,7 @@
   "team_id": "team-example-0001",
   "track": "analysis",
   "phase": "final",
-  "category": "byo-large",
+  "category": "api",
   "image": {
     "registry": "docker.io",
     "repository": "team-example/qfb2-analyst",
@@ -13,13 +13,6 @@
   },
   "image_access": "public",
   "models": [
-    {
-      "name": "example-local-large",
-      "version": "example-large-20260220",
-      "training_cutoff": "2025-11",
-      "access": "local",
-      "revision": "a1b2c3d4e5f6"
-    },
     {
       "name": "example-api-model",
       "version": "example-model-20260401",
@@ -29,5 +22,5 @@
     }
   ],
   "license": "Apache-2.0",
-  "descriptor_digest": "sha256:19d743c6c95fbd38fc66415ac020248fcf8fb9f17c4a63ae8a45a9cd720c5602"
+  "descriptor_digest": "sha256:33125a75db185a6eec20ba3c1d667cfb87dad6d9c501fa21dc605f25d392bbea"
 }

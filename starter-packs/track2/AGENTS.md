@@ -20,8 +20,8 @@ required. Output goes to **`/output`** — not `/app/output`; that is Track 1's 
 dual mount.
 
 > **Accelerated libraries:** see the section at the end of this file — the honest answer on this
-> track is that there is almost no surface. **Bringing your own model?** Read the BYO section at
-> the end first — those rules change what your image contains.
+> track is that there is almost no surface. **Bring-your-own models and adapters are not part of
+> this competition** — see the note at the end of this file.
 
 > **The descriptor has its own page.** `submission.json` is twelve required fields with
 > `additionalProperties: false`, validated by a toolkit that installs in one command. It is the
@@ -160,7 +160,7 @@ that is right on all 104 units.
 **1. Install the toolkit before any local check, and use exactly this line.**
 
 ```bash
-pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.2#subdirectory=common"
+pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.3#subdirectory=common"
 ```
 
 > **Pin the tag, never a branch.** A moving branch can make your local result and your scored
@@ -239,8 +239,7 @@ injected or injectable. Read `HTTP_PROXY`/`HTTPS_PROXY` from the environment, ne
 host. Vendor-side tools — web search, code execution, retrieval — **must be disabled** in every
 call. The selected House API allowance is **25 requests per unit**, with **at most 4,000 output
 tokens per call**. Input limits and failed/retried-request accounting are not yet finalized.
-This House allowance does not define a BYO request limit. Platform availability and deployed
-enforcement will be announced separately.
+Platform availability and deployed enforcement will be announced separately.
 Bake everything in at build time and test with `--network=none`; it is stricter than `restricted`.
 
 **How to call it.** `$MODEL_ENDPOINT` is the route origin and the API is served under `/v1`:
@@ -317,8 +316,7 @@ baking any card's target into your image from any source.
   by shape (in-process pair ~76%, loopback TCP ~67%, **cross-container 91-95%, a 10-20x slowdown**).
   So **never run a model server as a separate process and POST to localhost** — anything served
   in-image must run in-process (`vllm.LLM(...)`). The natural architecture is the slow one here and
-  the symptom looks like a slow model. (A BYO submission ships a LoRA adapter, not weights — see
-  the BYO section below.)
+  the symptom looks like a slow model.
 - **Container-name DNS does not resolve** for a sandboxed client. Use IPs, or what you are given.
 - **Do not measure your own CPU time** with `os.times()`/`getrusage`; gVisor misreports it ~4x.
 - Hosts are **x86-64 B200 (sm_100)**. Build single-arch `linux/amd64` and pin your numeric stack.
@@ -327,15 +325,15 @@ baking any card's target into your image from any source.
   The twelve required fields, the `image` object, the legacy-field traps and the self-referential
   `descriptor_digest` are all on [SUBMISSION-DESCRIPTOR.md](SUBMISSION-DESCRIPTOR.md); the
   anonymous pullability check is in [RUNTIME-ENVIRONMENT.md](RUNTIME-ENVIRONMENT.md).
-- The harness sets `QFBENCH_SEED`; verification reruns the top of the board (`api` statistically,
-  BYO **bit-reproducibly**). Seed everything, pin models to dated snapshots, disclose training
+- The harness sets `QFBENCH_SEED`; verification reruns the top of the board statistically. Seed
+  everything, pin models to dated snapshots, disclose training
   cutoffs; `*-latest` aliases are rejected.
 
 ## Run it locally before you ever submit
 
 ```bash
 pip install "numpy==2.1.3" "pandas==2.2.3" "pyarrow==18.1.0" "jsonschema==4.23.0"
-pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.2#subdirectory=common"
+pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.3#subdirectory=common"
 
 mkdir -p /tmp/run/output
 docker run --rm --network=none --cpus=16 --memory=128g \
@@ -377,62 +375,19 @@ inverts to the target) and the signed evaluation plan are not in the kit and nev
 
 ## Accelerated libraries on this track
 
-**The sponsor stack on this track:** nvidia-nat, Numba, TensorRT-LLM + Nemotron (lora adapter).
+**The sponsor stack on this track:** nvidia-nat, Numba.
 
 If you do ship anything compiled, the `sm_100` trap and the CUDA ≤ 13.0 ceiling in
 [RUNTIME-ENVIRONMENT.md](RUNTIME-ENVIRONMENT.md) apply.
 
-## Bringing your own model: adapter-only, rank ≤ 64
+## Bring-your-own models and adapters are not part of this competition
 
-**The shape.** Your submission ships **only a LoRA adapter** — never model weights, and never a
-model server. The organizer runs the base for you: when your submission is evaluated, a dedicated
-server is started *for that submission* — base: the same model behind `$MODEL_ENDPOINT`,
-**`nvidia/nemotron-3-super-120b-a12b`** — with your adapter loaded at launch, and it is destroyed
-when your submission finishes.
-
-**Your contract, end to end:**
-
-1. **Ship the adapter as `adapter_model.safetensors` + `adapter_config.json`** in your image.
-   Exactly one adapter per submission. The directory the pair must sit in is not announced yet —
-   it comes with the submission instructions — so keep the two files together in one directory
-   that you can relocate with a single line, and do not scatter them through the image. Your image
-   never runs a model server, and gets much smaller for it.
-2. **Extraction is static.** The adapter is copied out of your image without executing any of your
-   code, and the server starts with it already loaded. Before any unit runs, the server must list
-   your adapter as a served model — an adapter that fails to load fails the submission right
-   there, cheaply and with a named reason. An over-cap adapter is refused at load:
-   `LoRA rank 128 is greater than max_lora_rank 64`.
-3. **At run time your code sees the same contract as an `api` submission:** call
-   `$MODEL_ENDPOINT` (OpenAI-compatible) with `$MODEL_NAME` — which for a BYO run names *your
-   adapter*, so every call routes through it. There is nothing for you to start, configure, or
-   connect to; no server lifecycle is yours.
-4. **Teardown is automatic.** The server and the extracted adapter are destroyed with your
-   submission's run. Nothing persists between submissions.
-
-**Build rules:**
-
-- **Rank ≤ 64.** Enforced by the server at load, not penalised later.
-- **Declare `target_modules` accurately** in `adapter_config.json`; it is read.
-- **Full fine-tuning is not permitted.** The honest reason: a full fine-tune cannot be verified as
-  Nemotron-derived by any available means, so the choice is between a rule that is enforceable and
-  one that is decorative.
-- There is no small-weights tier — no permitted Nemotron is under ~7B, and the
-  `byo-small`/`byo-large` descriptor categories are legacy names from before this rule. BYO means
-  bring your own **adapter**.
-- **During a BYO run the worker's GPU serves the base model.** Plan your own code as CPU plus API
-  calls — your GPU use *is* the model serving.
-
-**Testing your adapter locally** — this is the one place you run a server yourself:
-
-```
-vllm serve <base> --enable-lora --max-lora-rank 64 --lora-modules mine=<adapter-dir>
-```
-
-vLLM 0.28.0 accepts exactly `(1, 8, 16, 32, 64, 128, 256, 320, 512)` for `--max-lora-rank`, and
-the **default is 16** — without the flag you will hit a much tighter cap and may conclude your
-adapter is broken when it is not.
-
-**Why rank is the number that matters:** it sets how much an adapter can change the base. On a
-4096-wide layer, rank 64 carries about 3% as many parameters as the matrix it adapts, against
-100% for a full fine-tune — low enough that the model underneath is unambiguously Nemotron, high
-enough for real domain adaptation.
+Ruling of 2026-09-18, superseding the adapter-only option this file used to describe. Every
+Track 2 submission runs against the House model through the endpoint the runtime hands you
+(`MODEL_ENDPOINT` + `/v1`, bearer `MODEL_TOKEN` — see
+[docs/HOUSE-MODEL.md](../../docs/HOUSE-MODEL.md)). There is no LoRA adapter path and no in-image
+model weights path. Declare `"category": "api"` and list the House model in `models`; the former
+`byo-small` / `byo-large` values are invalid since toolkit 2.4.3 (`qfbench2 submission pack`
+refuses them), and an upload that still carries one is held by the organizer's intake and never
+run. Non-LLM artifacts — fitted statistical or tree models, calibration parameters, retrieval
+indexes — remain ordinary bundled artifacts under the track's artifact policy.

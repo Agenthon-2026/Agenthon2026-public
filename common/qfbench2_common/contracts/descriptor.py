@@ -51,7 +51,9 @@ __all__ = [
 
 SCHEMA_VERSION = "1.1.0"
 INTERFACE_VERSION = "2.0"
-CATEGORIES = ("api", "byo-large", "byo-small", "simulator")
+# `byo-large` / `byo-small` were withdrawn 2026-09-18 (owner ruling: bring-your-own is out of
+# scope; every submission runs against the House model). A descriptor declaring either is invalid.
+CATEGORIES = ("api", "simulator")
 IMAGE_ACCESS = ("public", "organizer_mirror")
 MODEL_ACCESS = ("api", "local")
 

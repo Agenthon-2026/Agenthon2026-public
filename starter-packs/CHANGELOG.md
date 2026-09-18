@@ -40,7 +40,32 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
-### Toolkit `v2.4.2` — prepared for the next release
+### Toolkit `v2.4.3` — bring-your-own is out of scope
+
+**`ACTION`** **Bring-your-own models and adapters are not part of this competition.** Ruling of
+2026-09-18, superseding the adapter-only option the packs described until now. Every submission
+on Tracks 1, 2 and 4 runs against the House model through the endpoint the runtime hands you
+(`MODEL_ENDPOINT` + `/v1`, bearer `MODEL_TOKEN`, see `docs/HOUSE-MODEL.md`); Track 3 ships no
+model. `category` is `api` (Track 3: `simulator`). The descriptor enum no longer accepts
+`byo-small` or `byo-large`: `qfbench2 submission pack` refuses such a descriptor with a named
+reason, and an upload that still carries one is held by the organizer's intake and never run.
+If your descriptor declares one of them, change it to `api`, list the House model in `models`,
+and re-pack. Non-LLM artifacts (fitted statistical or tree models, calibration parameters,
+retrieval indexes) remain ordinary bundled artifacts under each track's artifact policy.
+
+**`CLARIFIED`** **The forecasting and analysis fixtures are `api` examples.** The six packaged
+`contracts/fixtures/c5/forecasting_*.json` and `analysis_*.json` descriptors now declare
+`"category": "api"` with the House model in `models` and matching descriptor digests. Copy the
+one for your phase as before.
+
+**`CLARIFIED`** **Install commands pin toolkit `v2.4.3`.** Reinstall with the command in your
+guide and confirm the installed package:
+
+```bash
+python -c "from importlib.metadata import version; assert version('qfbench2-common') == '2.4.3'"
+```
+
+### Toolkit `v2.4.2`
 
 This patch updates the packaged simulation example and participant guidance. It does not
 change scoring or descriptor acceptance. The Development opening also introduces the Track 1
@@ -74,12 +99,7 @@ current practice feedback from checked self-reported throughput on a shared Deve
 Trusted repeat evidence and a dedicated timing instance remain official Final requirements;
 the repeat-evidence repair is not delivered by this patch.
 
-**`CLARIFIED`** **Current install commands pin toolkit `v2.4.2`.** After the release, reinstall
-using the command in your guide and confirm the installed package:
-
-```bash
-python -c "from importlib.metadata import version; assert version('qfbench2-common') == '2.4.2'"
-```
+**`CLARIFIED`** **Install commands pinned toolkit `v2.4.2`** — superseded by `v2.4.3` above.
 
 Earlier tags, including `v2.4.1`, remain unchanged.
 

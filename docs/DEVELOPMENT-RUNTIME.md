@@ -140,10 +140,11 @@ will last at most 7,200 seconds from issue and never beyond the unit's fixed end
 credential does not extend the unit window. This timing change adds no container time, platform
 stage time, request allowance or other compute resources. Simulation remains offline.
 
-The initial opening is planned for House/API and permitted offline submissions. BYO adapter
-serving is planned for a later opening under its existing eligibility contract, with separate
-availability instructions. Neither the planned timing release nor this page announces that
-participant intake or a BYO route is open.
+The Development phase runs House/API and permitted offline submissions. **Bring-your-own models
+and adapters are not part of this competition** (ruling of 2026-09-18): every submission runs
+against the House model, `category` is `api` (Track 3: `simulator`), and a descriptor declaring
+`byo-small` or `byo-large` is invalid — the toolkit refuses to pack it, and an upload carrying one
+is held and never run.
 
 ## House request allowance
 
@@ -167,7 +168,7 @@ before admission do not consume a slot. Budget automatic retries accordingly.
 `gpu = true` on a task card grants a GPU for permitted local code. The current Development cards
 request one GPU on all four tracks; the selected workers have NVIDIA B200 devices. The `api`
 category denotes House model access and does not remove the card's GPU grant. It does not
-authorize an additional model server or enable a separate BYO serving route. See the shared
+authorize an additional model server; there is no separate bring-your-own serving route. See the shared
 [runtime page](../starter-packs/track1/RUNTIME-ENVIRONMENT.md#hardware-and-cuda-builds) for hardware
 and CUDA build guidance.
 

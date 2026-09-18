@@ -71,7 +71,7 @@ your own participant image.
 The existing base-pretraining exception applies only to this approved House revision. Applicable
 cutoffs continue to apply to participant tuning, model selection, calibration, and
 participant-provided data and artifacts.
-This disclosure does not expand BYO permissions. A model-free Track 3 simulator keeps
+This disclosure grants no bring-your-own model or adapter permission — there is none in this competition. A model-free Track 3 simulator keeps
 `category: "simulator"` and `models: []`; this guide grants it no House API permission.
 
 ## Development thinking controls

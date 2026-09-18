@@ -6,13 +6,12 @@ in full. Read it before writing anything; the file format is the same for every 
 > **This track's values:** `competition_id: "agenthon2026-coding-dev"` for the Development
 > phase; the fixture to copy is `contracts/fixtures/c5/coding_dev.json`. `category` is `api` if
 > your agent calls the house model. For a deterministic submission that calls no model, no enum
-> value is strictly truthful — the published fixtures use `byo-small` with `access: "local"` for
-> that case (a legacy category name — see the note in the field table); start there and say so in your report.
+> value is strictly truthful — declare `api` and leave `models` empty (`[]`), and say so in your report.
 
 ## Install the toolkit — one command
 
 ```
-pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.2#subdirectory=common"
+pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.3#subdirectory=common"
 ```
 
 > **Pin the tag, never a branch.** A moving branch can make your local result and your scored
@@ -71,7 +70,7 @@ toolkit's parser. Validate with `SubmissionDescriptor.from_mapping` and reseal w
 | `team_id` | **derived, not assigned.** `team-` + the first 32 hex characters of `sha256("agenthon2026-team-alias:" + str(team_number) + ":" + team_key)`, computed by `qfbench2 submission alias` / `pack` from your website team number and Team Key (hidden prompt or `--team-key-file`; never an argument). Any non-empty string validates locally, so a hand-typed wrong value is not caught here; `pack` refuses a `team_id` that disagrees with the derived one, and the organizer cancels a descriptor whose `team_id` names a team other than the one linked to your account. See `TEAM-CLAIM.md`. |
 | `track` | `coding` \| `forecasting` \| `simulation` \| `analysis` |
 | `phase` | `dev` \| `final` \| `verification`. These technical values remain supported. Development and registration close October 12, 2026 at 23:59 Anywhere on Earth (AoE, UTC−12); the joint Final + Verification phase runs October 13–25 and closes October 25 at 23:59 AoE, with one final submission per team per track and no separate participant Verification submission. Follow the organizer’s phase-specific descriptor instructions. |
-| `category` | `api` \| `byo-small` \| `byo-large` \| `simulator` — the enum the schema validates. The `byo-*` names are **legacy** names the schema retains: there is no small-weights tier (no permitted Nemotron is under ~7B), and a BYO submission ships a **LoRA adapter, not weights**. Use the value in this track's callout at the top of this page. The enum is **not validated against `track`** (a wrong pairing passes), so getting it right is on you. |
+| `category` | `api` \| `simulator` — the enum the schema validates. `api` on Tracks 1, 2 and 4 (every submission runs against the House model; bring-your-own models and adapters are not part of this competition, and the former `byo-small` / `byo-large` values are invalid since toolkit 2.4.3), `simulator` on Track 3. The enum is **not validated against `track`** (a wrong pairing passes), so getting it right is on you. |
 | `image` | **an object** — see below |
 | `image_access` | `public` \| `organizer_mirror` |
 | `models` | array — one entry per model you actually use; **`[]` when your submission uses no model** (C5 1.1.0) |

@@ -10,8 +10,8 @@ You are helping build a **submission** for Agenthon 2026 Track 4. You are not au
 tasks; if you find yourself editing anything under `units/`, stop.
 
 > **Accelerated libraries:** see the section at the end of this file — and in particular what NOT
-> to embed. **Bringing your own model?** Read the BYO section at the end first — those rules
-> change what your image contains.
+> to embed. **Bring-your-own models and adapters are not part of this competition** — see the
+> note at the end of this file.
 
 > **The descriptor has its own page.** `submission.json` is twelve required fields with
 > `additionalProperties: false`, validated by a toolkit that installs in one command. It is the
@@ -278,8 +278,7 @@ with 401. Leave the injected proxy variables untouched. Full contract:
 
 
 Anything you serve in-image must run **in-process** (`vllm.LLM(...)`), never as a server you POST
-to over `localhost` — and a BYO submission ships a LoRA adapter, not weights (see the BYO section
-below). Container-name DNS does not resolve for a sandboxed client, and on gVisor sockets cost
+to over `localhost`. Container-name DNS does not resolve for a sandboxed client, and on gVisor sockets cost
 67–95% by shape (in-process ~76%, loopback ~67%, cross-container **91–95%, a 10–20× slowdown**).
 CPU arithmetic and heap allocation are essentially free (~7–8% / ~0%); raw syscalls are ~85% slower.
 Do not measure your own CPU time with `os.times()`/`getrusage` — gVisor misreports it by ~4×. Hosts
@@ -395,7 +394,7 @@ Held-out units, resolved outcomes, the sealed scorer and the canary registry are
 ## Accelerated libraries on this track
 
 **The sponsor stack on this track:** NeMo Guardrails, torch + transformers with pre-baked
-**NeMo Retriever** embeddings, nvidia-nat, TensorRT-LLM + Nemotron reader (lora adapter). Nothing
+**NeMo Retriever** embeddings, nvidia-nat. Nothing
 here is required or checked, but usage of these libraries is heavily encouraged.
 
 The ranking is composite quality gated by an NLI judge, so acceleration buys nothing directly. All
@@ -408,62 +407,20 @@ without one.
   take minutes to load on CPU, against a 600 s unit budget under `network = restricted`. It is the
   organizers' scoring instrument, not a component of your submission — run it on your own machine
   as a pre-submission check instead.
-- A TensorRT-LLM / vLLM reader is the `byo` path — see below.
+- **Do NOT bundle a reader model of your own** (TensorRT-LLM, vLLM or otherwise): every
+  submission runs against the House model — see the note at the end.
 
 The cross-track `sm_100` trap and the CUDA ≤ 13.0 ceiling are in
 [RUNTIME-ENVIRONMENT.md](RUNTIME-ENVIRONMENT.md).
 
-## Bringing your own model: adapter-only, rank ≤ 64
+## Bring-your-own models and adapters are not part of this competition
 
-**The shape.** Your submission ships **only a LoRA adapter** — never model weights, and never a
-model server. The organizer runs the base for you: when your submission is evaluated, a dedicated
-server is started *for that submission* — base: the same model behind `$MODEL_ENDPOINT`,
-**`nvidia/nemotron-3-super-120b-a12b`** — with your adapter loaded at launch, and it is destroyed
-when your submission finishes.
-
-**Your contract, end to end:**
-
-1. **Ship the adapter as `adapter_model.safetensors` + `adapter_config.json`** in your image.
-   Exactly one adapter per submission. The directory the pair must sit in is not announced yet —
-   it comes with the submission instructions — so keep the two files together in one directory
-   that you can relocate with a single line, and do not scatter them through the image. Your image
-   never runs a model server, and gets much smaller for it.
-2. **Extraction is static.** The adapter is copied out of your image without executing any of your
-   code, and the server starts with it already loaded. Before any unit runs, the server must list
-   your adapter as a served model — an adapter that fails to load fails the submission right
-   there, cheaply and with a named reason. An over-cap adapter is refused at load:
-   `LoRA rank 128 is greater than max_lora_rank 64`.
-3. **At run time your code sees the same contract as an `api` submission:** call
-   `$MODEL_ENDPOINT` (OpenAI-compatible) with `$MODEL_NAME` — which for a BYO run names *your
-   adapter*, so every call routes through it. There is nothing for you to start, configure, or
-   connect to; no server lifecycle is yours.
-4. **Teardown is automatic.** The server and the extracted adapter are destroyed with your
-   submission's run. Nothing persists between submissions.
-
-**Build rules:**
-
-- **Rank ≤ 64.** Enforced by the server at load, not penalised later.
-- **Declare `target_modules` accurately** in `adapter_config.json`; it is read.
-- **Full fine-tuning is not permitted.** The honest reason: a full fine-tune cannot be verified as
-  Nemotron-derived by any available means, so the choice is between a rule that is enforceable and
-  one that is decorative.
-- There is no small-weights tier — no permitted Nemotron is under ~7B, and the
-  `byo-small`/`byo-large` descriptor categories are legacy names from before this rule. BYO means
-  bring your own **adapter**.
-- **During a BYO run the worker's GPU serves the base model.** Plan your own code as CPU plus API
-  calls — your GPU use *is* the model serving.
-
-**Testing your adapter locally** — this is the one place you run a server yourself:
-
-```
-vllm serve <base> --enable-lora --max-lora-rank 64 --lora-modules mine=<adapter-dir>
-```
-
-vLLM 0.28.0 accepts exactly `(1, 8, 16, 32, 64, 128, 256, 320, 512)` for `--max-lora-rank`, and
-the **default is 16** — without the flag you will hit a much tighter cap and may conclude your
-adapter is broken when it is not.
-
-**Why rank is the number that matters:** it sets how much an adapter can change the base. On a
-4096-wide layer, rank 64 carries about 3% as many parameters as the matrix it adapts, against
-100% for a full fine-tune — low enough that the model underneath is unambiguously Nemotron, high
-enough for real domain adaptation.
+Ruling of 2026-09-18, superseding the adapter-only option this file used to describe. Every
+Track 4 submission runs against the House model through the endpoint the runtime hands you
+(`MODEL_ENDPOINT` + `/v1`, bearer `MODEL_TOKEN` — see
+[docs/HOUSE-MODEL.md](../../docs/HOUSE-MODEL.md)). There is no LoRA adapter path and no in-image
+model weights path. Declare `"category": "api"` and list the House model in `models`; the former
+`byo-small` / `byo-large` values are invalid since toolkit 2.4.3 (`qfbench2 submission pack`
+refuses them), and an upload that still carries one is held by the organizer's intake and never
+run. Non-LLM artifacts — fitted statistical or tree models, calibration parameters, retrieval
+indexes — remain ordinary bundled artifacts under the track's artifact policy.

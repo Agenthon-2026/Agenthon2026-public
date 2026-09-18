@@ -487,6 +487,6 @@ Profile the import path before reaching for a GPU.
 `cuOpt` has no fit anywhere in T3, and `cuDF` is dev-side only — both per the kit's own
 `docs/NVIDIA-STACK.md`, and both covered in the resource-contract section above.
 
-There is **no `byo` model path on this track** — a simulator ships no model, and `category` is
+There is **no model path on this track** — a simulator ships no model, and `category` is
 `simulator`. The cross-track `sm_100` trap and the CUDA ≤ 13.0 ceiling are in
 [RUNTIME-ENVIRONMENT.md](RUNTIME-ENVIRONMENT.md).

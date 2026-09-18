@@ -24,4 +24,4 @@ Image retrieval and startup use the execution lifecycle's wall-clock budget. Lar
 
 Validate locally before uploading. A held or cancelled CodaBench upload still consumes a platform submission attempt. The [team-claim guide](../starter-packs/track2/TEAM-CLAIM.md) explains packing and account linking.
 
-Image access does not grant a GPU, authorize additional models, or enable a BYO serving route. Check the track's artifact policy and the separately announced supported execution modes. A valid descriptor proves format compatibility, not that an unannounced service is available.
+Image access does not grant a GPU or authorize additional models; there is no bring-your-own serving route in this competition. Check the track's artifact policy and the separately announced supported execution modes. A valid descriptor proves format compatibility, not that an unannounced service is available.

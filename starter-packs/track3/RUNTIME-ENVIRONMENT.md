@@ -10,8 +10,8 @@ These Development settings do not certify Final resources or comparable Final ti
 
 Simulation stays offline with no House allocation; its existing unit and platform-stage clocks
 remain unchanged. The [shared guide](../../docs/DEVELOPMENT-RUNTIME.md#execution-clocks) describes
-the planned House timing change for other tracks, pending deployment and verification, and the
-House/offline-first opening with BYO adapter operation later under its existing eligibility contract.
+the House timing rules for the other tracks. Bring-your-own models and adapters are not part of this
+competition on any track (ruling of 2026-09-18).
 
 ## Hardware and CUDA builds
 

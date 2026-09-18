@@ -5,7 +5,7 @@
   "team_id": "team-example-0001",
   "track": "forecasting",
   "phase": "dev",
-  "category": "byo-small",
+  "category": "api",
   "image": {
     "registry": "docker.io",
     "repository": "team-example/qfb2-forecaster",
@@ -14,13 +14,13 @@
   "image_access": "public",
   "models": [
     {
-      "name": "example-local-small",
-      "version": "example-small-20260315",
-      "training_cutoff": "2025-12",
-      "access": "local",
-      "revision": "8f2c1d0e4b6a"
+      "name": "example-api-model",
+      "version": "example-model-20260401",
+      "training_cutoff": "2026-01",
+      "access": "api",
+      "revision": "r1"
     }
   ],
   "license": "Apache-2.0",
-  "descriptor_digest": "sha256:62b810ebed5e0a9ad741b38ed71c85ab16464350a589a82eea020855e48d0cce"
+  "descriptor_digest": "sha256:6008d987a277fcee82496990c72738e6a94cd49759102199f32fdd638043b6a6"
 }

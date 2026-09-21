@@ -31,7 +31,7 @@ Other frozen rules encoded here:
   from a participant-writable root; C2 exists only as a Runner-signed artifact in the organizer
   control root.
 * **The attestation payload is frozen** (see `attestation_payload`): the signature covers the JCS
-  digest of the whole record minus the `attestation` block. Before that was written down, no module
+  digest of the whole record minus `attestation.signature`. Before that was written down, no module
   computed the digest and no test checked it, which made `payload_digest` decorative — a field an
   auditor would read as evidence and a producer could fill with anything.
 * **`oom_killed` comes from the daemon's `State.OOMKilled`**, a channel the participant cannot
@@ -41,6 +41,14 @@ Other frozen rules encoded here:
   this system performs — `QFBENCH_ALLOW_NO_EVAL_NETWORK` running a `restricted` card offline — was
   previously recorded as `daemon_default`, which is false: no daemon default was consulted, an
   operator made a choice. A record that lies to an auditor is worse than one that admits a gap.
+
+### New in C2 1.2.0 — bounded host execution faults
+
+`execution_fault` records a diagnosis derived from host lifecycle facts. Create timeouts and
+unconfirmed cleanup select `organizer_failure`, including when all execution controls were met.
+The completion outcome remains a separate axis. Legacy 1.1.0 records remain readable without
+changing their signed bytes; an absent fault field is unknown evidence. See `MIGRATIONS.md` for
+the reader-first rollout and the initial vocabulary's limits.
 
 ### New in C2 1.1.0 — two facts that were previously unsayable
 
@@ -63,7 +71,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import InitVar, dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -99,17 +107,20 @@ __all__ = [
     "RANKABILITY_STATES",
     "UNMET_CONTROLS",
     "AppliedControl",
+    "ExecutionFault",
     "Attestation",
     "Lifecycle",
     "Rankability",
     "RunRecord",
     "attestation_payload",
     "derive_participant_outcome",
+    "derive_execution_fault",
     "derive_unmet_controls",
     "telemetry_admissible_for_timing",
 ]
 
-SCHEMA_VERSION = "1.1.0"
+SCHEMA_VERSION = "1.2.0"
+LEGACY_SCHEMA_VERSION = "1.1.0"
 LIFECYCLE_PHASES = ("created", "started", "exited", "killed")
 RANKABILITY_STATES = ("rankable", "unrankable", "organizer_failure")
 
@@ -312,13 +323,66 @@ def derive_participant_outcome(lifecycle: Lifecycle) -> str:
 
 
 @dataclass(frozen=True, slots=True)
+class ExecutionFault:
+    """C2 1.2: bounded host diagnosis, separate from missing controls.
+
+    This first vocabulary covers facts already present in the host lifecycle.
+    Absence on a legacy record means attribution was not carried, not 'no fault'.
+    Daemon refusal text and participant stderr are not interpreted by this type.
+    """
+
+    reason: str
+
+    def __post_init__(self) -> None:
+        if self.reason not in ("none", "create_timeout", "cleanup_unconfirmed"):
+            raise ContractError("execution_fault reason is outside the closed vocabulary")
+
+    @property
+    def infrastructure(self) -> bool:
+        return self.reason != "none"
+
+    def to_mapping(self) -> dict[str, str]:
+        return {
+            "attribution": "infrastructure" if self.infrastructure else "none",
+            "reason": self.reason,
+            "evidence": "host_lifecycle",
+        }
+
+    @classmethod
+    def from_mapping(cls, raw: Any, lifecycle: Lifecycle) -> ExecutionFault:
+        mapping = _as_object(raw, "execution_fault")
+        reject_unknown_keys(mapping, ("attribution", "reason", "evidence"), path="execution_fault")
+        expected = derive_execution_fault(lifecycle)
+        if dict(mapping) != expected.to_mapping():
+            raise ContractError(
+                "execution_fault disagrees with the bounded diagnosis from host lifecycle facts"
+            )
+        return expected
+
+
+def derive_execution_fault(lifecycle: Lifecycle) -> ExecutionFault:
+    """Diagnose only established host facts; never use exit code or stderr for blame."""
+    if not lifecycle.cleanup_confirmed:
+        return ExecutionFault("cleanup_unconfirmed")
+    if lifecycle.timed_out and lifecycle.phase_reached == "created":
+        return ExecutionFault("create_timeout")
+    return ExecutionFault("none")
+
+
+@dataclass(frozen=True, slots=True)
 class Rankability:
-    """The trusted execution profile. `state == rankable` iff no control is unmet."""
+    """The trusted profile; a fault can defeat rankability even when controls are met.
+
+    Only an explicit, established execution_fault permits an empty control list
+    for organizer_failure. Standalone and repeat parsing remain strict. There is
+    no invented 'infrastructure' control.
+    """
 
     state: str
     unmet_controls: tuple[str, ...]
+    execution_fault: InitVar[ExecutionFault | None] = None
 
-    def __post_init__(self) -> None:
+    def __post_init__(self, execution_fault: ExecutionFault | None) -> None:
         unknown = sorted(set(self.unmet_controls) - set(UNMET_CONTROLS))
         if unknown:
             raise ContractError(
@@ -332,7 +396,12 @@ class Rankability:
                 "unestablished control is not rankable; this is exactly the fail-open shape the "
                 "contract set removes."
             )
-        if self.state != "rankable" and not self.unmet_controls:
+        infrastructure = execution_fault is not None and execution_fault.infrastructure
+        if (
+            self.state != "rankable"
+            and not self.unmet_controls
+            and not (self.state == "organizer_failure" and infrastructure)
+        ):
             raise ContractError(
                 f"state={self.state!r} with no unmet_controls: an unrankable run must say which "
                 "control it failed to establish"
@@ -343,7 +412,13 @@ class Rankability:
         return self.state == "rankable"
 
     @classmethod
-    def from_mapping(cls, obj: Any, *, path: str = "rankability") -> Rankability:
+    def from_mapping(
+        cls,
+        obj: Any,
+        *,
+        path: str = "rankability",
+        execution_fault: ExecutionFault | None = None,
+    ) -> Rankability:
         mapping = _as_object(obj, path)
         reject_unknown_keys(mapping, ("state", "unmet_controls"), path=path)
         controls = req_list(mapping, "unmet_controls", path=path)
@@ -353,6 +428,7 @@ class Rankability:
         return cls(
             state=req_enum(mapping, "state", RANKABILITY_STATES, path=path),
             unmet_controls=tuple(controls),
+            execution_fault=execution_fault,
         )
 
 
@@ -459,6 +535,7 @@ _TOP_KEYS = (
     "worker_layer_view",
     "observation",
     "attestation",
+    "execution_fault",
 )
 
 
@@ -484,6 +561,7 @@ class RunRecord:
     worker_layer_view: tuple[Mapping[str, Any], ...]
     observation: Mapping[str, Any]
     attestation: Attestation | None
+    execution_fault: ExecutionFault | None = None
     raw: Mapping[str, Any] = field(default_factory=dict, repr=False)
 
     # ------------------------------------------------------------------ parsing
@@ -492,7 +570,7 @@ class RunRecord:
         _as_object(raw, "run_record")
         reject_unknown_keys(raw, _TOP_KEYS, path="run_record")
         schema_version = req_str(raw, "schema_version", path="run_record")
-        if schema_version.split(".")[0] != SCHEMA_VERSION.split(".")[0]:
+        if schema_version not in (LEGACY_SCHEMA_VERSION, SCHEMA_VERSION):
             raise ContractError(f"unsupported C2 schema_version {schema_version!r}")
 
         bindings_raw = req_mapping(raw, "bindings", path="run_record")
@@ -526,6 +604,13 @@ class RunRecord:
         }
 
         lifecycle = Lifecycle.from_mapping(req(raw, "lifecycle", path="run_record"))
+        execution_fault = None
+        if schema_version == SCHEMA_VERSION:
+            execution_fault = ExecutionFault.from_mapping(
+                req(raw, "execution_fault", path="run_record"), lifecycle
+            )
+        elif "execution_fault" in raw:
+            raise ContractError("execution_fault requires C2 schema_version 1.2.0")
         outcome = req_enum(raw, "participant_outcome", PARTICIPANT_OUTCOMES, path="run_record")
         derived = derive_participant_outcome(lifecycle)
         if outcome != derived:
@@ -537,7 +622,16 @@ class RunRecord:
                 "outcome is derived from channels the "
                 "participant cannot write, never asserted independently."
             )
-        rankability = Rankability.from_mapping(req(raw, "rankability", path="run_record"))
+        rankability = Rankability.from_mapping(
+            req(raw, "rankability", path="run_record"), execution_fault=execution_fault
+        )
+        if execution_fault is not None and execution_fault.infrastructure:
+            if rankability.state != "organizer_failure":
+                raise ContractError("an infrastructure execution_fault requires organizer_failure")
+        elif rankability.state == "organizer_failure" and not rankability.unmet_controls:
+            raise ContractError(
+                "organizer_failure without unmet controls requires an established execution_fault"
+            )
 
         timing_raw = req_mapping(raw, "timing", path="run_record")
         reject_unknown_keys(
@@ -665,6 +759,7 @@ class RunRecord:
             worker_layer_view=layers,
             observation=dict(observation),
             attestation=attestation,
+            execution_fault=execution_fault,
             raw=dict(raw),
         )
 

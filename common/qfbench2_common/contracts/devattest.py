@@ -74,8 +74,11 @@ from .fixtures import (
     load_fixture,
 )
 from .plan import EvaluationPlan, compute_roster_digest
+
+# Self-attestation does not collect the independent host facts required by C2 1.2.
+# Its existing infrastructure-fault handling remains on the readable 1.1 format.
 from .run_record import (
-    SCHEMA_VERSION,
+    LEGACY_SCHEMA_VERSION as SCHEMA_VERSION,
     Lifecycle,
     RunRecord,
     attestation_payload,
@@ -236,6 +239,12 @@ def _verify_published_tree(
     return claimed, None, None
 
 
+#: The prefix `ingest.py:gpu_args()` puts in front of a pinned device before handing it to
+#: `docker --gpus`. Recorded verbatim in `applied.gpu.applied`, so the projection has to
+#: know about it to classify the selector.
+_GPU_FLAG_PREFIX = "device="
+
+
 def _applied(observation: Mapping[str, Any]) -> dict[str, Any]:
     """Project the observation's `applied` block onto C2's narrower one.
 
@@ -262,12 +271,24 @@ def _applied(observation: Mapping[str, Any]) -> dict[str, Any]:
     # R-5: a device is named by UUID or the selection is not by UUID. The Hub records what it
     # applied; if that is not a UUID the selector says so and `derive_unmet_controls` charges the
     # `gpu_device_unpinned` control for it.
-    uuid = gpu_applied if isinstance(gpu_applied, str) and gpu_applied.startswith("GPU-") else None
+    # `applied` carries the value the Hub handed to `docker --gpus`, which for a pinned device is
+    # the FLAG form `device=GPU-...`, not the bare UUID -- `ingest.py:gpu_args()` adds that prefix
+    # itself. Testing the raw string for a `GPU-` prefix therefore failed on every correctly
+    # pinned run: `uuid` came back None, the chain fell through to `selector = "all"`, and because
+    # `source` was legitimately "pinned" no `gpu_device_unpinned` control was charged -- so C2
+    # refused the record for not confessing to an unpinned device that had never been used.
+    # Measured 2026-09-04 against a real B200 UUID: every gpu=true unit filed 0 run records.
+    # Strip the one prefix the Hub is known to add, then apply the same test as before; a genuine
+    # `all` or an index still classifies exactly as it did.
+    bare = gpu_applied
+    if isinstance(bare, str) and bare.startswith(_GPU_FLAG_PREFIX):
+        bare = bare[len(_GPU_FLAG_PREFIX) :]
+    uuid = bare if isinstance(bare, str) and bare.startswith("GPU-") else None
     if gpu_applied is None:
         selector = None
     elif uuid is not None:
         selector = "uuid"
-    elif isinstance(gpu_applied, str) and gpu_applied.strip().isdigit():
+    elif isinstance(bare, str) and bare.strip().isdigit():
         selector = "index"
     else:
         selector = "all"

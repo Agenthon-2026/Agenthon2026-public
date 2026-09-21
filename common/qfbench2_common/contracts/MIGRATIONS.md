@@ -81,3 +81,74 @@ profile, recompute the expected policy and content from the retained sanitized o
 refuse missing/mismatched evidence. Legacy Development records do not become rankable merely
 because the reader accepts them. This hub candidate does not activate a production producer
 or claim that Track 3's end-to-end timing defect has been fixed.
+
+---
+
+# C2 1.1.0 → 1.2.0 — bounded host execution faults
+
+A container that times out before starting can meet every execution control and still fail
+because of the organizer's infrastructure. C2 now records that fault separately from unmet
+controls. A participant timeout after starting still consumes the C1 failure penalty.
+
+Only C2 changes version. C1 `schema_version`, `contract_set`, and C3–C8 stay at their existing
+versions. This migration does not change the failure penalty or the expected roster.
+
+## New field and evidence
+
+Every 1.2.0 record requires this closed object, included in the existing attestation payload:
+
+```json
+"execution_fault": {
+  "attribution": "infrastructure",
+  "reason": "create_timeout",
+  "evidence": "host_lifecycle"
+}
+```
+
+The canonical parser derives the object from signed host lifecycle facts and refuses any
+disagreement. The Runner independently compares the Hub's `fault` / `docker_fault` claims
+with those same host facts before signing. It never derives blame from participant stderr.
+
+| Host evidence, in precedence order | `reason` | `attribution` |
+|---|---|---|
+| `cleanup_confirmed=false` | `cleanup_unconfirmed` | `infrastructure` |
+| `timed_out=true` and `phase_reached=created` | `create_timeout` | `infrastructure` |
+| Neither condition | `none` | `none` |
+
+`none` means neither bounded condition was established. It is not a general certificate that
+the host was healthy. The initial vocabulary does not classify arbitrary daemon refusal text.
+An organizer infrastructure claim outside this vocabulary causes the Runner to refuse signing;
+the resulting absent C2 aborts evaluation. Extending the vocabulary requires a canonical
+classifier and independent host evidence, not just a new unsigned observation label.
+
+An infrastructure diagnosis requires `rankability.state=organizer_failure`. Its unmet-control
+list may be empty; no hardware or telemetry gap is invented to encode the fault. Existing real
+control failures remain recorded. `participant_outcome` continues to describe completion, so
+it can remain `failure` on an infrastructure fault. The scoring driver checks organizer failure
+first and aborts the entire C1 evaluation before publishing scores or partial results.
+
+## Reader and writer migration
+
+1. Upgrade all C2 readers and scoring bundles first. The reader verifies the full C2 signature
+   and accepts existing signed 1.1.0 records without injecting a field or changing their bytes.
+   Exactly 1.1.0 and 1.2.0 are supported; unknown or malformed versions are refused.
+   The empty-control exception is top-level only; repeat rankability remains unchanged.
+   An absent legacy field is unknown evidence. Ordinary legacy participant failures remain
+   scoreable; a legacy infrastructure claim or timeout before start is refused as ambiguous.
+   Obtain a new run with host evidence; never rewrite or re-sign old history to supply a diagnosis.
+2. Publish and pin a toolkit artifact containing the new parser and regenerate scoring bundles.
+   Record those exact artifacts in the existing release evidence. Old strict readers reject
+   the new field, so writer-first rollout causes an intentional parse failure.
+3. Upgrade the production Runner writer to emit 1.2.0 for every new record. It uses the same
+   three-field object for fault-free and faulting records. Run the paired Runner-to-score tests
+   against the exact Hub source used to build the bundle.
+4. Keep the Development self-attester on 1.1.0. It already maps its organizer infrastructure
+   observation to `organizer_failure`; it does not collect the independent production host
+   evidence required by the new writer. Its non-rankable development trust policy is unchanged.
+
+Signature verification is required for both versions. A known key id alone does not authenticate
+a payload. The scoring loader now verifies the complete record before admitting lifecycle or
+fault data; an invalid signature aborts evaluation. Test fixtures that intentionally mutate a
+record must sign their final payload unless the test is explicitly exercising tampering.
+
+This participant-toolkit port provides the canonical reader. It does not package the private ingestion or scoring programs, activate the Runner, or establish production signing custody.

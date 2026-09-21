@@ -7,6 +7,8 @@ snapshots. Verification authenticates claims and their chronology, not an indepe
 measurement; a live privileged signer and durable archive remain deployment requirements.
 All inputs are retained immutable bytes, never paths or caller-claimed verified objects.
 """
+# Exact primitive types are contract guards: bool is not an integer, and bytes stay immutable.
+# ruff: noqa: E721
 
 from __future__ import annotations
 
@@ -35,6 +37,7 @@ from .run_record import RunRecord, derive_unmet_controls
 from .signing import SignatureEnvelope, TrustStore, verify_signed_object
 
 VERSION = "candidate-1"
+INPUT_VERSION = "candidate-2"
 _MAX_DOCUMENT_BYTES = 16 * 1024 * 1024
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 _TIME = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z")
@@ -133,6 +136,38 @@ def _snapshot(values: Mapping[str, bytes]) -> dict[str, bytes]:
 
 def _commit(values: Mapping[str, bytes]) -> str:
     return digest_json({name: sha256_bytes(raw) for name, raw in values.items()})
+
+
+def compute_forecast_input_commitments(
+    values: Mapping[str, Mapping[str, bytes]],
+) -> tuple[str, str]:
+    """Commit exact card bytes and complete canonical input trees, without interpreting cards."""
+    _require(isinstance(values, Mapping), "immutable input snapshots required")
+    cards: dict[str, bytes] = {}
+    snapshots: dict[str, str] = {}
+    for handle, members in dict(values).items():
+        _text(handle, "input snapshot handle")
+        snapshot = _snapshot(members)
+        _require("card.toml" in snapshot, "every input snapshot requires card.toml")
+        names = set(snapshot)
+        spellings: dict[str, str] = {}
+        for name in names:
+            _require(normalize_tree_path(name) == name, "canonical input path required")
+            parts = name.split("/")
+            for index in range(1, len(parts) + 1):
+                prefix = "/".join(parts[:index])
+                _require(
+                    spellings.setdefault(prefix.casefold(), prefix) == prefix,
+                    "input path collision",
+                )
+            _require(
+                not any("/".join(parts[:i]) in names for i in range(1, len(parts))),
+                "input file/directory path collision",
+            )
+        _require(len({name.casefold() for name in names}) == len(names), "input path collision")
+        cards[handle] = snapshot["card.toml"]
+        snapshots[handle] = _commit(snapshot)
+    return _commit(cards), digest_json(snapshots)
 
 
 def _signed(raw: bytes, trust: TrustStore, now: datetime, production: bool) -> dict[str, Any]:
@@ -235,8 +270,11 @@ def _template(value: Any) -> tuple[dict[str, Any], dict[str, list[tuple[str, int
 
 
 def _protocol(raw: bytes, trust: TrustStore, now: datetime, production: bool) -> dict[str, Any]:
+    signed = _signed(raw, trust, now, production)
+    version = signed.get("schema_version")
+    _require(version in (VERSION, INPUT_VERSION), "unsupported forecasting protocol")
     obj = _closed(
-        _signed(raw, trust, now, production),
+        signed,
         (
             "schema_version",
             "kind",
@@ -245,14 +283,37 @@ def _protocol(raw: bytes, trust: TrustStore, now: datetime, production: bool) ->
             "scale_recipe",
             "outcome_policy",
             "signature",
-        ),
+        )
+        + (("scoring_inputs",) if version == INPUT_VERSION else ()),
         "protocol",
     )
     _require(
-        obj["schema_version"] == VERSION and obj["kind"] == "forecast_protocol",
+        obj["kind"] == "forecast_protocol",
         "unsupported forecasting protocol",
     )
     _, cells = _template(obj["resolution_template"])
+    if version == INPUT_VERSION:
+        inputs = _closed(
+            obj["scoring_inputs"],
+            ("cards_commitment", "snapshots_commitment", "runtime"),
+            "scoring inputs",
+        )
+        _digest(inputs["cards_commitment"])
+        _digest(inputs["snapshots_commitment"])
+        runtime = _closed(
+            inputs["runtime"],
+            ("common_source_tree_digest", "track_source_tree_digest"),
+            "scoring runtime",
+        )
+        for value in runtime.values():
+            _digest(value)
+        _require(
+            obj["resolution_template"]["scorer"]["package"] == "qfbench2_track_forecasting"
+            and obj["resolution_template"]["scorer"]["interface_version"] == "2.0"
+            and obj["resolution_template"]["scorer"]["digest"]
+            == runtime["track_source_tree_digest"],
+            "candidate-2 scorer must bind the actual forecasting package source tree",
+        )
     schedule = _closed(
         obj["schedule"],
         ("information_cutoff", "forecast_deadline", "resolution_deadline"),
@@ -363,6 +424,7 @@ def _freeze(
     receipt_trust: TrustStore,
     now: datetime,
     production: bool,
+    input_snapshots: Mapping[str, Mapping[str, bytes]] | None = None,
 ) -> dict[str, Any]:
     obj = _closed(
         _signed(receipt, receipt_trust, now, production),
@@ -381,12 +443,25 @@ def _freeze(
         "forecast receipt",
     )
     _require(
-        obj["schema_version"] == VERSION
+        obj["schema_version"] == protocol["schema_version"]
         and obj["kind"] == "forecast_receipt"
         and _digest(obj["protocol_digest"]) == _signed_digest(protocol),
         "receipt protocol mismatch",
     )
     plan, cells = _template(protocol["resolution_template"])
+    if protocol["schema_version"] == INPUT_VERSION:
+        _require(isinstance(input_snapshots, Mapping), "candidate-2 input snapshots required")
+        assert input_snapshots is not None
+        retained_inputs = dict(input_snapshots)
+        _require(set(retained_inputs) == set(cells), "exact input snapshot roster required")
+        cards_digest, snapshots_digest = compute_forecast_input_commitments(retained_inputs)
+        _require(
+            cards_digest == protocol["scoring_inputs"]["cards_commitment"]
+            and snapshots_digest == protocol["scoring_inputs"]["snapshots_commitment"],
+            "precommitted card/input snapshot mismatch",
+        )
+    else:
+        _require(input_snapshots is None, "candidate-1 does not authenticate input snapshots")
     records, trees = _snapshot(records), _snapshot(trees)
     frozen = {h: _snapshot(v) for h, v in dict(forecasts).items()}
     dependencies = _snapshot(model_dependencies)
@@ -503,6 +578,7 @@ def verify_forecast_freeze(
     trees: Mapping[str, bytes],
     forecasts: Mapping[str, Mapping[str, bytes]],
     require_production_trust: bool = True,
+    input_snapshots: Mapping[str, Mapping[str, bytes]] | None = None,
 ) -> ForecastChainVerification:
     """Verify retained forecast evidence. This does not authorize later C1/C2 rebinding."""
     obj = _protocol(protocol, organizer_trust, now, require_production_trust)
@@ -519,6 +595,7 @@ def verify_forecast_freeze(
         receipt_trust=receipt_trust,
         now=now,
         production=require_production_trust,
+        input_snapshots=input_snapshots,
     )
     return ForecastChainVerification(
         _signed_digest(obj), _signed_digest(frozen), unit_count=len(obj["outcome_policy"]["cells"])
@@ -543,6 +620,8 @@ def verify_forecast_resolution(
     outcomes: Mapping[str, bytes],
     scales: Mapping[str, bytes],
     require_production_trust: bool = True,
+    input_snapshots: Mapping[str, Mapping[str, bytes]] | None = None,
+    source_snapshots: Mapping[str, bytes] | None = None,
 ) -> ForecastChainVerification:
     """Verify the complete candidate chain and exact outcome/scale snapshots; never score it."""
     protocol_obj = _protocol(protocol, organizer_trust, now, require_production_trust)
@@ -559,6 +638,7 @@ def verify_forecast_resolution(
         receipt_trust=receipt_trust,
         now=now,
         production=require_production_trust,
+        input_snapshots=input_snapshots,
     )
     obj = _closed(
         _signed(resolution, organizer_trust, now, require_production_trust),
@@ -575,7 +655,7 @@ def verify_forecast_resolution(
         "resolution",
     )
     _require(
-        obj["schema_version"] == VERSION
+        obj["schema_version"] == protocol_obj["schema_version"]
         and obj["kind"] == "forecast_resolution"
         and _digest(obj["supersedes"]) == _signed_digest(protocol_obj)
         and _digest(obj["receipt_digest"]) == _signed_digest(frozen),
@@ -610,6 +690,7 @@ def verify_forecast_resolution(
         <= _time(protocol_obj["schedule"]["resolution_deadline"]),
         "invalid resolution chronology",
     )
+    source_digests: set[str] = set()
     for handle, grid in cells.items():
         outcome = _closed(_json(outcomes[handle]), ("cells",), "outcome snapshot")
         rows = outcome["cells"]
@@ -631,7 +712,7 @@ def verify_forecast_resolution(
                 "resolution cell/source mismatch",
             )
             _number(row["value"])
-            _digest(row["source_content_digest"])
+            source_digests.add(_digest(row["source_content_digest"]))
             _require(
                 _time(expected["first_public_not_before"])
                 <= _time(row["first_public_at"])
@@ -645,6 +726,17 @@ def verify_forecast_resolution(
             and (_number(scale["joint"]) >= 0 if len(grid) == 1 else _number(scale["joint"]) > 0),
             "invalid numeric normalization scales",
         )
+    if protocol_obj["schema_version"] == INPUT_VERSION:
+        _require(isinstance(source_snapshots, Mapping), "candidate-2 source snapshots required")
+        assert source_snapshots is not None
+        sources = _snapshot(source_snapshots)
+        _require(set(sources) == source_digests, "exact source-content snapshot roster required")
+        _require(
+            all(sha256_bytes(raw) == digest for digest, raw in sources.items()),
+            "retained source bytes differ from signed outcome commitments",
+        )
+    else:
+        _require(source_snapshots is None, "candidate-1 does not authenticate source snapshots")
     return ForecastChainVerification(
         _signed_digest(protocol_obj),
         _signed_digest(frozen),

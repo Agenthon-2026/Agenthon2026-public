@@ -27,6 +27,7 @@ from qfbench2_common.contracts.descriptor import seal_descriptor_digest
 from qfbench2_common.contracts.digest import sha256_bytes
 from qfbench2_common.contracts.fixtures import DEV_KEY_ID, DEV_SEED, dev_trust_store, load_fixture
 from qfbench2_common.contracts.forecast_protocol import (
+    INPUT_VERSION,
     VERSION,
     verify_forecast_freeze,
     verify_forecast_protocol,
@@ -230,6 +231,203 @@ def refresh_receipt(c: dict[str, Any]) -> None:
             receipt_digest=json.loads(c["receipt"])["signature"]["payload_digest"]
         ),
     )
+
+
+def input_case() -> dict[str, Any]:
+    """Candidate-2 wire example; these invented card bytes test commitments, not T2 gates."""
+    c = case()
+    protocol = json.loads(c["protocol"])
+    handles = list(c["records"])
+    c["input_snapshots"] = {
+        h: {"card.toml": b"synthetic card bytes", "panels/synthetic.txt": b"synthetic input"}
+        for h in handles
+    }
+    cards = {h: files["card.toml"] for h, files in c["input_snapshots"].items()}
+    runtime = {
+        "common_source_tree_digest": digest_json("synthetic common source identity"),
+        "track_source_tree_digest": digest_json("synthetic track source identity"),
+    }
+    protocol["schema_version"] = INPUT_VERSION
+    protocol["resolution_template"]["scorer"].update(
+        package="qfbench2_track_forecasting", digest=runtime["track_source_tree_digest"]
+    )
+    protocol["scoring_inputs"] = {
+        "cards_commitment": commitment(cards),
+        "snapshots_commitment": digest_json(
+            {h: commitment(files) for h, files in c["input_snapshots"].items()}
+        ),
+        "runtime": runtime,
+    }
+    protocol = signed(protocol, protocol["signature"]["signed_at"])
+    c["protocol"] = encoded(protocol)
+    for handle, data in c["records"].items():
+        record = json.loads(data)
+        record["bindings"]["plan_digest"] = protocol["signature"]["payload_digest"]
+        record["attestation"]["signature"] = sign_payload(
+            attestation_payload(record),
+            seed=DEV_SEED,
+            key_id=DEV_KEY_ID,
+            signed_at=record["attestation"]["signature"]["signed_at"],
+        ).to_mapping()
+        c["records"][handle] = encoded(record)
+    receipt = json.loads(c["receipt"])
+    receipt.update(
+        schema_version=INPUT_VERSION,
+        protocol_digest=protocol["signature"]["payload_digest"],
+        records_commitment=commitment(c["records"]),
+    )
+    receipt = signed(receipt, receipt["signature"]["signed_at"])
+    c["receipt"] = encoded(receipt)
+    plan = copy.deepcopy(protocol["resolution_template"])
+    plan["normalization"]["ref_scale_commitment"] = commitment(c["scales"])
+    plan = signed(plan, "2026-10-06T00:00:00Z")
+    resolution = json.loads(c["resolution"])
+    resolution.update(
+        schema_version=INPUT_VERSION,
+        plan=plan,
+        supersedes=protocol["signature"]["payload_digest"],
+        receipt_digest=receipt["signature"]["payload_digest"],
+    )
+    c["resolution"] = encoded(signed(resolution, resolution["signature"]["signed_at"]))
+    source = encoded("synthetic-source-snapshot")
+    c["source_snapshots"] = {sha256_bytes(source): source}
+    return c
+
+
+def test_candidate_two_verifies_input_and_source_bytes_without_changing_old_c2_binding() -> None:
+    c = input_case()
+    result = verify_forecast_resolution(**c)
+    assert result.unit_count == 3
+    record = RunRecord.from_mapping(json.loads(next(iter(c["records"].values()))))
+    with pytest.raises(ContractError, match="plan_digest"):
+        record.verify_bindings(plan_digest=result.plan_digest)
+    frozen = verify_forecast_freeze(
+        **{
+            k: v
+            for k, v in c.items()
+            if k not in ("resolution", "outcomes", "scales", "source_snapshots")
+        }
+    )
+    assert frozen.protocol_digest == result.protocol_digest
+
+
+@pytest.mark.parametrize("member", ["input_snapshots", "source_snapshots"])
+def test_candidate_two_requires_all_new_snapshots(member: str) -> None:
+    c = input_case()
+    del c[member]
+    with pytest.raises(ContractError, match="snapshots required"):
+        verify_forecast_resolution(**c)
+
+
+@pytest.mark.parametrize("path", ["card.toml", "panels/synthetic.txt"])
+def test_candidate_two_refuses_input_mutation(path: str) -> None:
+    c = input_case()
+    c["input_snapshots"][next(iter(c["input_snapshots"]))][path] += b" changed"
+    with pytest.raises(ContractError, match="card/input snapshot mismatch"):
+        verify_forecast_resolution(**c)
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "../escape",
+        "/absolute",
+        "./alias",
+        "card.toml/child",
+        "CARD.toml",
+        "panels",
+        "Panels/other.txt",
+        "noncanonical-e\u0301.txt",
+    ],
+)
+def test_candidate_two_refuses_unsafe_input_paths_before_commitment(path: str) -> None:
+    c = input_case()
+    c["input_snapshots"][next(iter(c["input_snapshots"]))][path] = b"synthetic"
+    with pytest.raises(ContractError):
+        verify_forecast_resolution(**c)
+
+
+@pytest.mark.parametrize("change", ["missing-card", "missing-unit", "extra-unit", "mutable"])
+def test_candidate_two_input_roster_is_complete_and_immutable(change: str) -> None:
+    c = input_case()
+    inputs = c["input_snapshots"]
+    handle = next(iter(inputs))
+    if change == "missing-card":
+        del inputs[handle]["card.toml"]
+    elif change == "missing-unit":
+        del inputs[handle]
+    elif change == "extra-unit":
+        inputs["extra-synthetic-unit"] = inputs[handle]
+    else:
+        inputs[handle]["card.toml"] = bytearray(inputs[handle]["card.toml"])
+    with pytest.raises(ContractError):
+        verify_forecast_resolution(**c)
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        "missing-inputs",
+        "extra-input-field",
+        "extra-runtime-field",
+        "package",
+        "interface",
+        "digest",
+    ],
+)
+def test_candidate_two_has_a_closed_source_and_input_profile(change: str) -> None:
+    c = input_case()
+
+    def mutate(obj: dict[str, Any]) -> None:
+        if change == "missing-inputs":
+            del obj["scoring_inputs"]
+        elif change == "extra-input-field":
+            obj["scoring_inputs"]["verified"] = True
+        elif change == "extra-runtime-field":
+            obj["scoring_inputs"]["runtime"]["claimed_production_image"] = digest_json("fake")
+        else:
+            field = "interface_version" if change == "interface" else change
+            obj["resolution_template"]["scorer"][field] = (
+                digest_json("different source") if change == "digest" else "unsupported"
+            )
+
+    edit_signed(c, "protocol", mutate)
+    with pytest.raises(ContractError):
+        verify_forecast_protocol(
+            c["protocol"],
+            organizer_trust=c["organizer_trust"],
+            now=c["now"],
+            require_production_trust=False,
+        )
+
+
+@pytest.mark.parametrize("change", ["missing", "extra", "changed"])
+def test_candidate_two_source_bytes_must_exactly_cover_signed_outcomes(change: str) -> None:
+    c = input_case()
+    if change == "missing":
+        c["source_snapshots"].clear()
+    elif change == "extra":
+        c["source_snapshots"][sha256_bytes(b"extra")] = b"extra"
+    else:
+        c["source_snapshots"][next(iter(c["source_snapshots"]))] = b"changed"
+    with pytest.raises(ContractError):
+        verify_forecast_resolution(**c)
+
+
+@pytest.mark.parametrize("member", ["receipt", "resolution"])
+def test_candidate_versions_cannot_be_mixed(member: str) -> None:
+    c = input_case()
+    edit_signed(c, member, lambda obj: obj.update(schema_version=VERSION))
+    with pytest.raises(ContractError):
+        verify_forecast_resolution(**c)
+
+
+@pytest.mark.parametrize("member", ["input_snapshots", "source_snapshots"])
+def test_candidate_one_cannot_claim_new_snapshot_verification(member: str) -> None:
+    c = case()
+    c[member] = {}
+    with pytest.raises(ContractError, match="candidate-1 does not authenticate"):
+        verify_forecast_resolution(**c)
 
 
 def test_complete_two_stage_chain_and_legacy_binding_unchanged() -> None:

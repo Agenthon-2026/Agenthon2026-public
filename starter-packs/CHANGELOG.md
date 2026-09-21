@@ -40,6 +40,24 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
+### Toolkit `v2.4.4` — organizer-side contracts for the scoring path
+
+**`ADDED`** **Signed forecast-resolution and stable-repeat contracts.** The toolkit gains
+`qfbench2_common.contracts.forecast_protocol`, the `stable_output_binding` and
+`member_set_digest` helpers in `contracts.digest`, the shared record fields for Track 3 repeat
+evidence, a C2 execution-fault reader and the Development self-attestation's GPU-selector
+prerequisite. These are organizer-side contracts the scoring path will use; nothing in a
+submission changes and **no action is required**. An existing `v2.4.3` install keeps working
+with every current guide. A Track 3 scorer package that requires this version will say so in
+its own changelog entry when it is published.
+
+**`CLARIFIED`** **Install commands pin toolkit `v2.4.4`.** New installs use the command in your
+guide; an existing `v2.4.3` install needs no change. To see which you have:
+
+```bash
+python -c "from importlib.metadata import version; print(version('qfbench2-common'))"
+```
+
 ### Toolkit `v2.4.3` — bring-your-own is out of scope
 
 **`ACTION`** **Bring-your-own models and adapters are not part of this competition.** Ruling of
@@ -58,8 +76,9 @@ retrieval indexes) remain ordinary bundled artifacts under each track's artifact
 `"category": "api"` with the House model in `models` and matching descriptor digests. Copy the
 one for your phase as before.
 
-**`CLARIFIED`** **Install commands pin toolkit `v2.4.3`.** Reinstall with the command in your
-guide and confirm the installed package:
+**`CLARIFIED`** **Install commands pin toolkit `v2.4.3`** — superseded by `v2.4.4` above; a
+`v2.4.3` install still works. The original note: reinstall with the command in your guide and
+confirm the installed package:
 
 ```bash
 python -c "from importlib.metadata import version; assert version('qfbench2-common') == '2.4.3'"

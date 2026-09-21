@@ -44,7 +44,7 @@ variables carry the request. Only `POST /v1/chat/completions` is admitted; other
 methods are refused.
 
 A request refused with 403 or 401 is refused before admission and does not consume any of the
-unit's request or token allowance. Earlier versions of this guide and of the starter packs did
+unit's request allowance. Earlier versions of this guide and of the starter packs did
 not state the `/v1` path or the `MODEL_TOKEN` variable; an agent built on `base_url=$MODEL_ENDPOINT`
 alone was refused on every call. Both facts are now part of the published contract.
 
@@ -96,7 +96,8 @@ For raw HTTP JSON, include `chat_template_kwargs` at the top level of the reques
 Use the supplied `MODEL_NAME` for the runtime alias. The selected model accepts this API option;
 use it to control thinking instead of the older `detailed thinking on|off` system-prompt
 instruction. Omitting the option keeps thinking enabled. This changes neither the approved
-model/snapshot disclosure above nor the applicable request, output-token and input-token limits.
+model/snapshot disclosure above nor the applicable per-unit request limit and per-request
+output-token limit.
 
 The corresponding public FP8 checkpoint is
 [NVIDIA-Nemotron-3-Super-120B-A12B-FP8](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-FP8).
@@ -125,8 +126,8 @@ not been independently reproduced for this guide.
 The snapshot label is the reported revision of both the model and tokenizer. It is not a
 cryptographic hash of their files or an independent proof that those files cannot change. The
 Transformers value describes artifact metadata, not an independently measured runtime package
-version. Tokenizer maximum-length metadata is distinct from a serving context window and from
-per-request or per-run token allowances; it does not establish an allowed request size.
+version. Tokenizer maximum-length metadata is distinct from a serving context window and from the
+per-request output-token limit; it does not establish an allowed request size.
 
 ## Serving container identity
 

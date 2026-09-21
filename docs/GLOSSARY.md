@@ -372,7 +372,7 @@ pulls in `harbor>=0.15.0` (its **Python ≥ 3.12** floor is already met by the o
 `track1-harbor` and `track4-harbor` are aliases of it. The toolkit is not on PyPI, so the extra
 is installed the same way as the toolkit itself -- by keeping the git reference:
 ```bash
-pip install "qfbench2-common[harbor] @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.3#subdirectory=common"
+pip install "qfbench2-common[harbor] @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.4.4#subdirectory=common"
 ```
 Harbor is **shelled out, never imported**, so the **core toolkit keeps `requires-python >=3.13`** and
 `qfbench2_common` imports and runs on 3.13 with Harbor absent — the extra is only for an operator

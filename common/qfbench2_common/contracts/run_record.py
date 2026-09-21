@@ -787,13 +787,20 @@ class RunRecord:
         mapping = _as_object(raw, path)
         reject_unknown_keys(
             mapping,
-            ("index", "elapsed_sec", "output_tree_digest", "event_count", "rankability"),
+            (
+                "index",
+                "elapsed_sec",
+                "output_tree_digest",
+                "event_count",
+                "rankability",
+                "stable_output_binding",
+            ),
             path=path,
         )
         declared = req_int(mapping, "index", path=path, minimum=0)
         if declared != index:
             raise ContractError(f"{path}.index={declared} is out of order")
-        return {
+        parsed = {
             "index": declared,
             "elapsed_sec": req_float(mapping, "elapsed_sec", path=path),
             "output_tree_digest": parse_digest(
@@ -804,6 +811,17 @@ class RunRecord:
                 req(mapping, "rankability", path=path), path=f"{path}.rankability"
             ),
         }
+        if "stable_output_binding" in mapping:
+            binding_path = f"{path}.stable_output_binding"
+            binding = req_mapping(mapping, "stable_output_binding", path=path)
+            reject_unknown_keys(binding, ("policy_digest", "content_digest"), path=binding_path)
+            parsed["stable_output_binding"] = {
+                name: parse_digest(
+                    req(binding, name, path=binding_path), field=f"{binding_path}.{name}"
+                )
+                for name in ("policy_digest", "content_digest")
+            }
+        return parsed
 
     @staticmethod
     def _parse_leakage(raw: Any) -> dict[str, Any]:

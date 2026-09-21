@@ -518,6 +518,25 @@
           },
           "rankability": {
             "type": "object"
+          },
+          "stable_output_binding": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "policy_digest",
+              "content_digest"
+            ],
+            "description": "Optional reader-compatible stable-member evidence. A requiring track must verify the organizer policy and content digest for every repeat, while retaining the full output_tree_digest and C3 binding.",
+            "properties": {
+              "policy_digest": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "content_digest": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
           }
         }
       }

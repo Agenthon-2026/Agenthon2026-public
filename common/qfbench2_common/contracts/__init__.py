@@ -80,7 +80,16 @@ from .devattest import (
     DevelopmentAttestationRefused,
     attest_development_run_records,
 )
-from .digest import digest_json, digest_tree, jcs_canonical, normalize_tree_path, parse_digest
+from .digest import (
+    digest_json,
+    digest_member_set,
+    digest_members,
+    digest_tree,
+    jcs_canonical,
+    normalize_tree_path,
+    parse_digest,
+    stable_output_binding,
+)
 from .errors import (
     ContractError,
     OrganizerFault,
@@ -272,6 +281,8 @@ __all__ = [
     "derive_participant_outcome",
     "derive_unmet_controls",
     "digest_json",
+    "digest_member_set",
+    "digest_members",
     "digest_tree",
     "ed25519_backend",
     "failure_code_registry",
@@ -292,6 +303,7 @@ __all__ = [
     "req_mapping",
     "req_str",
     "sign_payload",
+    "stable_output_binding",
     "strict_bool",
     "telemetry_admissible_for_timing",
     "validate_listing",

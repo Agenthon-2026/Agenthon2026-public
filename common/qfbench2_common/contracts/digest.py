@@ -43,9 +43,11 @@ from __future__ import annotations
 
 import hashlib
 import math
+import os
 import re
 import unicodedata
 from collections.abc import Iterable, Mapping, Sequence
+from pathlib import Path
 from typing import Any
 
 from .errors import ContractError
@@ -54,12 +56,15 @@ __all__ = [
     "DIGEST_RE",
     "TREE_ENTRY_KEYS",
     "digest_json",
+    "digest_member_set",
+    "digest_members",
     "digest_tree",
     "is_digest",
     "jcs_canonical",
     "normalize_tree_path",
     "parse_digest",
     "sha256_bytes",
+    "stable_output_binding",
 ]
 
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -329,3 +334,116 @@ def digest_tree(entries: Iterable[Mapping[str, Any]]) -> str:
     _collision_check([e["path"] for e in normalized])
     normalized.sort(key=lambda e: e["path"])
     return digest_json(normalized)
+
+
+# --------------------------------------------------------------------- member-set digests
+#: Read size for member hashing.
+_MEMBER_CHUNK = 1 << 20
+
+
+def _sha256_of_file(path: Path, *, field: str) -> str:
+    """Hex sha256 of one regular file, opened without following a symlink at the leaf."""
+    try:
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    except OSError as exc:
+        raise ContractError(f"{field}: cannot open ({exc.strerror})") from None
+    digest = hashlib.sha256()
+    try:
+        with os.fdopen(fd, "rb", closefd=True) as handle:
+            for chunk in iter(lambda: handle.read(_MEMBER_CHUNK), b""):
+                digest.update(chunk)
+    except OSError as exc:
+        raise ContractError(f"{field}: cannot read ({exc.strerror})") from None
+    return digest.hexdigest()
+
+
+def digest_members(root: str | Path, members: Iterable[str]) -> dict[str, str]:
+    """Hex sha256 of each named member that exists as a regular file under `root`.
+
+    `members` are relative paths, validated with `normalize_tree_path`; the returned mapping is
+    keyed by the normalized spelling. A member that is absent is simply not in the result -- a
+    caller that requires it says so. A member that exists but is not a regular file, or is a
+    symlink anywhere along its path, is refused: a digest that could be redirected through a link
+    would be a second, weaker sanitizer.
+    """
+    base = Path(root)
+    out: dict[str, str] = {}
+    for raw in members:
+        rel = normalize_tree_path(raw, field="member")
+        target = base
+        for part in rel.split("/"):
+            target = target / part
+            if target.is_symlink():
+                raise ContractError(f"member {rel!r}: symlink at {target.name!r}")
+        if not target.exists():
+            continue
+        if not target.is_file():
+            raise ContractError(f"member {rel!r} is not a regular file")
+        out[rel] = _sha256_of_file(target, field=f"member {rel!r}")
+    return out
+
+
+def digest_member_set(root: str | Path, members: Iterable[str]) -> str:
+    """`sha256:...` over the members of a tree that a repeat has to reproduce, computed one way.
+
+    The preimage is global rule 0.2 -- the JCS form of `[{"path": p, "sha256": hex}, ...]`
+    sorted by NFC path -- so an independent producer and consumer agree byte-for-byte, and a
+    member list that grows or shrinks changes the digest. Refuses a set with no member present:
+    that is not an output, and digesting it would let one empty tree "reproduce" another.
+
+    This exists for the Track 3 repeat check (`Agenthon2026#116`): the whole-tree byte digest
+    cannot be reproduced by an honest run because the telemetry sidecar carries a real wall clock,
+    so the repeat digest is taken over the deterministic members only -- the parquet traces --
+    named positively by the track. Producer (the Runner, per repeat) and consumer (the scorer,
+    over the retained tree) must call this same function with the same member list.
+    """
+    found = digest_members(root, members)
+    if not found:
+        raise ContractError("no member of the digest set is present under the tree root")
+    entries = [{"path": rel, "sha256": hexd} for rel, hexd in sorted(found.items())]
+    return digest_json(entries)
+
+
+def stable_output_binding(
+    root: str | Path,
+    members: Iterable[str],
+    *,
+    required_members: Iterable[str],
+    policy_id: str,
+) -> dict[str, str]:
+    """Bind a trusted stable-member policy and its bytes for a C2 repeat.
+
+    The producer and scorer supply the SAME organizer-owned policy, never a list from
+    participant output. ``root`` must be the immutable sanitized tree, not the live
+    participant directory. The complete C3/whole-tree digest remains independently bound.
+    Optional members affect the content digest when present; required members cannot
+    silently disappear as they can with the lower-level ``digest_member_set`` helper.
+    """
+    if not isinstance(policy_id, str) or not re.fullmatch(r"[a-z][a-z0-9_.-]{0,79}", policy_id):
+        raise ContractError("stable-output policy_id must be a bounded policy identifier")
+    names = [normalize_tree_path(p, field="stable member") for p in members]
+    required = [normalize_tree_path(p, field="required stable member") for p in required_members]
+    _collision_check(names)
+    _collision_check(required)
+    if not names or not required:
+        raise ContractError("stable-output policy must name members and required members")
+    if not set(required) <= set(names):
+        raise ContractError("required stable members are outside the policy member set")
+    base = Path(root)
+    if base.is_symlink() or not base.is_dir():
+        raise ContractError("stable-output root must be a regular directory, not a symlink")
+    found = digest_members(base, names)
+    if not set(required) <= set(found):
+        raise ContractError("stable-output tree is missing required policy members")
+    return {
+        "policy_digest": digest_json(
+            {
+                "policy_id": policy_id,
+                "members": sorted(names),
+                "required_members": sorted(required),
+            }
+        ),
+        "content_digest": digest_json(
+            [{"path": rel, "sha256": hexd} for rel, hexd in sorted(found.items())]
+        ),
+    }

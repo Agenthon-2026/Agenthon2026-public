@@ -51,3 +51,33 @@ forced each of them to invent a placeholder row — which makes
 instead of a placeholder row, and should — with a toolkit that carries this version. The
 `v2.3.1` toolkit refuses `models: []` ("'models' must hold at least 1 item(s)"); validate locally
 with the tag that ships this change or later.
+
+---
+
+# Optional C2 stable-output repeat evidence (candidate, 2026-09-21)
+
+**What changed.** A repeat may additionally carry `stable_output_binding` with exactly
+`policy_digest` and `content_digest`, both SHA-256 digests. Existing signed records remain
+readable and their bytes are unchanged. This does not replace `output_tree_digest` or the
+top-level `bindings.sanitized_tree_digest`; those continue to bind the complete retained C3
+tree. The new field is also inside the Runner attestation payload.
+
+**Why.** Track 3's `events.json` contains measured time, so honest repeated output trees
+differ even when their trace and ledger bytes agree. Comparing the whole tree across repeats
+therefore rejects honest runs. Removing all repeat binding would admit alternating valid and
+invalid output. The stable binding lets the scorer compare only a predeclared semantic member
+set while retaining the full artifact binding separately.
+
+**Producer and consumer.** Both call `stable_output_binding` on the immutable sanitized tree
+with the same organizer-owned policy ID, allowed stable members and required stable members.
+The policy digest commits all three; the content digest uses the existing `digest_member_set`
+preimage. Required-member absence, duplicate paths and symlinks are refused. Optional-member
+presence changes the content digest. The member policy never comes from participant output.
+
+**Migration order.** Deploy the schema/parser reader first, then the matching track validator
+and Runner producer in one pinned release. Old readers have a closed repeat key set and will
+refuse the new field. A track adopting this evidence must require it for its new official
+profile, recompute the expected policy and content from the retained sanitized output, and
+refuse missing/mismatched evidence. Legacy Development records do not become rankable merely
+because the reader accepts them. This hub candidate does not activate a production producer
+or claim that Track 3's end-to-end timing defect has been fixed.

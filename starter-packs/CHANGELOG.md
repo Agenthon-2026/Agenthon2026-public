@@ -40,7 +40,7 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
-### Track 3 scorer — reinstall the toolkit before you pull
+### Track 3 scorer — reinstall the toolkit; official repeat check narrowed to stable outputs
 
 **`ACTION`** **Track 3: reinstall toolkit `v2.4.4` before installing the updated
 `track3-simulation-public` package.** The scorer in that repository now imports
@@ -50,15 +50,17 @@ and `pip install .` stops with `No matching distribution found for qfbench2-comm
 the install command in `starter-packs/track3/SUBMISSION-DESCRIPTOR.md` (it pins `v2.4.4`), then
 `pip install .` from the Track 3 repository root. Nothing changes in what you submit.
 
-**`ACTION`** **Official timing compares the stable outputs across repeats, not the whole output
-tree.** Under the official profile every repeat, warm-ups included, must reproduce the same
-`trace.parquet` byte for byte, and the same `message_trace.parquet` where the card requires the
-ledger (when the ledger is optional and present, it counts too); the files that report
-measurements of the run (`events.json`, `batch_events.json`, the profile sidecar) are validated
-separately and no longer have to match. The previous check compared a digest that included those
-volatile files and so refused honest repeats (`track3-simulation-public#5`). Development
-self-report timing is unchanged. Details: `docs/STABLE-REPEAT-EVIDENCE.md` in the Track 3
-repository.
+**`ACTION`** **Official timing compares the stable outputs across repeats; the scored run's
+whole-tree digest is still recorded and checked as before.** Under the official profile every
+repeat, warm-ups included, must reproduce the same `trace.parquet` byte for byte (the policy
+`t3-stable-output-v1` hashes the file bytes), and the same `message_trace.parquet` where the card
+requires the ledger (when the ledger is optional and present, it counts too); for batch units every
+sub-run must reproduce both files. The files that report measurements of the run (`events.json`,
+`batch_events.json`, the profile sidecar) no longer have to be byte-identical across repeats; each
+is still checked for structure, scenario, seed, counts, trace hash and rate arithmetic. The
+previous check compared a digest that included those volatile files and so refused honest repeats
+(`track3-simulation-public#5`). Development self-report timing is unchanged. Details:
+`docs/STABLE-REPEAT-EVIDENCE.md` in the Track 3 repository.
 
 ### Toolkit `v2.4.4` — organizer-side contracts for the scoring path
 

@@ -130,7 +130,8 @@ before the stage clock ended are recorded as `not_reached` and count as not pass
 wrong, crashed, timed-out or missing output does: they stay in the fixed denominator at the worst
 value of the metric, and every unit that did run is scored normally. So a run that is cut short
 receives the score it earned on what it ran, over the full roster — not "no score". You will see
-the count on your run summary page, and `not_reached` in the reason table there.
+the count on your run summary page, and `not_reached` in the reason table there. Because the run
+is scored rather than failed, it consumes a submission attempt like any other completed run.
 
 Budget for it: divide the stage clock by the number of units in the phase to get your average
 per-unit allowance, and cap your agent so that one slow unit cannot spend the rest of the roster's

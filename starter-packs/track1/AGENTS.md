@@ -188,10 +188,9 @@ cpus = 16 · memory = "128G" · gpu = true · network = "restricted"
 ```
 
 But `[agent].timeout_sec` already varies in the public set — 1200, 1800, 2400, 3600 and 5400 all
-appear, with 1800 the most common. **Read it from the card at runtime.** And read the card for
-resources even when the prose disagrees: the exemplar's own `instruction.md` says "4 vCPUs, 8 GB
-RAM, no GPU" while its `card.toml` declares `cpus = 16, memory = "128G", gpu = true`. The card is
-the authority, on resources as well as on paths. Held-out evaluation units
+appear, with 1800 the most common. **Read it from the card at runtime.** Read the card for
+resources too, not only for paths: where a unit's prose and its `card.toml` disagree, the card is
+the authority — it is what the harness enforces. Held-out evaluation units
 are authored separately and there is no promise their limits match the practice set, so an agent
 that assumes 16 cores and a GPU may meet a unit that has neither. Degrade gracefully: check what you
 were given, and fall back to a CPU path rather than crashing.

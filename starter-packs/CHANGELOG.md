@@ -89,8 +89,8 @@ Because such a run is scored rather than failed, it consumes a submission attemp
 completed run.
 
 **What you should do:** divide the phase's total allowance by the number of units in the phase and
-cap your agent so one slow unit cannot spend the rest of the roster's time. On Track 1's 87-unit
-Development roster that average is about 8 minutes per unit — well below the per-unit ceilings the
+cap your agent so one slow unit cannot spend the rest of the roster's time. On Track 1's Development roster (the size is stated on the task page and in the track
+README) that average is about 8 minutes per unit — well below the per-unit ceilings the
 cards declare, because those ceilings do not all fit inside the stage clock. The stage clock is the
 binding limit.
 

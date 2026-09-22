@@ -125,6 +125,20 @@ runs the submission's units sequentially. It is not 12 hours per unit, and it do
 that every unit can use its full individual ceiling. Scoring is a separate program stage with
 its own platform clock. Time waiting in the platform queue is outside these stage clocks.
 
+**When the stage clock runs out, the run is still scored.** The units your run did not reach
+before the stage clock ended are recorded as `not_reached` and count as not passed, exactly as a
+wrong, crashed, timed-out or missing output does: they stay in the fixed denominator at the worst
+value of the metric, and every unit that did run is scored normally. So a run that is cut short
+receives the score it earned on what it ran, over the full roster — not "no score". You will see
+the count on your run summary page, and `not_reached` in the reason table there. Because the run
+is scored rather than failed, it consumes a submission attempt like any other completed run.
+
+Budget for it: divide the stage clock by the number of units in the phase to get your average
+per-unit allowance, and cap your agent so that one slow unit cannot spend the rest of the roster's
+time. On Track 1's 87-unit Development roster that average is about 8 minutes per unit, well below
+the per-unit ceilings the cards declare — the cards' ceilings do not all fit inside the stage
+clock, and the stage clock is the binding one.
+
 **Planned House timing — pending deployment and verification.** Each House unit will activate
 once, when the organizer begins that unit's execution setup. This is not the participant's
 first generation call. Queue waiting and earlier units

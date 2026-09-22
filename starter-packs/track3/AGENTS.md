@@ -16,14 +16,14 @@ Track 1's checks are **invariant-based** — put-call parity holds or it does no
 divergence, float-reduction reassociation and unstable sorts are harmless there. A T1 agent learns
 "get the maths right, the bits don't matter."
 
-**On Track 3 the bits are the answer.** 49 of the 72 public units are Tier A, and Tier A means:
+**On Track 3 the bits are the answer.** 48 of the 71 public units are Tier A, and Tier A means:
 
 - your trace must have **exactly** the reference's row count — not within a tolerance, equal;
 - on every fill row (`msg_type ∈ {ORDER_FILLED, PARTIAL_FILL}`), `order_id`, `price` and `size` must
   match the reference **positionally, in order**, with `t_ns` within **1000 ns**;
 - the multiset of `(order_id, msg_type, agent_id, side, price, size)` keys — **stringified** — must
   match in *both* directions: a missing event and an extra event are each a breach;
-- Kendall-tau over the whole event sequence must be **≥ 0.999**. No card overrides it — all 72 leave
+- Kendall-tau over the whole event sequence must be **≥ 0.999**. No card overrides it — all 71 leave
   `kendall_tau_floor` unset, so the module default governs every unit.
 
 Everything a T1 agent reaches for is therefore off the exact path: **float reductions** (last-bit
@@ -47,7 +47,7 @@ own engine before you start.
 
 One **Docker image** implementing **both verbs**. The harness picks per unit from the unit's
 contents: `batch.json` + `scenarios/` → `simulate-batch`, everything else → `simulate`. Six of the
-72 public units (`t3-gbatch-*`) are batched.
+71 public units (`t3-gbatch-*`) are batched.
 
 ```
 simulate       --config /input/scenario.json --out /output/trace.parquet
@@ -72,7 +72,7 @@ explicitly rather than relying on any default.
 
 ## Count the corpus. Inputs are uniform; arity is not.
 
-Parsed from all 72 `card.toml` and every scenario file under `units/`. Unlike Track 1, **every T3
+Parsed from all 71 `card.toml` and every scenario file under `units/`. Unlike Track 1, **every T3
 input is JSON** — there is no format lottery:
 
 ```
@@ -116,14 +116,14 @@ sub's real row count and summing to `total_events`.
 
 ## Six traps that are invisible until they cost you
 
-**1. The message ledger is required on 65 of 72 units — read the cards, and emit it always.**
-`requires_message_ledger = true` on **59 of 66** single units, and `batch.py::score_subs` demands a
+**1. The message ledger is required on 65 of 71 units — read the cards, and emit it always.**
+`requires_message_ledger = true` on **59 of 65** single units, and `batch.py::score_subs` demands a
 per-sub ledger on all 6 batch units **unconditionally**, even though all six batch cards say
-`false`. Total **65 of 72**; the 13 cards saying `false` are the exemplar, the six `t3-gb-*` single
-throughput units, and the six batch cards (whose `false` is overridden by `score_subs`).
+`false`. Total **65 of 71**; the 12 cards saying `false` are the six `t3-gb-*` single throughput
+units and the six batch cards (whose `false` is overridden by `score_subs`).
 Missing the ledger where it is required is inadmissibility (`t3.latency_causality_violation`), so
-**emit it always**: only the exemplar and the six `t3-gb-*` single throughput units can skip it,
-and emitting it there too costs nothing.
+**emit it always**: only the six `t3-gb-*` single throughput units can skip it, and emitting it
+there too costs nothing.
 
 Its 10 columns and self-consistency rules are non-negotiable: `seq` a contiguous `0..N-1`
 permutation; `t_recv_ns - t_send_ns == latency_ns ≥ 0`; `(message_id, dst_id)` unique (**not
@@ -160,14 +160,14 @@ numbering must still match.
 
 **5. Never crash, and never trust the exemplar.** One uncaught exception forfeits every gate for that
 unit at once — a wrong answer is scored, an exception is not. `t3-EXAMPLE-vectorized-matching` is
-unrepresentative on every axis that matters: it is the **only unit of 72 with no reference
-material at all** (it cannot be self-graded), it is 1 of only 7 needing no ledger, its `README.md`
-is stale (trust the cards and the kit code, not that file — and never drop `PARTIAL_FILL` rows,
-9.0 % of all reference rows), and it is a **runaway**: ~36 million agent wakeups, 165× the next
-largest unit. Treat it as unrunnable rather than merely slow, calibrate nothing on it, and start
-from `t3-s001-price-time-priority`: Tier A, reference trace *and* ledger shipped.
+no longer on the Development roster and is no longer scored: it is kept as documentation under
+`examples/`. Calibrate nothing on it if you read it. It ships **no reference material at all** (it
+cannot be self-graded), its `README.md` is stale (trust the cards and the kit code, not that file —
+and never drop `PARTIAL_FILL` rows, 9.0 % of all reference rows), and it is a **runaway**: ~36
+million agent wakeups, 165× the largest unit on the roster. Start from
+`t3-s001-price-time-priority` instead: Tier A, reference trace *and* ledger shipped.
 
-**6. Contamination handling differs from Track 1.** All 72 cards carry a
+**6. Contamination handling differs from Track 1.** All 71 cards carry a
 `[contamination].canary_guid`, and a T1 agent will expect `g2` to reject output containing one. On
 T3 the card is not in your mount, so there is nothing there for you to echo, and closed-resource is
 enforced at the container boundary (`--network=none`) rather than by inspecting your output. Do not
@@ -213,14 +213,14 @@ time and cannot be.
 
 ## The resource contract, verified
 
-Parsed from all 72 `card.toml` `[environment]` blocks. **Zero variation**, batch units included:
+Parsed from all 71 `card.toml` `[environment]` blocks. **Zero variation**, batch units included:
 
 ```
 cpus = 4 · memory = "16G" · disk = "10G" · network = "none" · gpu = true
 ```
 
 There is also **no `[agent].timeout_sec` on any T3 card** — unlike T1, where it takes five values;
-the production deadline is the Runner's and is not published here. `gpu = true` on 72 of 72 means the
+the production deadline is the Runner's and is not published here. `gpu = true` on 71 of 71 means the
 flag no longer discriminates: the efficiency branch keys on `gpu_seconds > 0` and award eligibility
 on measured `gpu_utilization`, never the card. **The GPU is optional** — T3 ranks on raw `events/sec`
 and nothing else, and the organizers state that a well-optimized CPU simulator competes on equal
@@ -350,17 +350,14 @@ docker run --rm --network=none --cpus=4 --memory=16g --gpus all \
   my-sim:dev simulate-batch --batch-dir /input/scenarios --out-dir /output
 ```
 
-> **Do not start the sweep alphabetically.** `t3-EXAMPLE-vectorized-matching` is first by name and
-> is a runaway: roughly 230 agents x 10,040 Hz x 3,600 s is about **36 million agent wakeups, ~165x
-> the next largest unit**. An agent that sweeps in order hangs on unit #1 and looks like an infinite
-> loop. Run it last, or with an event budget.
+> **The runaway is no longer in the sweep.** `t3-EXAMPLE-vectorized-matching` used to sit first by
+> name under `units/` and hang an alphabetical sweep on unit #1: roughly 230 agents x 10,040 Hz x
+> 3,600 s is about **36 million agent wakeups**. It is documentation now, under `examples/`, and is
+> not scored. Do not copy it back into `units/`.
 
-Expect **exit 0** on the other 71, and sweep them for two things first: did it exit 0, and did it
+Expect **exit 0** on all 71, and sweep them for two things first: did it exit 0, and did it
 write every file that unit's gates open. Those are the failures that score zero without ever being
-about your simulation. The exemplar is on the Development roster and is scored like every other
-unit, but no run — ours included — has finished it inside the unit's 4-CPU / 16 GiB / 1,800 s
-box (it fails at the memory limit); that costs every team the same one unit and is not a signal
-about your simulation, so do not calibrate anything on it (trap 5 above).
+about your simulation.
 
 > **Install the toolkit before self-grading** (the one-command install is on
 > [SUBMISSION-DESCRIPTOR.md](SUBMISSION-DESCRIPTOR.md)). With it,
@@ -371,7 +368,7 @@ about your simulation, so do not calibrate anything on it (trap 5 above).
 > bridged", so the regression loop can never self-grade a batch unit — grade those by running each
 > sub alone and diffing against the batch run.
 
-Then self-grade against the shipped references — **71 of 72 units ship one**, far better
+Then self-grade against the shipped references — **every one of the 71 units ships one**, far better
 coverage than Track 1 gave you:
 
 ```bash
@@ -419,8 +416,8 @@ throughput floor is enforced in `scoring.py`.
 | Path | What it gives you |
 |---|---|
 | `units/t3-s001-price-time-priority/` | start here — Tier A, reference trace + ledger |
-| `units/t3-EXAMPLE-vectorized-matching/` | the exemplar. No reference. Stale README. Read trap 5 first |
-| `units/` | 72 `public-dev` practice units (66 single + 6 batch) |
+| `examples/t3-EXAMPLE-vectorized-matching/` | the exemplar — documentation, not on the roster, not scored. No reference. Stale README. Read trap 5 first |
+| `units/` | 71 `public-dev` practice units (65 single + 6 batch) |
 | `qfbench2_track_simulation/semantics.py` | Tier A / Tier B / ledger checks — the actual assertions |
 | `qfbench2_track_simulation/scoring.py` | gate wiring, card policy, the two verifier factories |
 | `qfbench2_track_simulation/batch.py` | isolation gate + aggregate anti-inflation |
@@ -468,7 +465,7 @@ enough to get the column types right.
 is required or checked, but usage of these libraries is heavily encouraged.
 
 Throughput **is** the score here, so this is the only track where a faster submission is a better
-one — and also the track where naive acceleration is fatal, because 49 of 72 units score an exact
+one — and also the track where naive acceleration is fatal, because 48 of 71 units score an exact
 fill sequence. **A faster wrong trace scores zero.** Seed everything and avoid nondeterministic
 reductions; `baselines/gpu_starter/README.md` names the unsafe patterns itself (float reductions,
 unstable argsort, unordered atomics).

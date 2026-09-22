@@ -40,6 +40,24 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
+### Model budget — requests per unit; the per-unit token cap is withdrawn
+
+**`ACTION`** **The model budget is 25 admitted requests per unit and 4,000 output tokens per
+request, and nothing else.** Both are counted and applied by the House route. The earlier per-unit
+figure of 1,000,000 input plus 100,000 output tokens is withdrawn and nothing replaces it, so an
+agent that was pacing itself against a cumulative token allowance can stop. Budget the 25 requests
+instead: an admitted request is charged before forwarding, so an upstream failure, a lost response
+or an SDK retry can spend a slot. The model's context window is a separate constraint on a single
+request. Details: `docs/DEVELOPMENT-RUNTIME.md` and `docs/HOUSE-MODEL.md`.
+
+**`ADDED`** **A tie in a track's ranking score goes to the earlier Final submission.** If two
+Final submissions finish a track with the same ranking score, the one uploaded earlier is ranked
+ahead. Nothing about Development standings changes.
+
+**`CLARIFIED`** **An upload the platform marks `Failed` does not consume a Development
+attempt.** The platform's daily count excludes it. Held and cancelled uploads still consume one,
+as before.
+
 ### Track 3 scorer — reinstall the toolkit; official repeat check narrowed to stable outputs
 
 **`ACTION`** **Track 3: reinstall toolkit `v2.4.4` before installing the updated

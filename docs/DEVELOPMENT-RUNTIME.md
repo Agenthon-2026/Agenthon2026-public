@@ -11,6 +11,8 @@ settings, and may supply a per-unit timeout.
 Development runs through **October 12, 2026**. The joint **Final + Verification phase runs
 October 13–25, 2026**. Each team makes **one final submission per track**; organizers perform
 verification within that same phase, with no separate participant Verification submission.
+If two Final submissions finish a track with the same ranking score, the tie is broken in favour
+of the one uploaded earlier.
 Registration and Development close together on October 12, 2026 at **23:59 Anywhere on Earth (AoE, UTC−12)**. The joint Final + Verification phase closes on October 25, 2026 at **23:59 AoE**. Other competition dates and task/data cutoffs are unchanged.
 
 ## Submission limits at the Development opening
@@ -24,7 +26,8 @@ Registration and Development close together on October 12, 2026 at **23:59 Anywh
 
 Use your team's single designated CodaBench account for all uploads. Local validation and
 packaging do not consume an attempt; an upload does, including a held or cancelled upload
-that receives no score. Validate locally before uploading. These are the limits for the
+that receives no score. An upload the platform marks `Failed` does **not** consume one — the
+platform's daily count excludes it. Validate locally before uploading. These are the limits for the
 participant Development opening. The joint Final + Verification phase retains one final
 submission per team per track, with no separate participant Verification submission.
 
@@ -148,14 +151,16 @@ is held and never run.
 
 ## House request allowance
 
-For Coding, Forecasting and Explainability, the selected House allowance is **25 admitted generation
-requests per unit**, with **at most 4,000 output tokens per request**. An omitted output limit
-uses 4,000; a larger requested limit is reduced to 4,000, and a smaller valid limit is preserved.
-Requests for multiple generated alternatives are refused.
+**The model budget is requests per unit.** For Coding, Forecasting and Explainability the House
+allowance is **25 admitted generation requests per unit**, with **at most 4,000 output tokens per
+request**. Both are counted and applied by the House route. An omitted output limit uses 4,000; a
+larger requested limit is reduced to 4,000, and a smaller valid limit is preserved. Requests for
+multiple generated alternatives are refused.
 
-The published input allowance remains **1,000,000 input tokens per unit**. Track cumulative
-input usage in your agent and keep requests within that allowance. The model's context window
-is a separate constraint on a request, not a cumulative allowance. See the [House model guide](HOUSE-MODEL.md) for model and
+**There is no token allowance per unit.** The earlier per-unit figure of 1,000,000 input plus
+100,000 output tokens is withdrawn, and nothing replaces it: the two limits in the paragraph above
+are the whole model budget. The model's context window is a separate constraint on a single
+request, not a cumulative allowance. See the [House model guide](HOUSE-MODEL.md) for model and
 context metadata.
 
 An admitted request is charged before forwarding to the model. An upstream error, connection

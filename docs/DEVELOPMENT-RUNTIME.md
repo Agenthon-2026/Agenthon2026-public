@@ -135,7 +135,7 @@ is scored rather than failed, it consumes a submission attempt like any other co
 
 Budget for it: divide the stage clock by the number of units in the phase to get your average
 per-unit allowance, and cap your agent so that one slow unit cannot spend the rest of the roster's
-time. On Track 1's 87-unit Development roster that average is about 8 minutes per unit, well below
+time. On Track 1's Development roster (the size is stated on the task page and in the track README) that average is about 8 minutes per unit, well below
 the per-unit ceilings the cards declare — the cards' ceilings do not all fit inside the stage
 clock, and the stage clock is the binding one.
 

@@ -4,9 +4,9 @@
 #   ./conformance.sh <your-image> [path-to-track1-coding-public]
 #
 # This is the highest-value thing in the pack. Two separate submissions were burned on failures
-# this would have caught before any push: an agent that assumed every input was parquet (4 of 87
+# this would have caught before any push: an agent that assumed every input was parquet (4 of 86
 # units have one), and an agent that wrote `results.parquet` for a unit whose checker wanted
-# `results.json`. This script can now read an expected filename for all 87 units: 41 name
+# `results.json`. This script can now read an expected filename for all 86 units: 41 name
 # `results.json` and 37 name `summary.json`; the exemplar is the only one naming a `.parquet`
 # deliverable.
 #

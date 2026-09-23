@@ -40,6 +40,22 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
+### Development rosters: Track 1 goes to 86 tasks, Track 3 to 71 units
+
+**`ACTION`** **Track 1: the Development roster is 86 tasks, not 87.** `t1-polars-api-migration` was
+withdrawn on 2026-09-23 because it could not be passed. Pull `track1-coding-public` again: the pack's
+sweep, the worked `conformance.sh` output and the per-unit counts in
+`starter-packs/track1/AGENTS.md` are all over 86 now. Nothing is re-run — every score you already
+have stands, and was measured over the 87-task roster, so it is not directly comparable with a score
+measured over 86.
+
+**`ACTION`** **Track 3: the Development roster is 71 units, not 72.** The worked exemplar
+`t3-EXAMPLE-vectorized-matching` was withdrawn on 2026-09-23: it ships no reference material and was
+never part of the regression set. It stays in `track3-simulation-public` as documentation, under
+`examples/`, so a sweep of `units/` no longer reaches it and needs no exception. Pull the repository
+again. Nothing is re-run — scores already given stand, measured over the 72-unit roster, and are not
+directly comparable with a score measured over 71.
+
 ### Model budget — requests per unit; the per-unit token cap is withdrawn
 
 **`ACTION`** **The model budget is 25 admitted requests per unit and 4,000 output tokens per

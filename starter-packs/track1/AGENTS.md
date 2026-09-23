@@ -49,7 +49,7 @@ looking there to confirm it.
   which is the only machine-readable statement of the output contract. Read it at run time when it
   is present and fall back when it is not -- this is worth more than every corpus statistic below.
 - `/app/output` is where you write. **Do not assume the output filename.** The exemplar writes
-  `results.parquet`; it is 1 unit of 87. See the next section before you write anything.
+  `results.parquet`; it is 1 unit of 86. See the next section before you write anything.
 
 ## Do not guess the input OR output format. Read the unit.
 
@@ -83,13 +83,13 @@ An agent that tries to load every file as a dataframe reports "no table" and wri
 
 ## Three traps that are invisible until they cost you
 
-**1. `instruction.md` says `/app/data`; the harness mounts `/input`.** 41 of 87 units phrase their
+**1. `instruction.md` says `/app/data`; the harness mounts `/input`.** 40 of 86 units phrase their
 instructions against `/app/data`, which is where the data sits when the *unit image* is built. At
 evaluation time the unit tree is mounted read-only at `/input`, so the data is at
 `/input/environment/data/`. An agent that follows the instruction text literally finds nothing.
 Resolve paths relative to `/input`; treat `/app/data` in prose as meaning "the unit's data dir".
 
-**2. The canary GUID is in `instruction.md`, on 66 of 87 units.** Gate `g2` fails a submission whose
+**2. The canary GUID is in `instruction.md`, on 65 of 86 units.** Gate `g2` fails a submission whose
 output contains a canary. So **never echo instruction or input text into your deliverable** — no
 "prompt: ..." debug field, no copying the task description into a metadata blob. This is the easiest
 way to fail a unit you otherwise solved.
@@ -98,7 +98,7 @@ way to fail a unit you otherwise solved.
 cannot solve should still write a well-formed file of the right name and shape and exit 0 — a wrong
 answer is scored, an exception is not. Wrap the solve body and always emit something valid.
 
-## Sweep all 87 units before you push. `conformance.sh` is in this pack.
+## Sweep all 86 units before you push. `conformance.sh` is in this pack.
 
 ```bash
 ./conformance.sh my-agent:dev /path/to/track1-coding-public
@@ -128,7 +128,7 @@ it does not fail the run either. The sweep proved nothing about such a unit, so 
 before you trust it. A clean run reads:
 
 ```
-units 87   ok 87   crashed 0   wrote-nothing-expected 0   unchecked 0
+units 86   ok 86   crashed 0   wrote-nothing-expected 0   unchecked 0
 ```
 
 It is the floor, not a pass. For whether the numbers are right:
@@ -181,17 +181,16 @@ and the package page saying "public" is a different claim from the registry answ
 
 ## Read the card, do not hardcode limits
 
-Every unit ships a `card.toml`. Across all 87 public practice units the limits are identical:
+Every unit ships a `card.toml`. Across all 86 public practice units the limits are identical:
 
 ```
 cpus = 16 · memory = "128G" · gpu = true · network = "restricted"
 ```
 
 But `[agent].timeout_sec` already varies in the public set — 1200, 1800, 2400, 3600 and 5400 all
-appear, with 1800 the most common. **Read it from the card at runtime.** And read the card for
-resources even when the prose disagrees: the exemplar's own `instruction.md` says "4 vCPUs, 8 GB
-RAM, no GPU" while its `card.toml` declares `cpus = 16, memory = "128G", gpu = true`. The card is
-the authority, on resources as well as on paths. Held-out evaluation units
+appear, with 1800 the most common. **Read it from the card at runtime.** Read the card for
+resources too, not only for paths: where a unit's prose and its `card.toml` disagree, the card is
+the authority — it is what the harness enforces. Held-out evaluation units
 are authored separately and there is no promise their limits match the practice set, so an agent
 that assumes 16 cores and a GPU may meet a unit that has neither. Degrade gracefully: check what you
 were given, and fall back to a CPU path rather than crashing.
@@ -317,10 +316,9 @@ not enough to *self-grade* on every unit — the checkers open paths the run nev
  4 units   other bare /app or /tests files (prices.csv, bonds.csv, corporate_actions.json, ...)
  2 units   /app/params.json           unit-specific config at the image root
  1 unit    /app/earnings.json
- 1 unit    /tests/references          note: distinct from /tests/reference_data
 ```
 
-**36 of 87** units' checkers open a path the documented run recipe never mounts — so more than a third of the corpus cannot be self-graded with the recipe alone, which is
+**35 of 86** units' checkers open a path the documented run recipe never mounts — so more than a third of the corpus cannot be self-graded with the recipe alone, which is
 exactly when people give up and push to the fleet to find out. Mount the unit's `checks/` and `environment/`
 where the checker expects them:
 
@@ -373,7 +371,7 @@ misreports CPU time by roughly 4×. Measure work completed, not CPU seconds.
 | Path | What it gives you |
 |---|---|
 | `units/t1-EXAMPLE-bs-greeks-pde/` | the exemplar — start here, read its `checks/` |
-| `units/` | 87 `public-dev` practice tasks (practice only, never ranked) |
+| `units/` | 86 `public-dev` practice tasks (practice only, never ranked) |
 | `docs/CONCEPTS.md` | plain-English explainer of pass@k, gates, images |
 | `docs/CATEGORIES.md` | the ten task categories |
 | `qfbench2_track_coding/scoring.py` | the actual verifier and pass@k scorer |
@@ -392,7 +390,7 @@ public-dev units are allowed to ship reference values so you can self-grade.
 nvmath-python, cuOpt, cuML, cuGraph, NVTX. Availability is
 not a recommendation — everything below is where each one actually pays on this corpus.
 
-Every unit grants a B200 (87/87), but ranking is **pass@k correctness** — so acceleration only
+Every unit grants a B200 (86/86), but ranking is **pass@k correctness** — so acceleration only
 converts a timeout into a pass. It is a tool for a specific unit that is timing out, not a
 strategy. Nothing here is required or checked.
 

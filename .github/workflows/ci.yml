@@ -164,6 +164,60 @@ jobs:
           print("all relative links resolve")
           PY
 
+      # The cards live in track1-coding-public, so nothing in this repository can compare a
+      # resource figure written here against them -- which is exactly why this drifted unnoticed.
+      # From 2026-08-29 (the first participant release) until 2026-09-22,
+      # starter-packs/track1/AGENTS.md told participants' agents that the exemplar's own
+      # instruction.md says "4 vCPUs, 8 GB RAM, no GPU" against a card declaring 16 / 128G / true.
+      # Measured 2026-09-22 across all 87 published Track 1 cards: every one is cpus=16,
+      # memory="128G", gpu=true, and no published Track 1 file has ever carried the 4/8/none
+      # figures -- they entered this file 75 s BEFORE the exemplar was first published.
+      #
+      # Hence the rule this step enforces: the starter pack states the RULE ("read the card"),
+      # never a numeric CPU/RAM figure in prose. Card syntax and docker flags are untouched; only
+      # `4 vCPUs` / `8 GB RAM` prose forms are refused.
+      - name: Track 1 starter pack states no prose resource figure it cannot check
+        run: |
+          python - <<'PY'
+          import pathlib, re, sys
+          pat = re.compile(r"\d+\s*v ?CPUs?\b|\d+\s*Gi?B\s+RAM\b", re.I)
+          files = sorted(pathlib.Path("starter-packs/track1").glob("*.md"))
+          # PRESENCE CONTROL: an empty glob (a renamed pack, a moved directory) would let this
+          # step pass having read nothing.
+          if not files:
+              sys.exit("starter-packs/track1 has no .md files; this check read nothing")
+          bad = [f"{md}:{n}: {line.strip()}"
+                 for md in files
+                 for n, line in enumerate(md.read_text(encoding="utf-8").splitlines(), 1)
+                 if pat.search(line)]
+          if bad:
+              print("\n".join(bad))
+              sys.exit("a prose CPU/RAM figure in the Track 1 starter pack cannot be verified from "
+                       "this repository (the cards are in track1-coding-public). State the rule -- "
+                       "read the card -- not the number.")
+          print(f"{len(files)} Track 1 starter-pack file(s) state the rule, not a figure")
+      # An unfilled placeholder in participant-facing text is a dead end of the same kind as a
+      # broken link: the reader cannot tell whether the date is unknown or the file is stale. This
+      # also gates a roster-withdrawal announcement on the day it is actually applied -- the
+      # CHANGELOG entry is written with <DATE> and this job stays red until it carries a real one.
+      - name: No unfilled placeholder in participant-facing text
+        run: |
+          python - <<'PY'
+          import pathlib, re, sys
+          pat = re.compile(r"<(?:DATE|TBD|TODO|FIXME|X+)>")
+          bad = []
+          for md in sorted(pathlib.Path("starter-packs").rglob("*.md")):
+              for i, line in enumerate(md.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+                  for hit in pat.findall(line):
+                      bad.append(f"{md}:{i}: {hit}")
+          # Control: the detector must fire on the shape it exists to catch.
+          assert pat.findall("posted on <DATE> and"), "placeholder detector matches nothing"
+          if bad:
+              print("\n".join(bad))
+              sys.exit(f"{len(bad)} unfilled placeholder(s) in starter-packs/")
+          print(f"no unfilled placeholders in starter-packs/")
+          PY
+
   release-integrity:
     name: A release tag must match the version it ships
     # Only meaningful on a tag. On branches and PRs there is no tag to compare against.

@@ -105,8 +105,8 @@ binding limit.
 
 **`ACTION`** **Track 3: reinstall toolkit `v2.4.4` before installing the updated
 `track3-simulation-public` package.** The scorer in that repository now imports
-`stable_output_binding` and `digest_members` from the toolkit at package import, so on `v2.4.3` or
-older `import qfbench2_track_simulation` fails with `cannot import name 'stable_output_binding'`,
+`digest_members` and `stable_output_binding` from the toolkit at package import, so on `v2.4.3` or
+older `import qfbench2_track_simulation` fails with `cannot import name 'digest_members'`,
 and `pip install .` stops with `No matching distribution found for qfbench2-common<3,>=2.4.4`. Run
 the install command in `starter-packs/track3/SUBMISSION-DESCRIPTOR.md` (it pins `v2.4.4`), then
 `pip install .` from the Track 3 repository root. Nothing changes in what you submit.
@@ -127,7 +127,7 @@ previous check compared a digest that included those volatile files and so refus
 
 **`ADDED`** **Forecast-resolution and stable-repeat contracts.** The toolkit gains
 `qfbench2_common.contracts.forecast_protocol`, the `stable_output_binding` and
-`member_set_digest` helpers in `contracts.digest`, the shared record fields for Track 3 repeat
+`digest_members` helpers in `contracts.digest`, the shared record fields for Track 3 repeat
 evidence, a C2 execution-fault reader and a GPU-selector check in the Development attestation
 (organizer side). These are organizer-side contracts for the scoring path; nothing in a
 submission changes and **no action is required by this entry**. An existing `v2.4.3` install

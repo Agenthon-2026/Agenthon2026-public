@@ -104,6 +104,10 @@ The corresponding public FP8 checkpoint is
 Its model card documents the same thinking option. The checkpoint family and format do not
 replace the selected snapshot identity or the unpublished training-cutoff disclosure above.
 
+The House route also passes `low_effort` and `reasoning_budget` inside `chat_template_kwargs`, and
+a top-level `reasoning_budget`, through to the model unchanged. We have not tested what setting
+them does on the model we serve, so we make no promise about their effect.
+
 ## Reported model and tokenizer metadata
 
 The service operator reported the following metadata from a read-only live inspection. They have

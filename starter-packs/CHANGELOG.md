@@ -40,6 +40,26 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
+### Track 1: a run cut short by the 12-hour stage clock is now scored instead of failing
+
+**`ACTION`** **A Track 1 run whose stage clock ends before the roster is finished is now
+SCORED.** A phase has ONE total wall-clock allowance for the whole roster (see
+[`docs/DEVELOPMENT-RUNTIME.md`](../docs/DEVELOPMENT-RUNTIME.md) "Execution clocks"), separate from
+the per-unit ceiling the cards declare. Until now, spending it mid-roster ended the run as
+`Failed` with no score and no explanation. From this change: the units the run never started are
+recorded with the reason code `not_reached` and count as **not passed** in the fixed denominator,
+at the worst value of the metric — exactly as a wrong, crashed, timed-out or missing output does.
+Every unit that did run is scored normally, and the run gets the score it earned over the whole
+roster. The count and the reason code appear on your run summary page.
+Because such a run is scored rather than failed, it consumes a submission attempt like any other
+completed run.
+
+**What you should do:** divide the phase's total allowance by the number of units in the phase and
+cap your agent so one slow unit cannot spend the rest of the roster's time. On Track 1's Development roster (the size is stated on the task page and in the track
+README) that average is about 8 minutes per unit — well below the per-unit ceilings the
+cards declare, because those ceilings do not all fit inside the stage clock. The stage clock is the
+binding limit.
+
 ### House route: `low_effort` and `reasoning_budget` pass through unchanged
 
 **`CLARIFIED`** **The House route passes `low_effort` and `reasoning_budget` through unchanged.**
@@ -80,26 +100,6 @@ ahead. Nothing about Development standings changes.
 **`CLARIFIED`** **An upload the platform marks `Failed` does not consume a Development
 attempt.** The platform's daily count excludes it. Held and cancelled uploads still consume one,
 as before.
-
-### A run cut short by the phase's total time allowance is now scored instead of failing
-
-**`ACTION`** **A run whose phase wall-clock allowance ends before the roster is finished is now
-SCORED.** A phase has ONE total wall-clock allowance for the whole roster (see
-[`docs/DEVELOPMENT-RUNTIME.md`](../docs/DEVELOPMENT-RUNTIME.md) "Execution clocks"), separate from
-the per-unit ceiling the cards declare. Until now, spending it mid-roster ended the run as
-`Failed` with no score and no explanation. From this change: the units the run never started are
-recorded with the reason code `not_reached` and count as **not passed** in the fixed denominator,
-at the worst value of the metric — exactly as a wrong, crashed, timed-out or missing output does.
-Every unit that did run is scored normally, and the run appears on the leaderboard with the score
-it earned over the whole roster. The count and the reason code appear on your run summary page.
-Because such a run is scored rather than failed, it consumes a submission attempt like any other
-completed run.
-
-**What you should do:** divide the phase's total allowance by the number of units in the phase and
-cap your agent so one slow unit cannot spend the rest of the roster's time. On Track 1's Development roster (the size is stated on the task page and in the track
-README) that average is about 8 minutes per unit — well below the per-unit ceilings the
-cards declare, because those ceilings do not all fit inside the stage clock. The stage clock is the
-binding limit.
 
 ### Track 3 scorer — reinstall the toolkit; official repeat check narrowed to stable outputs
 

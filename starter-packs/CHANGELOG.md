@@ -40,6 +40,13 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
+### House route: `low_effort` and `reasoning_budget` pass through unchanged
+
+**`CLARIFIED`** **The House route passes `low_effort` and `reasoning_budget` through unchanged.**
+Inside `chat_template_kwargs`, both reach the model as you sent them, and so does a top-level
+`reasoning_budget`. We have not tested what setting them does on the model we serve, so we make no
+promise about their effect. Details: `docs/HOUSE-MODEL.md`, "Development thinking controls".
+
 ### Development rosters: Track 1 goes to 86 tasks, Track 3 to 71 units
 
 **`ACTION`** **Track 1: the Development roster is 86 tasks, not 87.** `t1-polars-api-migration` was

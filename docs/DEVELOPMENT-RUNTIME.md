@@ -125,7 +125,7 @@ runs the submission's units sequentially. It is not 12 hours per unit, and it do
 that every unit can use its full individual ceiling. Scoring is a separate program stage with
 its own platform clock. Time waiting in the platform queue is outside these stage clocks.
 
-**When the stage clock runs out, the run is still scored.** The units your run did not reach
+**On Track 1, when the stage clock runs out, the run is still scored.** The units your run did not reach
 before the stage clock ended are recorded as `not_reached` and count as not passed, exactly as a
 wrong, crashed, timed-out or missing output does: they stay in the fixed denominator at the worst
 value of the metric, and every unit that did run is scored normally. So a run that is cut short

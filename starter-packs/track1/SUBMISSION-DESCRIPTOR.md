@@ -4,9 +4,11 @@ The descriptor is where submissions fail most often — before any code runs. Th
 in full. Read it before writing anything; the file format is the same for every track.
 
 > **This track's values:** `competition_id: "agenthon2026-coding-dev"` for the Development
-> phase; the fixture to copy is `contracts/fixtures/c5/coding_dev.json`. `category` is `api` if
-> your agent calls the house model. For a deterministic submission that calls no model, no enum
-> value is strictly truthful — declare `api` and leave `models` empty (`[]`), and say so in your report.
+> phase; the fixture to copy is `contracts/fixtures/c5/coding_dev.json`. `category` is `api`: your
+> agent calls the House model, and on Track 1 it must. From 5 October 2026, 00:00 AoE (12:00 UTC), a task counts as passed
+> only if your agent used the House model to solve it at run time (track README, rule 9). A
+> submission that calls no model still validates with `api` and `models: []`, but it earns no
+> credit on Track 1.
 
 ## Install the toolkit — one command
 
@@ -73,7 +75,7 @@ toolkit's parser. Validate with `SubmissionDescriptor.from_mapping` and reseal w
 | `category` | `api` \| `simulator` — the enum the schema validates. `api` on Tracks 1, 2 and 4 (every submission runs against the House model; bring-your-own models and adapters are not part of this competition, and the former `byo-small` / `byo-large` values are invalid since toolkit 2.4.3), `simulator` on Track 3. The enum is **not validated against `track`** (a wrong pairing passes), so getting it right is on you. |
 | `image` | **an object** — see below |
 | `image_access` | `public` \| `organizer_mirror` |
-| `models` | array — one entry per model you actually use; **`[]` when your submission uses no model** (C5 1.1.0) |
+| `models` | array — one entry per model you actually use; **`[]` when your submission uses no model** (C5 1.1.0). On Track 1 that validates but earns no credit; see the callout above. |
 | `license` | An OSI-approved identifier for **your own submission** — this is your code's licence, not the task data's. Any well-formed identifier validates, so nothing catches a wrong choice. The task data are the small input files that ship with each coding exercise, and they come from the public QF-Bench v1 pool rather than from the organizers; QF-Bench retains any rights in that material, and the kit redistributes it for non-commercial academic use with attribution. Task cards, tests and harness code written by the organizers are under this kit's own licence. The licence recorded for each individual file is in that unit's `manifest.json`, and the kit's `DATA-LICENSE.md` explains the default. Do not vendor task data into your submission. |
 | `descriptor_digest` | Self-referential — see below. **Prefixed**, e.g. `sha256:4a7f532e...`, not bare hex — the same *format* as `image.digest`. The two values are different; they are digests of different things. |
 
@@ -117,6 +119,9 @@ statement ("this submission calls no model"), not a placeholder:
 ```json
 "models": []
 ```
+
+On Track 1 a model-free submission validates but earns no credit; see the callout at the top of
+this page.
 
 (Until C5 1.1.0 the validator demanded at least one entry, so a model-free submission had to
 invent a row such as `"name": "none-deterministic-engine"`. Do not do that any more: an invented

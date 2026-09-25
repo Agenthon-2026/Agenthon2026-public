@@ -85,7 +85,7 @@ the toolkit never writes it anywhere. See `starter-packs/<track>/TEAM-CLAIM.md`.
 
 At the participant Development opening, **Track 1 allows 1 upload per team per day**;
 **Tracks 2, 3 and 4 allow 5 per team per day**. Each track retains a **20-upload Development
-total per team**. Held or cancelled uploads also consume attempts; local validation and
+total per team**; Track 1's is 23 (raised from 20 on 25 September 2026 at 05:00 UTC, with its rule 9). Held or cancelled uploads also consume attempts; local validation and
 packaging do not. See [Development submission limits](docs/DEVELOPMENT-RUNTIME.md#submission-limits-at-the-development-opening).
 
 Development runs through **October 12, 2026**. The joint **Final + Verification phase runs

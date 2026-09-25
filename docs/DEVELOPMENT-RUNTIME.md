@@ -19,7 +19,7 @@ Registration and Development close together on October 12, 2026 at **23:59 Anywh
 
 | Track | Uploads per team per day | Total uploads per team in Development |
 |---|---:|---:|
-| 1 — Coding | 1 | 20 |
+| 1 — Coding | 1 | 23 (raised from 20 on 25 September 2026 at 05:00 UTC, with Track 1 README rule 9) |
 | 2 — Forecasting | 5 | 20 |
 | 3 — Simulation | 5 | 20 |
 | 4 — Explainability | 5 | 20 |

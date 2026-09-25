@@ -85,7 +85,7 @@ contamination hit pinpoints the exact leaked task.
 - `public-dev` — released in the public repo; participants practice on these and see the score
   immediately.
 - `validation` — released in the public repo; a live leaderboard shows scores but submissions
-  are capped (≤20 per team during the dev phase).
+  are capped (at most 20 uploads per team per track during the dev phase; 23 on Track 1).
 - `private-test` — sealed in the private repo; revealed only during the final phase; determines
   the actual ranking.
 
@@ -933,7 +933,7 @@ is a fairness requirement.
 **Everyday:** the practice stage and the final evaluation-and-verification stage.
 **Precise:**
 - **Development** (August 28 – October 12, 2026): teams practice and iterate. Each team has
-  up to 20 submissions per track. At the participant Development opening, Track 1 allows
+  up to 20 submissions per track (23 on Track 1). At the participant Development opening, Track 1 allows
   1 submission per team per day; Tracks 2, 3 and 4 allow 5 per team per day. See
   [Development submission limits](DEVELOPMENT-RUNTIME.md#submission-limits-at-the-development-opening).
 - **Joint Final + Verification** (October 13–25, 2026): sealed private-test units are evaluated

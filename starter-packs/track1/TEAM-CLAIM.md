@@ -72,7 +72,8 @@ cannot hide input; use `--team-key-file` there.
 ## Development submission limits
 
 At the participant Development opening, **Track 1 allows 1 upload per team per day**,
-with **20 total uploads per team for this track during Development**. Use the same designated
+with **23 total uploads per team for this track during Development** (raised from 20 on
+25 September 2026 at 05:00 UTC, with the track README's rule 9). Use the same designated
 CodaBench account for every upload. Track 1 has a 1-per-day limit; Tracks 2, 3 and 4 retain
 5 per day.
 

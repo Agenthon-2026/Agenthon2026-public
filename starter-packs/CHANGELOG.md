@@ -40,6 +40,22 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
+### Track 1: rule 8 clarified, rule 9 added (a pass needs run-time use of the House model)
+
+**`ACTION`** **From 5 October 2026, 00:00 AoE (12:00 UTC), a Track 1 task counts as passed only if your agent
+used the House model to solve it at run time.** A call made only to meet this rule, followed by a prepared
+answer, does not count. A Track 1 submission that calls no model (`models: []`) still validates and
+runs, but it earns no credit. Rule 8 now says directly that your team's own solutions to public
+units may be used as examples for other units only, never on the unit they solve. From 5 October
+2026, 00:00 AoE (12:00 UTC), the Track 1 leaderboard ranks only runs uploaded after 25 September 2026 at 05:00 UTC, for every
+team. Every team's Track 1 Development total rises from 20 to 23 uploads from 25 September 2026 at 05:00 UTC
+(still one a day). Tracks 2–4 are unchanged. The full
+text is in the Track 1 README, rules 8 and 9.
+
+**What you should do:** upload a Track 1 run after 25 September 2026 at 05:00 UTC that meets rules 8 and 9.
+From 5 October 2026, 00:00 AoE (12:00 UTC), only runs uploaded after 25 September 2026 at 05:00 UTC are ranked, for every team,
+including teams whose earlier runs already met both rules.
+
 ### Track 1: a run cut short by the 12-hour stage clock is now scored instead of failing
 
 **`ACTION`** **A Track 1 run whose stage clock ends before the roster is finished is now

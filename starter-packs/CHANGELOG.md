@@ -182,8 +182,9 @@ it locally.
 formula (`0.70 × accuracy − 0.30 × |interval_coverage − 0.90|`) and stays exported for old
 records, but nothing scores with it and its numbers do not match a 5.2.0 score.
 
-**`CLARIFIED`** **Install commands still pin toolkit `v2.4.4`.** They move to `v2.5.0` when that
-tag is released; this entry will say so.
+**`CLARIFIED`** **Install commands now pin toolkit `v2.5.0`** in the top-level README, AGENTS.md, the
+toolkit README, the glossary and the Track 4 submission guide. Tracks 1–3 need no change: `v2.5.0`
+changes nothing for them, and their starter packs keep `v2.4.4`, which still works.
 
 ### Track 1: rule 8 clarified, rule 9 added (a pass needs run-time use of the House model)
 

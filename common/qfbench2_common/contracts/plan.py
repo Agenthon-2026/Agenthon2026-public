@@ -25,7 +25,7 @@ refuses to run on a plan that disclaims it rather than silently clamping anyway.
 | coding | desc | [0.0, 1.0] | 0.0 per (unit, slot); denominator `T x n` |
 | forecasting | asc | [0.0, 4.0] normalized composite | 4.0 (M0 baseline = 1.0) |
 | simulation | desc | [0.0, published clip max] | 0.0 events/sec |
-| analysis | desc | [-0.27, 1.0] | -0.27 = `0*w_a - w_c*interval_level` |
+| analysis | desc | [0.0, 1.0] | 0.0 = `0*w_a + 0*w_c` (Track-4 scorer 5.1.0; plans minted for scorer <= 5.0.0 carry [-0.27, 1.0] and -0.27 = `0*w_a - w_c*interval_level`) |
 
 `W` is validated to be the **worst end of the declared domain** for the declared direction — the
 minimum for `desc`, the maximum for `asc`. A plan whose `W` sits inside its own domain is refused
@@ -67,13 +67,33 @@ declared `target_type: "point_and_interval"`. Track 4 cannot score that value; i
 refuses the fixture rather than defaulting, because the pre-fix scorer's fallback was *label
 accuracy*, so an unrecognized target type silently changed which metric the leaderboard reported.
 
-The weight constraint is not tidiness either. The frozen analysis worst case is
-`W = 0*w_accuracy - w_calibration*interval_level`, and `metric.domain.min` is validated to equal
-`W` — so a plan whose weights sum to anything but 1 moves the domain every real score is clipped
-into while remaining internally consistent everywhere a reader would look.
+The weight constraint is not tidiness either. Through Track-4 scorer 5.0.0 the analysis worst case
+was `W = 0*w_accuracy - w_calibration*interval_level`, so weights summing to anything but 1 moved
+the domain every real score is clipped into. From scorer 5.1.0 both composite legs are ratios in
+[0, 1] and `W = 0`, but the weights must still sum to 1 for the composite to stay in [0, 1].
+`metric.domain.min` must equal `participant_failure.score` (the worst end of the domain).
 
 `contract_set` stays `"1.1.0"`: no key was added or removed, and C1 compares `contract_set`
 exactly, so bumping it would refuse every plan every consumer currently produces.
+
+### Track 4's `interval_leg` flag (new in C1 1.3.0)
+
+`expected_units[].scoring_params.interval_leg` is an OPTIONAL boolean, default `true`. `false`
+declares that a classification unit's numeric truth is only a label code, so the unit is scored on
+the label alone (`w_accuracy * quality`). It is refused on any other target type, and a non-boolean
+is refused rather than read as truthy. It mirrors the unit card's `[scoring.params] interval_leg`,
+and Track 4 refuses a card that disagrees with the plan. The key is optional and additive, so
+every 1.x plan without it still parses and still means what it meant; `contract_set` again does
+not move.
+
+### Track 4's `labels` vocabulary (C1 1.3.0)
+
+`expected_units[].scoring_params.labels` is a classification unit's own label vocabulary
+(`task.json` -> `target.labels`): two or more unique, non-empty strings without surrounding
+whitespace. It is REQUIRED on a classification unit from C1 1.3.0 (`LABELS_REQUIRED_FROM`) and
+validated whenever present at any version; it is FORBIDDEN on regression and ranking units at
+every version (`LABELLED_TARGET_TYPES`). A 1.2.0 or 1.1.0 classification entry without it still
+parses. `labels` and `interval_leg` are independent: a 1.3.0 plan may carry either or both.
 """
 
 from __future__ import annotations
@@ -111,6 +131,8 @@ __all__ = [
     "CONTRACT_SET",
     "DIRECTIONS",
     "HANDLE_RE",
+    "LABELLED_TARGET_TYPES",
+    "LABELS_REQUIRED_FROM",
     "MAX_HANDLE_LENGTH",
     "MIN_HANDLE_SALT_CHARS",
     "OPAQUE_HANDLE_HEX_DEFAULT",
@@ -137,7 +159,11 @@ CONTRACT_SET = "1.1.0"
 #: compares `contract_set` exactly, so bumping it would refuse every plan every consumer currently
 #: produces over a narrowing that costs them nothing. The closed sets are `TARGET_TYPES` and
 #: `COMPOSITE_WEIGHT_KEYS` below, and both are enforced in `_parse_roster_entry`.
-SCHEMA_VERSION = "1.2.0"
+#: C1 1.2.0 -> 1.3.0: Track 4's `scoring_params` gains the OPTIONAL boolean `interval_leg`
+#: (additive; `contract_set` does not move). See "Track 4's `interval_leg` flag" above.
+#: C1 1.3.0 also carries a classification unit's `scoring_params.labels`, required from 1.3.0.
+#: See "Track 4's `labels` vocabulary" above.
+SCHEMA_VERSION = "1.3.0"
 TRACKS = ("coding", "forecasting", "simulation", "analysis")
 PHASES = ("dev", "final", "verification")
 #: The phases whose roster is SEALED, and therefore the phases whose handles must be opaque.
@@ -158,13 +184,20 @@ NORMALIZATION_MODES = ("ref_scale",)
 #: reading `point_and_interval` -- the value the shipped golden fixture carried -- silently scored
 #: a regression unit as a classification one. There is no "other" member on purpose.
 TARGET_TYPES = ("classification", "regression", "ranking")
+
+#: The first C1 minor version whose analysis roster entries carry a classification unit's label
+#: vocabulary. Below it, `scoring_params.labels` is tolerated absent on a classification unit
+#: (nothing deployed before 1.3.0 carried one); at or above it, absent is a plan defect.
+LABELS_REQUIRED_FROM = (1, 3)
+#: The one target type whose units carry a vocabulary. Regression and ranking units never do.
+LABELLED_TARGET_TYPES = ("classification",)
 #: The exact key set of `scoring_params.composite_weights`, in composite order, and they must sum
 #: to 1.
 #:
-#: This is an arithmetic requirement, not tidiness. The frozen analysis worst case is
-#: `W = 0*w_accuracy - w_calibration*interval_level`, and `metric.domain.min` is validated to equal
-#: `W`. Weights that do not sum to 1 therefore move the domain the leaderboard is clipped into
-#: while every other field still looks self-consistent.
+#: This is an arithmetic requirement, not tidiness. Through Track-4 scorer 5.0.0 the analysis
+#: worst case was `W = 0*w_accuracy - w_calibration*interval_level`; from 5.1.0 it is 0 and both
+#: legs are ratios in [0, 1]. Either way, weights that do not sum to 1 move the range the
+#: composite can reach while every other field still looks self-consistent.
 COMPOSITE_WEIGHT_KEYS = ("accuracy", "calibration")
 
 _CORE_KEYS = (
@@ -513,7 +546,67 @@ def _as_object(value: Any, path: str) -> Mapping[str, Any]:
     return value
 
 
-def _parse_roster_entry(raw: Any, track: str, phase: str, index: int) -> RosterEntry:
+def _minor_at_least(schema_version: str, floor: tuple[int, int]) -> bool:
+    """True when `schema_version` (already major-checked) is at or above `floor` = (major, minor)."""
+    parts = schema_version.split(".")
+    try:
+        major, minor = int(parts[0]), int(parts[1])
+    except (IndexError, ValueError) as exc:
+        raise ContractError(
+            f"C1 schema_version {schema_version!r} is not MAJOR.MINOR.PATCH"
+        ) from exc
+    return (major, minor) >= floor
+
+
+def _check_labels(
+    scoring_params: Mapping[str, Any], target_type: str, *, path: str, required: bool
+) -> None:
+    """The per-unit label vocabulary, and the rule that makes its absence unambiguous.
+
+    A classification unit's scorer validates every submitted label against the unit's own
+    vocabulary (`task.json` -> `target.labels`; two to four unit-specific strings, never a shared
+    enum). Before 1.3.0 the roster entry did not carry it, so the platform path had nothing to
+    check against and skipped, while the local path -- which reads the card -- enforced: the same
+    submission could be `LABEL_INVALID` locally and admissible on the platform.
+
+    Carrying `labels` alone would leave absence ambiguous, because regression and ranking units
+    legitimately have none. `target_type` is already here, so the rule can be total:
+    classification => labels required (from 1.3.0) and validated; regression and ranking =>
+    labels forbidden, at every version, because a vocabulary on a unit without labels is a plan
+    defect rather than an annotation.
+    """
+    present = "labels" in scoring_params
+    if target_type not in LABELLED_TARGET_TYPES:
+        if present:
+            raise ContractError(
+                f"{path}.labels is not allowed on a {target_type!r} unit; only classification "
+                "units carry a label vocabulary"
+            )
+        return
+    if not present:
+        if required:
+            raise ContractError(
+                f"{path}.labels is required on a classification unit from C1 "
+                f"{'.'.join(map(str, LABELS_REQUIRED_FROM))}.0: without the vocabulary the "
+                "platform scorer cannot validate a submitted label and the check silently does "
+                "not run"
+            )
+        return
+    labels = req_list(scoring_params, "labels", path=path, min_items=2)
+    seen: set[str] = set()
+    for i, label in enumerate(labels):
+        if not isinstance(label, str) or not label or label != label.strip():
+            raise ContractError(
+                f"{path}.labels[{i}] must be a non-empty string without surrounding whitespace"
+            )
+        if label in seen:
+            raise ContractError(f"{path}.labels repeats {label!r}")
+        seen.add(label)
+
+
+def _parse_roster_entry(
+    raw: Any, track: str, phase: str, index: int, *, labels_required: bool = True
+) -> RosterEntry:
     path = f"roster.expected_units[{index}]"
     entry = _as_object(raw, path)
     allowed = ["unit_handle"]
@@ -575,6 +668,8 @@ def _parse_roster_entry(raw: Any, track: str, phase: str, index: int) -> RosterE
                 "interval_level",
                 "composite_weights",
                 "target_type",
+                "interval_leg",
+                "labels",
             ),
             path=f"{path}.scoring_params",
         )
@@ -605,12 +700,28 @@ def _parse_roster_entry(raw: Any, track: str, phase: str, index: int) -> RosterE
             total += value
         if abs(total - 1.0) > 1e-9:
             raise ContractError(
-                f"{path}.scoring_params.composite_weights sum to {total!r}, not 1. W is "
-                "0*w_accuracy - w_calibration*interval_level and metric.domain.min is validated "
-                "against it, so weights that do not sum to 1 move the frozen domain the "
-                "leaderboard is clipped into"
+                f"{path}.scoring_params.composite_weights sum to {total!r}, not 1. The "
+                "composite is a weighted sum of two legs in [0, 1] (Track-4 scorer 5.1.0; through "
+                "5.0.0 W was 0*w_accuracy - w_calibration*interval_level), so weights that do not "
+                "sum to 1 move the range every real score is clipped into"
             )
-        req_enum(scoring_params, "target_type", TARGET_TYPES, path=f"{path}.scoring_params")
+        target_type = req_enum(
+            scoring_params, "target_type", TARGET_TYPES, path=f"{path}.scoring_params"
+        )
+        if "interval_leg" in scoring_params:
+            leg = req_bool(scoring_params, "interval_leg", path=f"{path}.scoring_params")
+            if not leg and target_type != "classification":
+                raise ContractError(
+                    f"{path}.scoring_params.interval_leg is false on a {target_type} unit; only a "
+                    "classification unit whose numeric truth is a label code may drop the "
+                    "interval leg"
+                )
+        _check_labels(
+            scoring_params,
+            target_type,
+            path=f"{path}.scoring_params",
+            required=labels_required,
+        )
     return RosterEntry(
         unit_handle=handle,
         timeout_sec=timeout,
@@ -698,8 +809,10 @@ class EvaluationPlan:
         if "expected_units" not in roster:
             return  # the public commitment: counts, digests and policy only
         entries = req_list(roster, "expected_units", path="roster", min_items=1)
+        labels_required = _minor_at_least(self.schema_version, LABELS_REQUIRED_FROM)
         parsed = tuple(
-            _parse_roster_entry(entry, self.track, self.phase, i) for i, entry in enumerate(entries)
+            _parse_roster_entry(entry, self.track, self.phase, i, labels_required=labels_required)
+            for i, entry in enumerate(entries)
         )
         handles = [e.unit_handle for e in parsed]
         if len(set(handles)) != len(handles):

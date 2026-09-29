@@ -503,6 +503,12 @@ def attest_development_run_records(
 #: also could not be scored.
 _DEV_ATTEMPTS_PER_UNIT = 1
 
+#: The C1 template a track's development plan is derived from, where it is not
+#: `c1/<track>_final.expanded.json`. Track 4 moved to scorer 5.1.0 (W = 0.0, domain [0, 1]) on
+#: 2026-09-24; its pre-5.1.0 fixture is kept byte-for-byte as a record, so the dev plan must be
+#: derived from the 5.1.0 one or it would pre-commit W = -0.27 against a scorer whose floor is 0.
+_C1_TEMPLATE = {"analysis": "c1/analysis_final.scorer-5.1.0.expanded.json"}
+
 
 def development_plan(
     *,
@@ -533,7 +539,9 @@ def development_plan(
             "a development plan needs at least one expected unit; a zero-unit roster is the "
             "A01 defect this document exists to close"
         )
-    body: dict[str, Any] = json.loads(json.dumps(load_fixture(f"c1/{track}_final.expanded.json")))
+    body: dict[str, Any] = json.loads(
+        json.dumps(load_fixture(_C1_TEMPLATE.get(track, f"c1/{track}_final.expanded.json")))
+    )
     body["phase"] = "dev"
     body["competition_id"] = competition_id
     body["plan_id"] = plan_id

@@ -51,7 +51,7 @@
               "type": "object",
               "required": ["doc_id", "span_start", "span_end", "claim"],
               "properties": {
-                "doc_id": {"type": "string", "description": "ID of a document in the frozen corpus. Its doc_date is resolved from the corpus for the embargo gate (must be <= question cutoff)."},
+                "doc_id": {"type": "string", "description": "ID of a document in the frozen corpus, or \"task\" for the unit's task table (Track 4 scorer 5.2.0: a span inside the citing entity's own row of the task table). A corpus document's doc_date is resolved from the corpus for the embargo gate (must be <= question cutoff)."},
                 "span_start": {"type": "integer", "minimum": 0},
                 "span_end": {"type": "integer", "minimum": 0},
                 "claim": {"type": "string"}
@@ -73,6 +73,42 @@
       "items": {"type": "string"},
       "description": "Free-text reasoning trace, or ordered doc_ids the agent retrieved/used."
     },
-    "notes": {"type": "object", "description": "Optional free-form author notes (ignored by the scorer)."}
+    "notes": {"type": "object", "description": "Optional free-form author notes (ignored by the scorer)."},
+    "submitted_reasons": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "description": "Optional. Up to three reasons for the answer, read by the reasoning grader (an LLM judge panel, separate from the analysis score and the faithfulness gate). Omit the field to submit no reasons; a missing reason scores 0 against every target reason. The judge sees each reason's premise, mechanism and answer_implication and the corpus text its citations resolve to, never scope or the raw citations. Published caps, per unit, over which the unit's reasoning is not judged and scores 0 (never clipped): each citation span_end - span_start <= 8000 characters; and three caps in UTF-8 bytes of the compact JSON the judge reads: your per-entity answer (entity_id and the declared answer fields) <= 3000 bytes, your reasons (reason_id, premise, mechanism, answer_implication) <= 6500 bytes, the cited passages (each passage's text with its doc_id, span_start, span_end and the reason_id citing it) <= 46500 bytes (together 56000 bytes). A reason with the same premise, mechanism and answer_implication as an earlier one is not judged. Citations resolve against the corpus only (doc_id \"task\" is for claims). Participant-written text must not contain the published deny-list phrases (URLs, file paths, identity or other-submission references); a premise that is wholly a verbatim quote of a corpus document is exempt.",
+      "items": {
+        "type": "object",
+        "required": ["reason_id", "premise", "mechanism", "answer_implication"],
+        "properties": {
+          "reason_id": {"type": "string"},
+          "premise": {"type": "string", "description": "The evidence-grounded fact."},
+          "mechanism": {"type": "string", "description": "Why that fact moves the answer."},
+          "answer_implication": {"type": "string", "description": "What the fact implies for the submitted answer, naming the entities."},
+          "scope": {
+            "type": "object",
+            "description": "Optional. The entities this reason is about. Not shown to the judge.",
+            "properties": {
+              "entities": {"type": "array", "items": {"type": "string"}, "description": "entity_id values from the task's roster."}
+            }
+          },
+          "citations": {
+            "type": "array",
+            "description": "Optional. Corpus passages behind this reason, in the same character-offset convention as claims. A citation that does not resolve in the frozen corpus, or whose document is dated after the cutoff, is never shown to the judge.",
+            "items": {
+              "type": "object",
+              "required": ["doc_id", "span_start", "span_end"],
+              "properties": {
+                "doc_id": {"type": "string"},
+                "span_start": {"type": "integer", "minimum": 0},
+                "span_end": {"type": "integer", "minimum": 0}
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }

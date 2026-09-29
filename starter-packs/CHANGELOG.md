@@ -40,6 +40,151 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
+### Track 4 — scorer 5.2.0: per-claim faithfulness, anchored scores, graded reasons
+
+**`ACTION`** **Track 4: the 80% faithfulness gate is replaced by a per-claim penalty.** Under the
+published Track 4 scorer 3.1.0, faithfulness checked each entity's prediction, not your claim
+text: a prediction was supported when a span it cited entailed it (NLI above `tau_citation` =
+0.5), and a unit was refused, scoring the worst case W = -0.27, unless at least 80% of the
+roster's predictions were supported. From Track 4 scorer 5.2.0 your claims themselves are
+checked: each claim is either false or neutral, and each unit's analysis score is multiplied
+by `1 - F / (F + min(T, 3 × E))` (F false claims, T other claims, E entities in the unit). Each
+false claim costs a share of the unit; other claims beyond 3 × E in total (not per entity) do not
+dilute that cost; a unit with no false claims is not penalised; a unit whose every claim is false
+scores 0. Content-free claims are neutral: they neither earn nor cost. `penalty_k` = 1,
+`contradiction_bar` = 0.9 and the cap of 3 × E are fixed scorer constants; a card or plan naming
+`penalty_k` or `contradiction_bar` is refused. Cards keep `faithfulness_threshold = 0.80`, now
+read only as "use the per-claim penalty". Structural errors (schema, roster, embargo, malformed
+citations) still refuse a unit.
+
+A claim is false when it:
+
+- cites a document the unit manifest does not label for its entity (or mark shared);
+- cites offsets outside the document;
+- is empty, over 4000 characters or over 400 judge tokens;
+- states **any** figure that no span it cites carries. Figures are read against the whole cited
+  span, not only the part the judge reads, and a span over 8,000 characters anchors no figure.
+  Exempt: a figure exactly equal to your own scored value, and a number that is part of one of the
+  unit's own entity names or tickers ("Phillips 66", "S&P 500"). A claim that quotes a span it
+  cites word for word passes the figure check (even over the 8,000-character cap) and is not put
+  to the judge;
+- or when the NLI ensemble's three-way probability that a cited passage contradicts it exceeds
+  `contradiction_bar` = 0.9.
+
+Every other claim is neutral and costs nothing. A value from the task table is now citable as
+`"doc_id": "task"`, with a span inside the citing entity's row of the task table.
+
+**`ACTION`** **Track 4: classification accuracy and ranking Spearman are anchored to the unit's
+naive rule.** The prediction leg maps 0 to 0, the unit's declared naive answer to 0.5 and a
+perfect answer to 1, linearly in between (the anchor is the stronger of the naive rule and, on
+ranking, a constant forecast). A unit without an interval leg scores the prediction leg alone
+rather than 0.70 times it. Regression and the interval leg are unchanged. Nothing in your answer
+format changes; the same answer can score differently on these units.
+
+**`ACTION`** **Track 4: reasons are graded from one optional top-level field of `answer.json`,
+`submitted_reasons`.** Until now nothing published said where reasons go, so no answer carried
+any, and a keyed unit with no judged reasons scores 0 on reasoning. The reasoning score is an LLM
+judge panel's grade of your reasons against the unit's hidden target reasons. Submit 1 to 3
+reasons, each with `reason_id`, `premise`,
+`mechanism` and `answer_implication` (and optionally `scope` and corpus `citations`; a `"task"`
+citation in a reason resolves to nothing). The judge reads your per-entity answer from
+`entity_predictions` (the unit's declared answer fields only; `claims` are never read as
+reasons); the rows must name every task entity exactly once, in any order. Reasoning is judged on
+keyed units only, but the format is the same on the dev units. A `submitted_reasons` block that does not match the schema (an empty list, more than three reasons, or a reason missing a required field) makes the whole answer invalid, like any other schema error: the unit's analysis score is W (0.0,
+shown as -0.27), so run the local checker before you submit.
+
+The caps apply per unit: 8,000 characters per citation, and three byte caps that add up to the
+grader's 56,000-byte limit, counted as UTF-8 bytes of compact JSON: your per-entity answer as the
+judge reads it (3,000 bytes), your reasons' judge-visible fields (6,500 bytes) and the cited
+passages as the judge reads them (46,500 bytes). An answer within the three caps can no longer
+trip the 56,000-byte limit. Over a cap, or on the deny list (URLs, file paths and identity
+references in your own words), that unit's reasoning scores 0.
+
+**`ACTION`** **Track 4: the final score is no longer a 0.75 / 0.25 blend.**
+`final = -0.27 + 1.27 x analysis + 0.25 x reasoning`. `analysis` is your 0..1 analysis score after
+the per-claim faithfulness penalty, shown on the old leaderboard scale (0 shows -0.27, the old
+worst case; 1 shows 1.0); `reasoning` in [0, 1] is an uncapped bonus, so the maximum is 1.25.
+Missing, not-judged or refused reasons add 0: leaving reasons out never costs anything (a
+schema-invalid `submitted_reasons` block is different; it makes the whole answer invalid). Scores already on the
+leaderboard stay frozen; a submission made with the new starter package is scored with scorer
+5.2.0 and this formula.
+
+**What to do:**
+
+- keep claims extractive (state what the cited passage says, with its figures) and cite only
+  documents labelled for the entity;
+- move computed figures (changes, ratios, averages) into `submitted_reasons`, where derivations
+  are judged;
+- cite task-table values with `"doc_id": "task"`;
+- remove false claims rather than adding extra claims to soften them;
+- add 1 to 3 `submitted_reasons` and check them against the caps with the local checker
+  (`cap_answer_bytes`, `cap_reason_bytes`, `cap_evidence_bytes`).
+
+**`ADDED`** **`analysis.schema.json` accepts the optional `submitted_reasons` field.** The
+change is additive: every answer that validated before still validates, and an answer without
+the field is unchanged. The Track 4 local rail (`baselines/guardrails_example/citation_rail.py`
+in the track repository) gains `check_submitted_reasons` (shape, caps and deny list), accepts
+`"doc_id": "task"` claim citations (`check_answer(..., task=task)`), runs every deterministic
+5.2.0 claim rule with the scorer's own code (`check_claim_rules`), and flags duplicate reasons and
+task citations in reasons.
+
+**`CLARIFIED`** The `submitted_reasons` schema description now states the byte caps, and the docs
+say how duplicate reasons, `reason_id`, declared answer fields, task citations in reasons and
+verbatim quotes over 8,000-character spans are handled.
+
+Details: "How faithfulness is judged" and "How reasoning is scored" in
+`starter-packs/track4/AGENTS.md`, and the Track 4 kit's `docs/CONCEPTS.md`, "Faithfulness".
+
+### Toolkit `v2.5.0` — Track 4 regression scoring and the interval leg
+
+**`ACTION`** **Reinstall the toolkit and the Track 4 package together.** Toolkit `v2.5.0` and
+Track 4 scorer 5.2.0 are one release: upgrade both or neither. Toolkit `v2.5.0` with the
+published Track 4 package 3.1.0 raises an error on every regression unit, because 3.1.0 does not
+pass the unit's naive rule, which `v2.5.0` requires. The Track 4 package at 5.2.0 needs toolkit
+`v2.5.0`.
+
+**`ACTION`** **Track 4: a regression unit's `predictive_quality` is scored against the unit's
+declared naive rule.** It is now the soft ratio `naive_mae / (naive_mae + mae)`, where
+`naive_mae` is the error of the unit's `naive_values` (1.0 when both errors are zero). Matching
+the naive rule scores 0.5; beating it scores above 0.5. This replaces the `1 - MAE /
+dispersion_MAE` formula of `v2.4.4`. Classification and ranking units are unchanged.
+
+**`ADDED`** **Toolkit: a missing or `NaN` entity in a regression prediction makes
+`predictive_quality` 0.0 for the whole unit.** In toolkit `v2.4.4` the function scored a missing
+or `NaN` entity as if it had predicted the cross-entity mean. This matters only if you call the toolkit directly: the published
+Track 4 scorer 3.1.0 already refused an answer that left out an entity or gave a non-finite value
+(the unit scored W = -0.27), and scorer 5.2.0 still refuses it.
+
+**`ACTION`** **Track 4: the interval leg replaces the calibration penalty.** The published scorer
+3.1.0 scored `0.70 × predictive_quality − 0.30 × |interval_coverage − 0.90|`, and an inadmissible
+answer scored `W = -0.27`. From scorer 5.2.0 the composite is `0.70 * predictive_quality + 0.30 *
+interval_quality` on a [0, 1] domain, and an inadmissible answer scores `W = 0.0`. From scorer 5.2.0, 0.0 on the analysis
+scale shows as -0.27 on the leaderboard (leaderboard = -0.27 + 1.27 x analysis). A unit may declare `interval_leg = false`
+(classification only; C1 `1.3.0` adds it as an optional `scoring_params` key), in which case it is
+scored on the label alone. C1 `1.3.0` also carries each classification unit's `labels`
+vocabulary (required on classification units, refused on the others); the toolkit's plan parser
+accepts both keys. The current numbers are in `starter-packs/track4/AGENTS.md`.
+
+**`ACTION`** **Track 4: in the new figure check, only an exact, scored own value is exempt.** The
+published scorer 3.1.0 did not check the figures in your claims at all. From scorer 5.2.0 a claim
+figure is excluded from the check only when it exactly equals a value you submitted and are
+scored on: the point forecast on regression and ranking units, and the
+interval bounds only when the unit's interval leg is scored. Your rank is never excluded, and no
+scale, percent-versus-ratio or rounding tolerance applies to your own values (a point of `0.0523`
+restated as "5.2%" is a figure the cited passage must state). Write your forecast exactly as
+you submitted it, or cite a passage for any other figure. Details: `starter-packs/track4/AGENTS.md`.
+
+**`ADDED`** **`mean_interval_score` is exported from `qfbench2_common.scoring.faithfulness`.** It
+is the mean interval score over every roster row that the interval leg uses, so you can compute
+it locally.
+
+**`CLARIFIED`** **`analysis_composite` is retired.** It still computes the published scorer 3.1.0
+formula (`0.70 × accuracy − 0.30 × |interval_coverage − 0.90|`) and stays exported for old
+records, but nothing scores with it and its numbers do not match a 5.2.0 score.
+
+**`CLARIFIED`** **Install commands still pin toolkit `v2.4.4`.** They move to `v2.5.0` when that
+tag is released; this entry will say so.
+
 ### Track 1: rule 8 clarified, rule 9 added (a pass needs run-time use of the House model)
 
 **`ACTION`** **From 5 October 2026, 00:00 AoE (12:00 UTC), a Track 1 task counts as passed only if your agent

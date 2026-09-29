@@ -89,10 +89,11 @@ Two baseline facts worth knowing while you read the kit: `baselines/baseline_age
 hardcoding it — pass the card's value or omit; and `strong_rag_baseline/indexer.py` handles flat
 `text` first (`:36-37`) and `spans` second (`:38-40`).
 
-**The kit's `README.md:235-286` documents the faithfulness gate correctly** — the canonical
-hypothesis, the roster-as-denominator, the `tau_citation`/`faithfulness_threshold` split, and the
-ranking `point_forecast` rule. Read it alongside this file. Its `answer.json` example at
-`README.md:94-116` is nested and valid.
+**The kit's `docs/CONCEPTS.md`, section "Faithfulness", is the canonical description of the
+faithfulness rule** — from scorer 5.2.0 a per-claim penalty: the checks in order, the claim as the
+hypothesis, false versus neutral claims, and the `penalty_k` / `contradiction_bar` parameters. `README.md`'s smoke-check section restates it
+more briefly and its `answer.json` example is nested and valid. Read CONCEPTS.md alongside this
+file; do not rely on line numbers, both files moved on 2026-09-05.
 
 ## The output contract is uniform: `answer.json`. The *shape* is where you die.
 
@@ -111,6 +112,7 @@ per entity     required: entity_id, interval, claims (minItems 1)
   interval     required: level, lo, hi   —   level is "const": 0.90
   claim        required: doc_id, span_start, span_end, claim
 notes          must be an OBJECT if present
+submitted_reasons  OPTIONAL, 1 to 3 reasons — see "How reasoning is scored" below
 label, point_forecast, target_type, evidence_trace   — OPTIONAL in the schema
 
 Additional alignment requirements:
@@ -124,17 +126,81 @@ The real contract is `entity_predictions[]`, one object per entity row — never
 single-object answer. Copy `templates/answer.example.json` or
 `baselines/baseline_agent/formatter.py`; the README's example is also valid.
 
-## How faithfulness is judged: your prose is not read
+## How faithfulness is judged: your `claim` text is the hypothesis
 
-`hypothesis.py` derives a **canonical hypothesis from your prediction fields** —
-`label` / `point_forecast` / `rank` / `interval` — and asks whether **your citations** entail it.
-The `claim` prose you write is **not** read for entailment — accurately describing a cited
-passage earns nothing by itself; the citation must entail your *prediction*.
+From Track 4 scorer 5.2.0 faithfulness is a **per-claim penalty**, not an admission gate. Each
+claim is either **false** or **neutral**, and each false claim costs a share of the unit. The unit's analysis score is multiplied by
+`1 - F / (F + min(T, 3 × E))`, where F is the number of false claims, T the number of other
+claims and E the number of entities in the unit. A unit with no false claims is not penalised,
+and a unit whose every claim is false scores 0. Other claims dilute the false ones only up to a
+cap of 3 × E claims in total (three times the number of entities, counted over the whole unit,
+not a limit per entity). Up to the cap the cost is the plain share: on a unit with 7 or more
+entities, one false claim among twenty claims costs 5%; with fewer entities the cap is lower,
+so it costs more (on a 1-entity unit, one false claim among twenty costs 1/(1 + 3) = 25%). Past
+the cap, adding more claims does not shrink what a false claim costs (on a 10-entity unit, one
+false claim always costs at least 1/31 of it). Content-free claims are never false and earn
+nothing; beyond the cap they do not change the factor. Nothing about
+faithfulness refuses a unit any more; structural errors (schema, roster, embargo, malformed
+citations) still do. A neutral claim is never charged and earns nothing here; evidence earns credit
+only through the reasoning score. Whether your evidence supports your *forecast* is reasoning
+grading's question.
+
+A claim is **false** when any one of these holds:
+
+1. **Wrong entity.** Every corpus document carries, in the unit's manifest, either the roster
+   entities it is about (`entity_ids`) or `shared: true` for a market-wide document. A claim for
+   entity E that cites a document the manifest does not list E on, and does not mark shared, is
+   false (before 5.2.0 it refused the whole unit). A document about someone off the roster
+   (`entity_ids: []`) is about nobody on it. You can verify this yourself from the manifest.
+2. **Out-of-range citation.** Offsets that are not a real slice of the document name no passage.
+3. **Malformed claim.** Empty, over 4000 characters, or over 400 judge tokens (the judge's own
+   tokenizer).
+4. **A figure its passage does not carry, exact code.** **Every** figure in a claim must appear
+   in a span the claim cites, read against the whole cited span `text[span_start:span_end]`.
+   Dates, years, periods, counts of periods ("13 weeks"), identifiers and form or item numbers are
+   not figures; a number inside one of the unit's own entity names or tickers as `task.json`
+   writes them ("Phillips 66", "S&P 500") is not a figure. A figure that **exactly** equals a
+   value you submitted and are scored on is exempt: your point forecast on a regression or ranking
+   unit, and your interval bounds only on a unit whose interval leg is scored. Your rank is never
+   exempt, and no scale, percent-versus-ratio or rounding tolerance applies to your own values.
+   For figures in a passage, separators, scale, percent-versus-ratio, sign and rounding to your
+   precision are tolerated. A cited span over 8,000 characters anchors no figure. A claim that is
+   word for word a piece of a span it cites passes whole, even when that span is over 8,000
+   characters (the cap applies to every other claim).
+5. **Contradicted.** The NLI ensemble reads each cited passage (premise) against **your `claim`
+   text** (hypothesis) and returns the three-way probability that the passage contradicts it,
+   averaged over its two models; above `contradiction_bar` = 0.9 the claim is false. A verbatim
+   quote of a span it cites is not put to the judge.
+
+**Claims are extractive facts.** State what the passage says, with the figures it carries. A
+figure you computed (a change, a ratio, an average) belongs in `submitted_reasons` (the
+`mechanism`), where derivations are judged. A quoted passage as a claim is an accurate claim.
+
+**Citing the task table.** A value the task gives you (a row of `task.json` `entities`) is cited
+with the reserved `"doc_id": "task"`. Its text is one line per `entities` row, in file order, each
+`json.dumps(row, ensure_ascii=False, separators=(", ", ": "))`, joined by `"\n"`, no trailing
+newline (`qfbench2_track_analysis.corpus.task_table_text(task)` builds it and each row's
+offsets). The span must lie inside the citing entity's own row; another row, or a span crossing
+rows, is a wrong-entity citation. A task value used in a claim without such a citation is a
+figure its passage does not carry.
 
 Two consequences that are easy to miss:
 
-- a citation only supports **the entity it is attached to** — relevance is structural, not textual;
-- citations must support the **prediction**, not merely be accurately described.
+- the entity binding is at the **document** level, read from the manifest — a claim for entity E
+  citing another company's filing is false however apt the passage;
+- a claim with any figure that is not in its passage is false by code, not by a model — check
+  every number against the exact span you cite, at the precision you wrote it.
+
+Cards still carry `faithfulness_threshold = 0.80`: from 5.2.0 that value is read only as "use the
+per-claim penalty", and any other value is refused. `penalty_k` = 1 and `contradiction_bar` = 0.9
+are fixed scorer constants; a card or plan that names either is refused. **Under the published scorer 3.1.0 the
+gate asked a different question** — whether the passage entails your *prediction* — which is now
+recorded for the organizer's review queue as `prediction_relevance` and never affects your score.
+
+Every `task.json` (and each public practice unit's card, though no held-out evaluation card) still carries a `faithfulness_rubric` text written for that retired
+admission gate: an NLI score above 0.5 per claim, with 80% of claims supported. It is a legacy
+field, and neither scorer 5.2.0 nor the reasoning grader reads it. The rules are the ones above and
+in the track's `SUBMISSION_CLI.md` ("How faithfulness is scored").
 
 And the schema is not a sufficient pre-submission check on this track: it marks `label` and
 `point_forecast` optional, while `alignment.py:337` rejects a missing `label` on a classification
@@ -158,8 +224,18 @@ def document_text(doc):
 resolved.** Historic exemplar data shipped declared `start`/`end` offsets that matched nothing
 under the scorer's rule; compute offsets yourself to avoid relying on stale metadata:
 slice the string you actually built, and verify your citation resolves non-empty before emitting
-it. A citation that resolves to nothing gives the NLI judge an empty premise and scores zero
-entailment on a track where faithfulness is the **gate**, not a component.
+it. The two ways a citation can resolve to nothing are not equally forgiving, and the harsher one
+is the one people hit:
+
+* an **empty or zero-width span** in a document that does exist names no passage: from scorer
+  5.2.0 the claim carrying it is false (out of range), costing that claim's share of the unit;
+* an **unresolvable `doc_id`** — a name not declared `role: corpus` in the unit's manifest — is a
+  participant failure that never reaches the judge at all. Measured: `domain_gate_failed`, the
+  unit scores W = 0.0 (scorer 5.1.0; 5.0.0: −0.27; 0.0 on the analysis scale shows as −0.27 on the
+  leaderboard, which is −0.27 + 1.27 × analysis), and no entailment is computed.
+
+The first costs one claim's share of the unit (scorer 5.2.0); the second refuses the unit, and no
+good prediction elsewhere in it recovers that.
 
 **3. Canaries: where they are, and where they are not.** Regex-scanning every file under
 `units/` for a UUIDv4 finds **11 of 112 files carrying one — every one a `card.toml`**, one per
@@ -219,10 +295,20 @@ it.** The schema marks `point_forecast` optional. It is not optional in practice
 **Put the ordering in `point_forecast`.** Any monotone score works: it is rank-correlated, not
 compared to a true magnitude. `label` feeds *classification* accuracy and does nothing for ranking.
 
-**A constant `point_forecast` has neutral ranking quality, 0.5.** The toolkit assigns average
-ranks to ties; a constant prediction has no ordering information and cannot become a perfect
-ranking through roster order. This is the predictive-quality component, before calibration
-and admissibility gates. Put a real ordering in `point_forecast`.
+**A CONSTANT `point_forecast` scores 0.5 — the neutral midpoint, not full marks.** Ties rank as
+ties: tied values share the mean of the positions they occupy, so a constant vector has no rank
+variance, `rho` is 0, and `(rho + 1) / 2` rescales to 0.5. Measured on a four-entity ranking unit,
+holding everything else equal:
+
+| `point_forecast`  | `predictive_quality` |
+|:------------------|---------------------:|
+| correct ordering  |               1.0000 |
+| constant          |               0.5000 |
+| reversed ordering |               0.0000 |
+
+A constant is therefore plainly distinguishable from a correct ranking, and it forfeits half the
+quality leg. Put a real ordering in `point_forecast` — not because a constant is invisible, but
+because it scores as saying nothing.
 
 **A MISSING `point_forecast` is a different case and does fail loudly** — `alignment.py:353` raises
 `SCHEMA_INVALID` before any metric. A constant is valid input but receives neutral ranking quality.
@@ -232,6 +318,172 @@ and admissibility gates. Put a real ordering in `point_forecast`.
 when it is out of vocabulary. Classification is the most common target type in the public set
 (5 of 11 units), so a submission written from the schema table alone is inadmissible on nearly
 half of what you can test locally.
+
+## How reasoning is scored: `submitted_reasons`
+
+Track 4 has a second grader beside the analysis score and the faithfulness penalty: an LLM judge
+panel that grades your **reasons**. Your reasons go in one optional top-level field of
+`answer.json`, `submitted_reasons`, next to `entity_predictions`. The reasoning grader reads
+nothing else you write: `claims`, `evidence_trace` and `notes` are not reasons. An answer
+without the field has submitted no reasons.
+
+**The field.** `submitted_reasons` is a list of 1 to 3 reasons. Omit the field to submit none;
+a `submitted_reasons` block that does not match the schema (an empty list, more than three
+reasons, or a reason missing a required field) makes the whole answer invalid, like any other
+schema error: the unit's analysis score is W (0.0, shown as −0.27), so run the local checker
+before you submit. Each reason is an object:
+
+| field | required | what it holds |
+|---|---|---|
+| `reason_id` | yes | a string you choose; the grader does not read it for grading (it renumbers your reasons r1, r2, r3 by position) and does not check that ids are unique, but unique ids keep your reasons apart |
+| `premise` | yes | the evidence-grounded fact |
+| `mechanism` | yes | why that fact moves the answer |
+| `answer_implication` | yes | what it implies for your submitted answer, naming the entities |
+| `scope` | no | an object with `entities`: a list of `entity_id` strings |
+| `citations` | no | a list of `{doc_id, span_start, span_end}` (integers >= 0), in the same character-offset convention as `claims` |
+
+A citation must resolve in the frozen corpus and its document must be dated on or before the
+cutoff; otherwise the judge never sees that passage. The task-table citation `"doc_id": "task"`
+is for claims only: the grader resolves reason citations against the corpus alone, so a
+`"task"` citation in a reason resolves to nothing and the judge never sees it. The judge reads
+the task statement and each entity's id and name, not the rows of the task table: state a task
+value you rely on in the premise; the rest of the reason is judged as usual.
+
+**Duplicate reasons.** A reason whose `premise`, `mechanism` and `answer_implication` equal an
+earlier reason's (compared after Unicode NFC normalisation, with invisible format characters
+removed, case folded and whitespace runs collapsed) is not sent to the judge, so it covers no
+target reason. A different `reason_id` does not make it a new reason.
+
+The schema is `analysis.schema.json` in
+the shared toolkit (`qfbench2_common/schemas/`).
+
+**What the judge sees, and what it grades.** The judge reads the task statement and entity
+list; your per-entity answer (only the fields the unit declares, of `label`, `point_forecast`,
+`interval` and `label_probs`, taken from your `entity_predictions`); each reason's `premise`,
+`mechanism` and `answer_implication`; and the corpus text your citations resolve to. It does
+not see `scope` or the raw citations. It compares your reasons with the unit's hidden target
+reasons and grades four components, `target_reason_coverage`, `evidence_grounding`,
+`inferential_link` and `answer_consistency`, plus the flags `valid_grounded_premise`,
+`has_answer_implication` and `contradiction`, with 5 judge votes per cell. A target reason that
+none of yours covers scores 0 against a denominator of all the unit's target reasons, so
+submitting fewer reasons never scores higher. From Track 4 scorer 5.2.0 the reasoning score is
+a **bonus** on top of the analysis score (final-score/v2):
+
+    final = -0.27 + 1.27 x analysis + 0.25 x reasoning
+
+`analysis` is your 0..1 analysis score after the per-claim faithfulness penalty, shown on the
+old leaderboard scale (`-0.27 + 1.27 x analysis`: 0 shows -0.27, the old worst case, and 1 shows
+1.0); `reasoning` is in [0, 1]. The bonus is uncapped, so the maximum is 1.25. A keyed unit with
+no judged reasons (missing, not judged, or refused for a cap or the deny list) adds 0: leaving reasons out never costs anything. A malformed `submitted_reasons` block is
+different: it fails the answer schema and the unit scores W (see "The field" above). Reasoning is judged only on keyed (held-out) units, not on public dev units, but
+the format is the same everywhere: practise it on the dev units.
+
+**Old scores and resubmitting.** Leaderboard scores already posted under the earlier scorer stay
+as they were (frozen, not re-scored). A submission made with the new starter package is scored
+with scorer 5.2.0 and this final formula.
+
+**Your answer rows.** The judge's per-entity answer is built from `entity_predictions` in the
+same `answer.json`: each row keeps `entity_id` and the answer fields the unit declares, and every
+other field (`claims`, `rank`, and any of `label`, `point_forecast`, `interval` or
+`label_probs` the unit does not declare) is dropped before the judge sees it. The rows must name
+every entity of the task's entity list exactly once. Their order does not matter: they are put in
+entity-list order. A missing, extra or repeated entity, or a row without a declared field, means
+that unit's reasoning is not judged and scores 0; give every row `label` (classification) or
+`point_forecast` (regression, ranking) besides the required `interval`. A top-level
+`submitted_answer` is not read.
+
+**Which fields a unit declares.** The declaration is part of the unit's reasoning key, which is
+organizer material and not in the unit you receive. In the released units: regression and
+ranking units declare `point_forecast` and `interval`; classification units declare `label`,
+plus `interval` on units that score an interval leg (numeric truth, and `interval_leg` not set
+to false in `card.toml`). No unit declares `label_probs`. An undeclared field is dropped before
+the judge reads your answer; it is not an error and costs nothing.
+
+**Caps.** Over any cap, that unit's reasoning is not judged and scores 0. Nothing is clipped.
+
+| cap | limit, per unit |
+|---|---|
+| one citation: `span_end - span_start` | 8,000 characters (cite the passage, not the document) |
+| your per-entity answer as the judge reads it (each row's `entity_id` and declared fields) | 3,000 bytes |
+| your reasons as the judge reads them (`reason_id`, `premise`, `mechanism`, `answer_implication`) | 6,500 bytes |
+| the cited passages as the judge reads them (each resolved citation's text with its `doc_id`, offsets and reason id) | 46,500 bytes |
+
+The last three are counted the way the grader counts what the judge reads: UTF-8 bytes of compact
+JSON. Plain ASCII text is one byte per character; a line break, quote or backslash is two (it is
+escaped); accented letters, typographic quotes and non-Latin scripts take two to four; a control
+character six; a URI in cited text is masked with the same number of `█` (three bytes each); and
+every citation adds about 75 bytes of JSON around its text plus its `doc_id` and offsets. In practice: about 6,000 characters of
+plain reason text over three reasons, and about 45,000 characters of plain cited text in a few
+citations. The three caps add up to the grader's 56,000-byte limit on what the judge reads from
+you, so an answer within them never reaches that limit. The local checker below reports each
+(`cap_answer_bytes`, `cap_reason_bytes`, `cap_evidence_bytes`).
+
+**Deny list.** The grader refuses a unit's request, and that unit's reasoning scores 0, if the
+text you wrote contains any of these, case-insensitively, as a substring: `leaderboard`,
+`canary`, `://`, `/home/`, `units/`, `reference/`, `outcome.json`, `team_id`, `team name`,
+`participant_id`, `participant name`, `submission_id`, `other submission`. `mechanism` and
+`answer_implication` are always checked. Exempt: the corpus text your citations resolve to,
+and a `premise` that is, as a whole (surrounding whitespace aside), a verbatim quote of a
+corpus document; a premise that adds any word of your own is checked. So do not put URLs or
+file paths in your own words.
+
+**Organiser faults.** If the grader fails on an organiser input (the task, the key, the
+corpus, the judge forms or the policy), the grading run stops, the organiser fixes it and the
+submission is re-graded. A unit that can never be graded is dropped from the reasoning score
+for every submission, never for one submission only.
+
+**Check it locally.** `check_submitted_reasons(answer, corpus, cutoff_date)` in
+`baselines/guardrails_example/citation_rail.py` (standard library only, advisory) flags the
+shape errors (`reasons_shape`; a shape error fails the whole answer, not just the reasons), citations the judge would not see, each cap including the byte backstop, and
+deny-list hits. The demo runs it: `python -m baselines.guardrails_example.demo` from the track repository root.
+
+**Worked example** on the public dev unit `units/t4-EXAMPLE-eps-beat/` in the track repository. The offsets are real: each
+citation slices exactly the quoted premise out of the document's flat text, so both premises
+are verbatim quotes. The label and the reasoning are illustrative, not a statement about the
+outcome.
+
+```json
+{
+  "task_id": "t4-EXAMPLE-eps-beat",
+  "entity_predictions": [
+    {
+      "entity_id": "AAPL",
+      "label": "beat",
+      "interval": {"level": 0.90, "lo": 1.42, "hi": 1.68},
+      "claims": [
+        {
+          "doc_id": "EDGAR_0000320193_10Q_20240202",
+          "span_start": 295,
+          "span_end": 433,
+          "claim": "Services net sales were $23.1 billion in the December quarter, up 11.3% year over year."
+        }
+      ]
+    }
+  ],
+  "submitted_reasons": [
+    {
+      "reason_id": "r1",
+      "premise": "total revenue is expected to grow low- to mid-single digits year over year; Services revenue is expected to grow double digits year over year; gross margin is expected to be between 46.0 and 47.0 percent",
+      "mechanism": "Guidance of revenue growth at a steady 46 to 47 percent gross margin means gross profit, and with it earnings per share, should rise year over year in the March quarter rather than fall.",
+      "answer_implication": "Supports a label of beat for AAPL: earnings growth of that kind puts diluted EPS above the 1.50 consensus.",
+      "scope": {"entities": ["AAPL"]},
+      "citations": [
+        {"doc_id": "EDGAR_0000320193_8K_20240201", "span_start": 711, "span_end": 914}
+      ]
+    },
+    {
+      "reason_id": "r2",
+      "premise": "Services net sales were $23.1 billion for the three months ended December 30, 2023, an increase of $2.3 billion, or 11.3%, year over year.",
+      "mechanism": "Services carry a gross margin far above the company average, so double-digit Services growth lifts profit faster than revenue.",
+      "answer_implication": "Adds to the case that AAPL's earnings clear the consensus by more than the 5% threshold (beat).",
+      "scope": {"entities": ["AAPL"]},
+      "citations": [
+        {"doc_id": "EDGAR_0000320193_10Q_20240202", "span_start": 295, "span_end": 433}
+      ]
+    }
+  ]
+}
+```
 
 ## The resource contract
 
@@ -286,32 +538,58 @@ are x86-64 B200 (sm_100); build `linux/amd64`.
 
 ## Scoring, and what a public run can and cannot tell you
 
-`composite = 0.70 × predictive_quality − 0.30 × |interval_coverage − 0.90|`, gated on **citation
-faithfulness ≥ 0.80** and **zero embargo violations**. An entity counts as supported when — under
-`hypothesis.py`, which derives the hypothesis from your PREDICTION fields rather than your prose —
-ensemble-NLI entailment of `(cited span, canonical prediction hypothesis)` exceeds
-`tau_citation = 0.5`. Each roster entity passes when at least one of its citations exceeds that
-threshold; at least 80% of roster entities must pass. `predictive_quality` is accuracy / MAE
-skill score / rescaled Spearman by
-`target_type`.
+`composite = 0.70 × predictive_quality + 0.30 × interval_quality` (scorer 5.1.0; 5.0.0 subtracted
+`0.30 × |interval_coverage − 0.90|`; from scorer 5.2.0 a unit without an interval leg scores the
+prediction leg alone), multiplied from scorer 5.2.0 by the faithfulness factor
+`1 − F / (F + min(T, 3 × E))` (F false claims, T other claims, E entities), and gated on **zero embargo
+violations** and the structural checks. A claim is false when it cites a document the manifest
+does not bind to its entity (nor marks shared), cites an out-of-range slice, is malformed, states
+any figure no cited span carries (exact code), or when the ensemble's three-way NLI
+probability that the cited span contradicts your claim text exceeds `contradiction_bar = 0.9`
+(the penalty denominator is F + min(T, 3 × E), not the raw claim count, so padding past 3 × E does
+not dilute a false claim; see "How faithfulness is judged" above). `predictive_quality` is accuracy / soft ratio against the unit's naive rule,
+`naive_mae/(naive_mae+mae)` / rescaled Spearman by `target_type`. From scorer 5.2.0 accuracy and
+rescaled Spearman are **anchored to the naive rule**: 0 stays 0, the unit's declared naive rule
+scores 0.5, a perfect answer 1, linear in between; the anchor is the stronger of the naive rule's
+quality and, on ranking, a constant forecast's 0.5.
 
 **An ineligible or inadmissible unit does not drop out of the aggregate.** `scoring.py`: *"An
 inadmissible unit scores W, not `None`. The frozen policy is a pre-committed worst value that stays
-in the denominator."* `W = 0·w_a − w_c·interval_level = **−0.27**` (`DOMAIN_MIN`), and
+in the denominator."* `W = 0·w_a + 0·w_c = **0.0**` (shown as −0.27 on the leaderboard, which is −0.27 + 1.27 × analysis; `DOMAIN_MIN`; scorer 5.1.0, where both legs
+are ratios in [0, 1] — 5.0.0 used `0·w_a − w_c·interval_level = −0.27`), and
 `UnitOutcome.score` is documented "ALWAYS a float in the frozen domain — never `None`". So a risky
-answer that might be ruled ineligible stays in the denominator at the **same floor as the
-worst admissible score**. Omitting a unit cannot remove its penalty. (The one
-surviving `None` is the public practice path, where no `reference/outcome.json` is mounted.)
+answer that might be ruled ineligible is **not free**: it takes W and stays in the denominator, and
+no unit can be dropped by failing it.
 
-**The calibration term is a penalty on miscoverage, not a reward for coverage — and it is not
-symmetric in reach.** `scoring.py:615` is
-`composite = w_a * quality − w_c * abs(coverage − params.interval_level)`. The coefficient is
-symmetric, but with `interval_level = 0.90` and coverage in `[0,1]` the worst over-coverage term is
-`w_c × 0.10` while the worst under-coverage term is `w_c × 0.90` — **nine times larger**. Erring
-wide is far cheaper than erring tight. Note also that `:216-230` compares your `interval.level`
-against the **unit's** `interval_level`, not a hardcoded 0.90; the schema's `const: 0.9` happens to
-agree today. A unit whose reference roster carries no numeric target has **no calibration leg** at
-all — the term is dropped and `composite = 0.70 × predictive_quality`.
+An inadmissible answer scores W; every admissible answer scores above W on any unit with an
+interval leg, because the interval leg is always positive. (On a pure-label or interval-exempt unit
+the composite is the prediction leg alone from scorer 5.2.0, so an admissible answer with every
+label wrong scores exactly W = 0.0 (shown as −0.27 on the leaderboard) — and still no worse than failing.) Measured on a four-entity regression
+unit under scorer 5.1.0, naive rule 2.5 with interval [0.5, 3.5]:
+
+| answer                                                         | composite (5.1.0) | 5.0.0   |
+|:---------------------------------------------------------------|------------------:|--------:|
+| perfect forecast, interval [0.5, 4.5] covering every value     |           +0.8737 | +0.6700 |
+| bad forecast (all 0), very wide interval [−1000, 1000]          |           +0.2008 | +0.1700 |
+| bad forecast (all 0), zero-width interval at 0                 |           +0.2297 | −0.0700 |
+| inadmissible (one roster entity omitted)                       |            0.0000 | −0.2700 |
+
+Under 5.0.0 the zero-width row was the worst admissible answer. Under 5.1.0 it is not: the interval
+leg charges width, so the ±1000 interval now scores below the zero-width miss. Every admissible row
+stays above the inadmissible one. Answer rather than omitting. (The one surviving `None` is the public practice path, where no
+`reference/outcome.json` is mounted.)
+
+**The interval leg is an interval score against the unit's naive interval (scorer 5.1.0).** Per
+row the score is the width `hi − lo` plus `2/alpha` (20 at 90%) times the distance by which the
+realized value falls outside `[lo, hi]`, averaged over the roster; `interval_quality =
+naive / (naive + yours)`, 0.5 when your intervals match the naive rule's. Width costs and misses
+cost twenty times their distance, so neither erring wide nor erring tight is free. (5.0.0 scored
+`− w_c × |coverage − interval_level|` instead, which made erring wide nearly free.) Your
+`interval.level` must equal the **unit's** `interval_level`; the schema's `const: 0.9` happens to
+agree today. A unit whose reference roster carries no numeric target, or a classification unit
+whose card declares `interval_leg = false` (its numeric truth is only a label code), has **no
+interval leg** at all — from scorer 5.2.0 `composite = predictive_quality` (anchored), not capped
+at 0.70 (5.1.0: `0.70 × predictive_quality`).
 A statistical prediction alone does not establish admissibility: the submitted answer must
 also satisfy the citation and embargo checks. This guide makes no measured accuracy or
 faithfulness-pass-rate claim for a text-blind baseline.
@@ -381,11 +659,13 @@ Expect **exit 0** and a schema-valid `/tmp/run/output/answer.json`. Then, in ord
 |---|---|
 | `units/t4-EXAMPLE-eps-beat/` | a public exemplar; one entity, one family, one target type |
 | `qfbench2_track_analysis/scoring.py` | the real gates and composite. Read `_g3_domain_semantics` and `_score` |
+| `qfbench2_track_analysis/numeric.py` | the numeric backstop: what counts as a figure, what is tolerated, and the anchored rule's stated limit |
 | `baselines/strong_rag_baseline/indexer.py` | offset arithmetic; handles flat `text` first, `spans` second |
 | `baselines/strong_rag_baseline/span_finder.py` | locate model quotes as exact substrings; never trust model offsets |
 | `baselines/baseline_agent/` | runnable std-lib floor. Read traps 4 and 5 first |
 | `baselines/guardrails_example/` | advisory citation rail. Never scored |
 | `faithfulness/judge.py` | the pinned DeBERTa NLI ensemble |
+| `docs/CONCEPTS.md` § Faithfulness | the canonical description of the gate and what it does not measure |
 | `docs/CATEGORIES.md` | an illustrative taxonomy — not a roster; do not hardcode families |
 | `templates/answer.example.json` | the canonical output shape |
 

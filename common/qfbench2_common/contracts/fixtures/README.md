@@ -23,6 +23,8 @@ for track, phase, descriptor in iter_c5_fixtures():
 |---|---|---|
 | `c1/<track>_final.expanded.json` | C1 | Resolver/scorer form: carries unit identities |
 | `c1/coding_final.public.json` | C1 | Public commitment: counts, digests and policy only |
+| `c1/analysis_final.scorer-5.1.0.expanded.json` | C1 | **TEST FIXTURE (not a signature)**: Track 4 for scorer 5.1.0 (W = 0.0, domain [0, 1], C1 1.3.0 `interval_leg`, and `labels` on its classification unit). Dev-key envelope only. `development_plan(track="analysis")` derives from it |
+| `c1/analysis_final.expanded.json` | C1 | Track 4 as frozen for scorer <= 5.0.0 (W = -0.27). Kept byte-for-byte as a record; its bytes are pinned by `tests/test_c1_analysis_scorer_versions.py` |
 | `c2_run_record.json` | C2 | A successful, rankable coding run, bound to the C1/C3/C5/C7 files here |
 | `c3_artifact_tree.json` | C3 | Three sanitized entries, one recorded symlink rejection |
 | `c4_unit_result.json` | C4 | `participant_success` |

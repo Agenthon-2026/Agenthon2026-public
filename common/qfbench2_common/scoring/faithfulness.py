@@ -55,8 +55,10 @@ __all__ = [
     "embargo_violations",
     "interval_coverage",
     "iter_claims",
+    "mean_interval_score",
     "parse_embargo_date",
     "predictive_quality",
+    "regression_mae_skill_v1",
 ]
 
 #: The ONE accepted spelling of a date on this path. `date.fromisoformat` is too permissive on
@@ -302,6 +304,32 @@ def interval_coverage(
     return float(np.mean((y >= lo) & (y <= hi)))
 
 
+def _interval_score_row(lo: float, hi: float, y: float, alpha: float) -> float:
+    """One row's interval score: width plus ``2/alpha`` times the distance outside the interval."""
+    return (hi - lo) + (2.0 / alpha) * max(lo - y, 0.0) + (2.0 / alpha) * max(y - hi, 0.0)
+
+
+def mean_interval_score(
+    lo: Sequence[float], hi: Sequence[float], y: Sequence[float], interval_level: float
+) -> float:
+    """Mean interval score over every roster row (same alignment and denominator as MAE).
+
+    Per row, with ``alpha = 1 - interval_level`` (Gneiting & Raftery 2007)::
+
+        IS = (hi - lo) + (2/alpha) * max(lo - y, 0) + (2/alpha) * max(y - hi, 0)
+
+    Lower is better. Track 4 scorer 5.1.0 scores its interval leg as
+    ``naive_IS / (naive_IS + IS)`` against the unit's declared naive interval. Moved here from
+    ``qfbench2_track_analysis.scoring`` (2026-09-28) so the track does not keep its own scoring
+    function. Rows are never dropped: ``lo``, ``hi`` and ``y`` must have one value per roster
+    row, and an empty roster or a length mismatch raises ``OrganizerFault``.
+    """
+    if not (len(lo) == len(hi) == len(y)) or not y:
+        raise OrganizerFault("interval score needs one lo, hi and y per roster row")
+    alpha = 1.0 - float(interval_level)
+    return sum(_interval_score_row(a, b, t, alpha) for a, b, t in zip(lo, hi, y)) / len(y)
+
+
 def analysis_composite(
     pred_dir: NDArray,
     true_dir: NDArray,
@@ -313,7 +341,14 @@ def analysis_composite(
     interval_level: float = 0.90,
     weights: tuple[float, float] = (0.7, 0.3),
 ) -> dict[str, float | bool]:
-    """Composite = w_a * directional_accuracy - w_c * |coverage - level|, reported with the
+    """RETIRED for scorer <= 5.0.0: kept exported for records and tests only; nothing on a scoring
+    path calls it.
+
+    Track 4 scorer 5.1.0 scores ``0.70 * predictive_quality + 0.30 * interval_quality`` on a
+    [0, 1] domain (see ``predictive_quality`` and ``mean_interval_score``); this function still
+    computes the scorer <= 5.0.0 formula and its numbers will not match a 5.1.0 score.
+
+    Composite = w_a * directional_accuracy - w_c * |coverage - level|, reported with the
     faithfulness gate. `eligible` is False if faithfulness < threshold (set elsewhere if an
     embargo violation exists). Higher composite is better; ineligible => unranked."""
     w_a, w_c = weights
@@ -336,8 +371,44 @@ def analysis_composite(
 # --------------------------------------------------------------------------- #
 # Track 4 units come in three target types. `directional_accuracy` (above) covers the
 # classification/directional case only; `predictive_quality` generalises it so the public
-# verifier and the private final scorer share ONE implementation of the regression (MAE-skill)
-# and ranking (Spearman) metrics instead of each carrying a duplicate copy.
+# verifier and the private final scorer share ONE implementation of the regression (soft ratio
+# against the unit's declared naive rule) and ranking (Spearman) metrics instead of each carrying a
+# duplicate copy.
+
+
+def regression_mae_skill_v1(pred_values: Sequence[float], true_values: Sequence[float]) -> float:
+    """The RETIRED regression formula, kept as a named helper for records and tests only.
+
+    ``clamp(1 - MAE / baseline_MAE, 0, 1)``, where baseline_MAE is the MAE of predicting the
+    cross-entity mean of the realized values; a missing / NaN prediction is scored at that mean;
+    a zero-dispersion truth scores 1.0 only if solved exactly, else 0.0. Retired 2026-09-24 in
+    favour of the soft ratio in ``predictive_quality``. Nothing on the scoring path calls this.
+    """
+    tv_all = [float(t) for t in true_values]
+    idx = [i for i in range(len(tv_all)) if not math.isnan(tv_all[i])]
+    n = len(idx)
+    if n == 0:
+        return 0.0
+    tv = [tv_all[i] for i in idx]
+    mean_true = sum(tv) / n
+    baseline_mae = sum(abs(t - mean_true) for t in tv) / n
+
+    def _pred_at(i: int) -> float:
+        return float(pred_values[i]) if i < len(pred_values) else float("nan")
+
+    if baseline_mae <= 0:
+        solved = all(
+            (not math.isnan(_pred_at(i))) and abs(_pred_at(i) - tv_all[i]) <= 1e-12 for i in idx
+        )
+        return 1.0 if solved else 0.0
+    err = 0.0
+    for i in idx:
+        p = _pred_at(i)
+        if math.isnan(p):
+            p = mean_true
+        err += abs(p - tv_all[i])
+    mae = err / n
+    return max(0.0, min(1.0, 1.0 - mae / baseline_mae))
 
 
 def predictive_quality(
@@ -346,12 +417,20 @@ def predictive_quality(
     true_labels: Sequence,
     pred_values: Sequence[float],
     true_values: Sequence[float],
+    *,
+    naive_values: Sequence[float] | None = None,
 ) -> float:
     """Predictive quality in [0, 1] for one Track-4 unit, by ``target_type``:
 
       classification -> label accuracy (fraction of entities whose predicted label matches);
-      regression     -> MAE skill = clamp(1 - MAE / baseline_MAE, 0, 1), where baseline_MAE is the
-                        MAE of predicting the cross-entity mean of the realized values;
+      regression     -> soft ratio against the unit's DECLARED naive rule:
+                        ``naive_mae / (naive_mae + mae)``, both MAEs over the graded entities,
+                        ``naive_values`` being that rule's point forecast aligned exactly as the
+                        prediction is. Matching the naive rule's error scores 0.5, the truth
+                        scores 1.0, and both exact scores 1.0. ``naive_values`` is REQUIRED here:
+                        ``None`` raises ``ValueError`` (a missing scoring parameter, never a
+                        fallback). The retired clamp(1 - MAE / dispersion_MAE) formula survives
+                        only as ``regression_mae_skill_v1``, for records and tests;
       ranking        -> Spearman rank correlation (average ranks, so ties are ties) rescaled
                         to [0, 1]; n < 2 -> 0.5; a constant or information-free prediction ->
                         0.5; nothing predicted at all -> 0.0.
@@ -369,15 +448,22 @@ def predictive_quality(
 
     **The denominator never shrinks**: a
     missing prediction (``pred`` shorter than the truth) or a ``NaN`` prediction is still graded,
-    scored worst-case on its own entity -- classification -> counted wrong; regression -> scored at
-    the baseline/mean, i.e. zero skill on that entity; ranking -> ranked below every value the
+    scored worst-case on its own entity -- classification -> counted wrong; regression -> the
+    WHOLE UNIT scores 0.0 if any graded entity is missing or NaN, so an empty or all-NaN answer
+    scores exactly 0.0 (ruled 2026-09-28; before that a missing entity was scored at the naive
+    value, which made a blank answer score 0.5); ranking -> ranked below every value the
     submission did provide. Withholding an entity is therefore never *free*, and no answer can be
     made to look better by being made shorter.
 
     What this does **not** amount to is a monotonicity guarantee, and this docstring used to claim
     one: it said a solver "can never raise its score by predicting only a favourable subset and
-    omitting / NaN-ing the rest". For ``classification`` and ``regression`` that holds, because both
-    are per-entity averages and a worst-cased entity can only pull the average down. For
+    omitting / NaN-ing the rest". For ``classification`` that holds, because it is a per-entity
+    average and a worst-cased entity can only pull the average down. For ``regression`` it holds
+    because any withheld entity scores the unit 0.0, the floor of the soft ratio. That is
+    deliberate: the ratio pools the MAE across entities, so under any per-entity partial credit
+    dropping one very bad value could beat answering it (truth ``[1, 2, 3, 4, 5]``, naive
+    ``[3] * 5``: answering ``[1, 2, 3, 4, 1000]`` scores about 0.006, which beats withholding the
+    last value, 0.0). For
     ``ranking`` it is false, and measurably so, because Spearman is a correlation over the whole
     vector rather than a sum of per-entity terms: worst-casing an entity moves every other entity's
     rank too. Measured on this repository 2026-08-29 against truth ``[1, 2, 3, 4, 5]``: the fully
@@ -393,34 +479,45 @@ def predictive_quality(
     ``qfbench2_track_analysis.scoring``, and it is only reachable on ``target_type = "ranking"``.
     """
     if target_type == "regression":
+        if naive_values is None:
+            raise ValueError(
+                "regression predictive quality needs the unit's declared naive baseline "
+                "(naive_values); a regression unit scored without its naive rule is a missing "
+                "scoring parameter, not a fallback to the retired MAE-skill formula"
+            )
         tv_all = [float(t) for t in true_values]
+        nv_all = [float(v) for v in naive_values]
+        if len(nv_all) != len(tv_all):
+            raise ValueError(
+                f"the naive baseline covers {len(nv_all)} entities but the truth covers "
+                f"{len(tv_all)}; the naive rule must be aligned to the same roster"
+            )
         idx = [i for i in range(len(tv_all)) if not math.isnan(tv_all[i])]
+        if any(not math.isfinite(nv_all[i]) for i in idx):
+            raise ValueError("the naive baseline carries a nonfinite point forecast")
         n = len(idx)
         if n == 0:
             return 0.0
-        tv = [tv_all[i] for i in idx]
-        mean_true = sum(tv) / n
-        baseline_mae = sum(abs(t - mean_true) for t in tv) / n
 
         def _pred_at(i: int) -> float:
             return float(pred_values[i]) if i < len(pred_values) else float("nan")
 
-        if baseline_mae <= 0:
-            # No cross-entity variance to predict: skill is only meaningful as perfect-or-nothing.
-            solved = all(
-                (not math.isnan(_pred_at(i))) and abs(_pred_at(i) - tv_all[i]) <= 1e-12 for i in idx
-            )
-            return 1.0 if solved else 0.0
-        # A missing / NaN prediction is scored at the baseline (mean) -> zero skill on that entity,
-        # so omitting hard entities can neither help nor be dropped for gain.
+        # Any missing / NaN prediction on a graded entity scores the whole unit 0.0 (ruled
+        # 2026-09-28). An empty or all-NaN answer is the same case. The soft ratio pools the MAE
+        # across entities, so any per-entity partial credit would let a solver drop one very bad
+        # value and score above answering it; only zeroing the unit closes that.
+        if any(math.isnan(_pred_at(i)) for i in idx):
+            return 0.0
+        naive_err = 0.0
         err = 0.0
         for i in idx:
-            p = _pred_at(i)
-            if math.isnan(p):
-                p = mean_true
-            err += abs(p - tv_all[i])
+            err += abs(_pred_at(i) - tv_all[i])
+            naive_err += abs(nv_all[i] - tv_all[i])
+        naive_mae = naive_err / n
         mae = err / n
-        return max(0.0, min(1.0, 1.0 - mae / baseline_mae))
+        if naive_mae == 0 and mae == 0:
+            return 1.0
+        return naive_mae / (naive_mae + mae)
 
     if target_type == "ranking":
         tv = [float(t) for t in true_values]

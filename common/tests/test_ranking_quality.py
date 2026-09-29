@@ -211,9 +211,15 @@ class TestWithholdingCanMoveARankingScoreEitherWay:
 
     def test_regression_really_is_monotone_under_withholding(self):
         truth = [1.0, 2.0, 3.0, 4.0, 5.0]
-        full = predictive_quality("regression", [], [], truth, truth)
+        naive = [3.0] * 5
+        full = predictive_quality("regression", [], [], truth, truth, naive_values=naive)
         subset = predictive_quality(
-            "regression", [], [], [1.0, 2.0, math.nan, math.nan, math.nan], truth
+            "regression",
+            [],
+            [],
+            [1.0, 2.0, math.nan, math.nan, math.nan],
+            truth,
+            naive_values=naive,
         )
         assert subset < full
 

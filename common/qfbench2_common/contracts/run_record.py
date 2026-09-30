@@ -42,6 +42,20 @@ Other frozen rules encoded here:
   previously recorded as `daemon_default`, which is false: no daemon default was consulted, an
   operator made a choice. A record that lies to an auditor is worse than one that admits a gap.
 
+### New in C2 1.3.0 — a signed participant refusal
+
+`participant_refusal` is the Runner's signed verdict on the OUTPUT of a run the daemon saw exit 0
+cleanly: no stable output, no readable trace, an invalid sidecar, repeats whose stable outputs
+differ, or a tree the sanitizer refused. Daemon facts alone derive such a run as `success`, so
+before 1.3.0 no signed record could state the failure and the Runner could only hold the unit as
+the organizer's. Every 1.3.0 record carries the member: `null`, or one code from the closed set
+`PARTICIPANT_REFUSAL_CODES`. A code is the one fact besides the daemon's that makes
+`participant_outcome` a `failure`, and it is refused on a record that attributes the run to the
+organizer (`execution_fault` infrastructure or `organizer_failure`) or whose lifecycle already
+derives a failure. `PARTICIPANT_REFUSAL_FAILURE_CODES` names the public failure code each is
+scored as; the failure-code registry is unchanged. 1.1.0 and 1.2.0 records are read exactly as
+before. See `MIGRATIONS.md`.
+
 ### New in C2 1.2.0 — bounded host execution faults
 
 `execution_fault` records a diagnosis derived from host lifecycle facts. Create timeouts and
@@ -76,6 +90,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from ._time import parse_rfc3339
+from .codes import FailureCode
 from .digest import digest_json, parse_digest
 from .errors import (
     ContractError,
@@ -104,6 +119,8 @@ __all__ = [
     "LIFECYCLE_PHASES",
     "NON_REPRODUCIBLE_GPU_SELECTORS",
     "OPERATOR_OVERRIDE_CONTROLS",
+    "PARTICIPANT_REFUSAL_CODES",
+    "PARTICIPANT_REFUSAL_FAILURE_CODES",
     "RANKABILITY_STATES",
     "UNMET_CONTROLS",
     "AppliedControl",
@@ -119,8 +136,18 @@ __all__ = [
     "telemetry_admissible_for_timing",
 ]
 
-SCHEMA_VERSION = "1.2.0"
+SCHEMA_VERSION = "1.3.0"
+#: The first version that carries `participant_refusal`.
+PARTICIPANT_REFUSAL_SCHEMA_VERSION = "1.3.0"
+#: The first version that carries `execution_fault`; every later version carries it too.
+EXECUTION_FAULT_SCHEMA_VERSION = "1.2.0"
 LEGACY_SCHEMA_VERSION = "1.1.0"
+#: Exactly these are read, oldest first. Anything else, including another 1.x, is refused.
+SUPPORTED_SCHEMA_VERSIONS = (
+    LEGACY_SCHEMA_VERSION,
+    EXECUTION_FAULT_SCHEMA_VERSION,
+    PARTICIPANT_REFUSAL_SCHEMA_VERSION,
+)
 LIFECYCLE_PHASES = ("created", "started", "exited", "killed")
 RANKABILITY_STATES = ("rankable", "unrankable", "organizer_failure")
 
@@ -198,6 +225,33 @@ OPERATOR_OVERRIDE_CONTROLS: Mapping[str, str] = {
     "gpu": "gpu_device_unpinned",
     "network": "egress_unverified",
     "limits": "tier_unenforced",
+}
+
+#: C2 1.3.0. What the Runner may sign as `participant_refusal`: its verdict on the output of a run
+#: the daemon saw exit 0 cleanly. The set is closed; anything else is refused, never an "other".
+#:
+#: * `no_stable_output` — the run exited 0 and left none of the output the unit requires;
+#: * `trace_missing`    — the run exited 0 and its trace cannot be read;
+#: * `sidecar_invalid`  — a sidecar the run wrote is invalid;
+#: * `repeats_differ`   — the repeats' stable outputs differ;
+#: * `output_refused`   — the sanitizer refused the output tree.
+PARTICIPANT_REFUSAL_CODES = (
+    "no_stable_output",
+    "trace_missing",
+    "sidecar_invalid",
+    "repeats_differ",
+    "output_refused",
+)
+
+#: The public failure code each refusal is scored as. Every target is an existing code: the
+#: failure-code registry does not change. One table, read by the shared scoring driver and by a
+#: track scorer that reads C2 itself, so the two cannot report different codes for one run.
+PARTICIPANT_REFUSAL_FAILURE_CODES: Mapping[str, FailureCode] = {
+    "no_stable_output": FailureCode.NO_OUTPUT,
+    "trace_missing": FailureCode.MALFORMED_OUTPUT,
+    "sidecar_invalid": FailureCode.SCHEMA_INVALID,
+    "repeats_differ": FailureCode.INCOMPLETE_OUTPUT,
+    "output_refused": FailureCode.MALFORMED_OUTPUT,
 }
 
 #: Keys the frozen attestation payload excludes. Exactly one: the block carrying the signature,
@@ -301,14 +355,24 @@ class Lifecycle:
         )
 
 
-def derive_participant_outcome(lifecycle: Lifecycle) -> str:
-    """Derive `success`/`failure` from daemon facts only.
+def derive_participant_outcome(
+    lifecycle: Lifecycle, *, participant_refusal: str | None = None
+) -> str:
+    """Derive `success`/`failure` from daemon facts, and from a C2 1.3.0 participant refusal.
 
     Reads `phase_reached`, `daemon_status`, `timed_out` and `oom_killed` — channels the participant
     cannot write — and uses `exit_code` only *after* the daemon has confirmed a clean exit. The exit
     code alone is never an attribution: `ingest.py` learned that the hard way, because a container's
     stderr is attached to the same stream the daemon writes to.
+
+    `participant_refusal` is the one other fact that makes a run a `failure`: the Runner's signed
+    verdict on the output of a run the daemon saw exit 0 cleanly. `None` (the default, and every
+    record before 1.3.0) leaves the daemon facts to decide alone. A code outside
+    `PARTICIPANT_REFUSAL_CODES` is a `ContractError`, never a success.
     """
+    if participant_refusal is not None:
+        _require_refusal_code(participant_refusal)
+        return "failure"
     if lifecycle.oom_killed:
         # An OOM kill is a failure even if the daemon also reports a zero exit code. The kernel
         # ended the process; whatever the container wrote on the way out is not a completed run.
@@ -367,6 +431,56 @@ def derive_execution_fault(lifecycle: Lifecycle) -> ExecutionFault:
     if lifecycle.timed_out and lifecycle.phase_reached == "created":
         return ExecutionFault("create_timeout")
     return ExecutionFault("none")
+
+
+def _carries(schema_version: str, since: str) -> bool:
+    """Whether a supported `schema_version` is `since` or later."""
+    order = SUPPORTED_SCHEMA_VERSIONS
+    return order.index(schema_version) >= order.index(since)
+
+
+def _require_refusal_code(value: Any) -> str:
+    if not isinstance(value, str) or value not in PARTICIPANT_REFUSAL_CODES:
+        raise ContractError(
+            f"participant_refusal={value!r} is not one of {list(PARTICIPANT_REFUSAL_CODES)} or "
+            "null; the set is closed"
+        )
+    return value
+
+
+def _parse_participant_refusal(
+    raw: Any, lifecycle: Lifecycle, execution_fault: ExecutionFault | None
+) -> str | None:
+    """C2 1.3.0: `null`, or one closed code on a run the organizer's side did not fail.
+
+    Two combinations are refused here, before the outcome is compared, and a third once the
+    rankability is parsed (`organizer_failure`): each would put a participant charge and an
+    organizer fault, or two accounts of one failure, in a single signed record.
+
+    * An infrastructure `execution_fault`: an organizer fault is never charged to the participant,
+      so a record that states both is inconsistent, and the Runner never signs both.
+    * A lifecycle that already derives a failure: a timeout, an out-of-memory kill or a nonzero
+      exit is charged from the daemon facts under its own code. A refusal is the verdict on the
+      output of a run that exited 0 cleanly, which the lifecycle cannot express.
+    """
+    if raw is None:
+        return None
+    code = _require_refusal_code(raw)
+    if execution_fault is not None and execution_fault.infrastructure:
+        raise ContractError(
+            f"participant_refusal={code!r} on a record whose execution_fault attributes the run "
+            f"to infrastructure ({execution_fault.reason}). An organizer fault is never charged "
+            "to the participant, and the Runner never signs both."
+        )
+    if derive_participant_outcome(lifecycle) != "success":
+        raise ContractError(
+            f"participant_refusal={code!r} on a run the daemon facts already derive as a failure "
+            f"(phase_reached={lifecycle.phase_reached}, daemon_status={lifecycle.daemon_status}, "
+            f"exit_code={lifecycle.exit_code}, timed_out={lifecycle.timed_out}, "
+            f"oom_killed={lifecycle.oom_killed}). A refusal is recorded only for a run that "
+            "exited 0 cleanly; any other failure is charged from the lifecycle, under its own code."
+        )
+    return code
 
 
 @dataclass(frozen=True, slots=True)
@@ -536,6 +650,7 @@ _TOP_KEYS = (
     "observation",
     "attestation",
     "execution_fault",
+    "participant_refusal",
 )
 
 
@@ -562,6 +677,8 @@ class RunRecord:
     observation: Mapping[str, Any]
     attestation: Attestation | None
     execution_fault: ExecutionFault | None = None
+    #: C2 1.3.0: one of `PARTICIPANT_REFUSAL_CODES`, or None. Always None before 1.3.0.
+    participant_refusal: str | None = None
     raw: Mapping[str, Any] = field(default_factory=dict, repr=False)
 
     # ------------------------------------------------------------------ parsing
@@ -570,7 +687,7 @@ class RunRecord:
         _as_object(raw, "run_record")
         reject_unknown_keys(raw, _TOP_KEYS, path="run_record")
         schema_version = req_str(raw, "schema_version", path="run_record")
-        if schema_version not in (LEGACY_SCHEMA_VERSION, SCHEMA_VERSION):
+        if schema_version not in SUPPORTED_SCHEMA_VERSIONS:
             raise ContractError(f"unsupported C2 schema_version {schema_version!r}")
 
         bindings_raw = req_mapping(raw, "bindings", path="run_record")
@@ -605,21 +722,35 @@ class RunRecord:
 
         lifecycle = Lifecycle.from_mapping(req(raw, "lifecycle", path="run_record"))
         execution_fault = None
-        if schema_version == SCHEMA_VERSION:
+        if _carries(schema_version, EXECUTION_FAULT_SCHEMA_VERSION):
             execution_fault = ExecutionFault.from_mapping(
                 req(raw, "execution_fault", path="run_record"), lifecycle
             )
         elif "execution_fault" in raw:
-            raise ContractError("execution_fault requires C2 schema_version 1.2.0")
+            raise ContractError("execution_fault requires C2 schema_version 1.2.0 or later")
+        participant_refusal = None
+        if _carries(schema_version, PARTICIPANT_REFUSAL_SCHEMA_VERSION):
+            participant_refusal = _parse_participant_refusal(
+                req(raw, "participant_refusal", path="run_record", allow_null=True),
+                lifecycle,
+                execution_fault,
+            )
+        elif "participant_refusal" in raw:
+            raise ContractError("participant_refusal requires C2 schema_version 1.3.0 or later")
         outcome = req_enum(raw, "participant_outcome", PARTICIPANT_OUTCOMES, path="run_record")
-        derived = derive_participant_outcome(lifecycle)
+        derived = derive_participant_outcome(lifecycle, participant_refusal=participant_refusal)
         if outcome != derived:
+            refusal = (
+                ""
+                if participant_refusal is None
+                else f", participant_refusal={participant_refusal}"
+            )
             raise ContractError(
                 f"participant_outcome={outcome!r} but the daemon facts derive {derived!r} "
                 f"(phase_reached={lifecycle.phase_reached}, daemon_status="
                 f"{lifecycle.daemon_status}, exit_code={lifecycle.exit_code}, "
-                f"timed_out={lifecycle.timed_out}, oom_killed={lifecycle.oom_killed}). The "
-                "outcome is derived from channels the "
+                f"timed_out={lifecycle.timed_out}, oom_killed={lifecycle.oom_killed}{refusal}). "
+                "The outcome is derived from channels the "
                 "participant cannot write, never asserted independently."
             )
         rankability = Rankability.from_mapping(
@@ -631,6 +762,12 @@ class RunRecord:
         elif rankability.state == "organizer_failure" and not rankability.unmet_controls:
             raise ContractError(
                 "organizer_failure without unmet controls requires an established execution_fault"
+            )
+        if participant_refusal is not None and rankability.state == "organizer_failure":
+            raise ContractError(
+                f"participant_refusal={participant_refusal!r} on a record that declares "
+                f"organizer_failure ({list(rankability.unmet_controls)}). An organizer fault is "
+                "never charged to the participant, and the Runner never signs both."
             )
 
         timing_raw = req_mapping(raw, "timing", path="run_record")
@@ -760,6 +897,7 @@ class RunRecord:
             observation=dict(observation),
             attestation=attestation,
             execution_fault=execution_fault,
+            participant_refusal=participant_refusal,
             raw=dict(raw),
         )
 

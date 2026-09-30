@@ -152,3 +152,81 @@ fault data; an invalid signature aborts evaluation. Test fixtures that intention
 record must sign their final payload unless the test is explicitly exercising tampering.
 
 This participant-toolkit port provides the canonical reader. It does not package the private ingestion or scoring programs, activate the Runner, or establish production signing custody.
+
+---
+
+# C2 1.2.0 → 1.3.0 — a signed participant refusal
+
+A run can exit 0 and still fail through the participant's own doing: it leaves none of the stable
+output the unit requires, its trace cannot be read, a sidecar it wrote is invalid, its repeats'
+stable outputs differ, or the sanitizer refuses its output tree. Daemon facts alone derive such a
+run as `success`, so no signed C2 could state the failure, and a Runner that found one could only
+hold the unit as the organizer's. C2 now carries the Runner's verdict as one signed member, and
+the scoring driver charges it as a participant failure.
+
+Only C2 changes version. C1 `schema_version`, `contract_set`, C3–C8 and the C4 failure-code
+registry stay at their existing versions: every refusal is scored as a code the registry already
+has. This migration does not change the failure penalty or the expected roster.
+
+## New member
+
+Every 1.3.0 record requires `participant_refusal`, inside the existing attestation payload. It is
+`null` when the Runner refused nothing, or one code from a closed set:
+
+```json
+"participant_refusal": "repeats_differ"
+```
+
+| `participant_refusal` | The run exited 0 cleanly, and | Scored as |
+|---|---|---|
+| `no_stable_output` | left none of the stable output the unit requires | `no_output` |
+| `trace_missing` | its trace cannot be read | `malformed_output` |
+| `sidecar_invalid` | a sidecar it wrote is invalid | `schema_invalid` |
+| `repeats_differ` | its repeats' stable outputs differ | `incomplete_output` |
+| `output_refused` | the sanitizer refused its output tree | `malformed_output` |
+
+`run_record.PARTICIPANT_REFUSAL_CODES` is the closed set and
+`run_record.PARTICIPANT_REFUSAL_FAILURE_CODES` is the table. The scoring driver and a track scorer
+that reads C2 itself use the same table, so they cannot report different codes for one run.
+
+## What the parser enforces
+
+- The member is required on 1.3.0, where an explicit `null` is the statement "nothing was
+  refused", and refused on 1.1.0 and 1.2.0. A value outside the closed set is refused, never read
+  as an "other".
+- A code makes `participant_outcome` a `failure`:
+  `derive_participant_outcome(lifecycle, participant_refusal=code)`. A record that declares
+  `success` beside a refusal does not parse, and neither does a clean exit that declares `failure`
+  without one.
+- A refusal is refused on a record that attributes the run to the organizer: an infrastructure
+  `execution_fault`, or `rankability.state = organizer_failure`. An organizer fault is never
+  charged to the participant, and the Runner never signs both.
+- A refusal is refused on a lifecycle that already derives a failure. A timeout, an out-of-memory
+  kill or a nonzero exit keeps its lifecycle code (`resource_timeout`, `resource_oom`,
+  `container_crashed`, `image_unusable`); a refusal describes a run the lifecycle calls a success.
+- The member is inside the attestation payload, so a refusal added, removed or changed after
+  signing fails verification.
+
+## How it is scored
+
+The scoring driver still checks organizer failure first and aborts the whole evaluation on one,
+and it still charges a canary hit as `contamination_detected` before it reads the outcome. A
+refusal then takes the participant-failure branch like any other failed run: the unit keeps its
+place in the C1 denominator at the plan's worst-case score `W`, with the public code from the
+table, and no track scorer is asked about it.
+
+## Reader and writer migration
+
+1. Upgrade the C2 readers and the scoring bundles first, together. An older toolkit refuses a
+   1.3.0 record outright (an unsupported version, or an unknown field), so a writer-first rollout
+   aborts evaluations rather than scoring them. A scoring driver that predates this change would,
+   on a newer toolkit, charge a refusal under the lifecycle code `container_crashed`, so the bundle
+   and the toolkit it runs on move in one release.
+2. 1.1.0 and 1.2.0 records are read exactly as before: no member is injected, their signed bytes
+   are unchanged, and they score as they did.
+3. Upgrade the Runner writer to emit 1.3.0 for every new record, with `participant_refusal: null`
+   unless it refuses the output of a clean exit. It signs a refusal only on a record it would
+   otherwise charge (no infrastructure fault, no `organizer_failure`), never beside a lifecycle
+   failure, and `derive_participant_outcome` gives the outcome to sign.
+4. A track scorer that reads C2 itself reads the same member and the same table.
+5. The Development self-attester stays on 1.1.0.

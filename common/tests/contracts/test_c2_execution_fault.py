@@ -120,7 +120,9 @@ def test_schema_accepts_both_versions_but_requires_new_fault_field():
         jsonschema.validate(missing, schema)
 
 
-@pytest.mark.parametrize("version", ["1", "1.0.0", "1.3.0", "1.2.1", "1.2", "1.2.0-extra", "2.0.0"])
+@pytest.mark.parametrize(
+    "version", ["1", "1.0.0", "1.3.1", "1.4.0", "1.2.1", "1.2", "1.2.0-extra", "2.0.0"]
+)
 @pytest.mark.parametrize("with_fault", [False, True])
 def test_unsupported_versions_cannot_bypass_fault_requirements(version, with_fault):
     doc = document()

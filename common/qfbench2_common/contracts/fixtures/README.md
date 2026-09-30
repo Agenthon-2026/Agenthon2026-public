@@ -26,6 +26,8 @@ for track, phase, descriptor in iter_c5_fixtures():
 | `c1/analysis_final.scorer-5.1.0.expanded.json` | C1 | **TEST FIXTURE (not a signature)**: Track 4 for scorer 5.1.0 (W = 0.0, domain [0, 1], C1 1.3.0 `interval_leg`, and `labels` on its classification unit). Dev-key envelope only. `development_plan(track="analysis")` derives from it |
 | `c1/analysis_final.expanded.json` | C1 | Track 4 as frozen for scorer <= 5.0.0 (W = -0.27). Kept byte-for-byte as a record; its bytes are pinned by `tests/test_c1_analysis_scorer_versions.py` |
 | `c2_run_record.json` | C2 | A successful, rankable coding run, bound to the C1/C3/C5/C7 files here |
+| `c2_participant_refusal/<code>.json` | C2 | C2 1.3.0: one signed Track 3 Final record for each of the five `participant_refusal` codes, and `null.json` for none. Bound to `c1/simulation_final.expanded.json` and `c3_artifact_tree.json`; the descriptor, C7 and image digests are synthetic. Written by `tests/contracts/test_c2_participant_refusal.py --write-fixtures` |
+| `c2_participant_refusal/invalid/refusal_with_execution_fault.json` | C2 | Refused: a refusal beside an infrastructure `execution_fault`. Signed, so the consistency rule refuses it and not the signature |
 | `c3_artifact_tree.json` | C3 | Three sanitized entries, one recorded symlink rejection |
 | `c4_unit_result.json` | C4 | `participant_success` |
 | `c4_unit_result_failure.json` | C4 | `participant_failure` with `resource_timeout` |

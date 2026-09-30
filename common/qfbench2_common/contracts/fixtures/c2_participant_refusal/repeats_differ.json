@@ -1,0 +1,139 @@
+{
+  "schema_version": "1.3.0",
+  "run_id": "run-t3-final-u-f0a716e5c45428f1-refusal-repeats_differ",
+  "unit_handle": "u-f0a716e5c45428f1",
+  "attempt_slot_index": 0,
+  "bindings": {
+    "plan_digest": "sha256:278dec3f8a33ac707f50844854109c12bdac4c0a1e61a1fd226244de74cb4b4d",
+    "descriptor_digest": "sha256:ed19dac83e9b840f30143ee5c9c34c9df3523f5b726214f1239341da8496624a",
+    "c7_instance_digest": "sha256:ede341d72bfa09207c251e53dc87a8fc24d93203da97170cff82bf8582803b8a",
+    "sanitized_tree_digest": "sha256:3beeb951e443ebf16a1586d13563d13d993e545f2d9592a0fbcadca2683ee226"
+  },
+  "image": {
+    "requested": "docker.io/team-example/qfb2-simulator@sha256:2713beb9ec862ace965884a5bf1427b55ac88360a76fb2425adc6f5e41a50dab",
+    "resolved_digest": "sha256:2713beb9ec862ace965884a5bf1427b55ac88360a76fb2425adc6f5e41a50dab",
+    "interface_label": "qfbench2.interface=2.0"
+  },
+  "lifecycle": {
+    "phase_reached": "exited",
+    "daemon_status": "exited",
+    "daemon_error": "",
+    "exit_code": 0,
+    "signal": null,
+    "timed_out": false,
+    "oom_killed": false,
+    "cleanup_confirmed": true
+  },
+  "participant_outcome": "failure",
+  "participant_refusal": "repeats_differ",
+  "execution_fault": {
+    "attribution": "none",
+    "reason": "none",
+    "evidence": "host_lifecycle"
+  },
+  "rankability": {
+    "state": "rankable",
+    "unmet_controls": []
+  },
+  "timing": {
+    "started_at": "2026-09-30T10:00:00Z",
+    "ended_at": "2026-09-30T10:00:42Z",
+    "elapsed_sec": 42.0,
+    "applied_timeout_sec": 300.0
+  },
+  "applied": {
+    "runtime": {
+      "requested": "runsc",
+      "applied": "runsc",
+      "source": "pinned"
+    },
+    "gpu": {
+      "requested": "GPU-4c1d2e3f-a1b2-c3d4-e5f6-0a1b2c3d4e5f",
+      "applied": "GPU-4c1d2e3f-a1b2-c3d4-e5f6-0a1b2c3d4e5f",
+      "source": "pinned",
+      "uuid": "GPU-4c1d2e3f-a1b2-c3d4-e5f6-0a1b2c3d4e5f",
+      "selector": "uuid"
+    },
+    "network": {
+      "requested": "none",
+      "applied": "none",
+      "source": "pinned"
+    },
+    "limits": {
+      "cpus": {
+        "requested": 4,
+        "applied": 4,
+        "source": "pinned"
+      },
+      "memory_bytes": {
+        "requested": 17179869184,
+        "applied": 17179869184,
+        "source": "pinned"
+      },
+      "pids": {
+        "requested": 512,
+        "applied": 512,
+        "source": "pinned"
+      },
+      "storage_bytes": {
+        "requested": 10737418240,
+        "applied": 10737418240,
+        "source": "pinned"
+      }
+    }
+  },
+  "telemetry": {
+    "sampling_interval_ms": 50,
+    "samples_taken": 836,
+    "samples_expected": 840,
+    "samples_missed": 4,
+    "coverage_fraction": 0.9952,
+    "gpu_uuid": "GPU-4c1d2e3f-a1b2-c3d4-e5f6-0a1b2c3d4e5f",
+    "participant_cgroup_id": "qfb2-unit-0001",
+    "exclusive": true,
+    "contender_process_count": 0,
+    "throttled": false
+  },
+  "output_row_counts": {},
+  "repeats": [],
+  "leakage": {
+    "canary_verdict": "clean",
+    "hit_count": 0,
+    "scanned_file_count": 3,
+    "scanned_bytes": 43520
+  },
+  "worker_layer_view": [
+    {
+      "layer": "worker",
+      "runtime": "runc",
+      "docker_socket_present": true,
+      "mount_roots": [
+        "/var/lib/codabench"
+      ]
+    },
+    {
+      "layer": "unit",
+      "runtime": "runsc",
+      "docker_socket_present": false,
+      "mount_roots": [
+        "/input",
+        "/output"
+      ]
+    }
+  ],
+  "observation": {
+    "observed_by": "qfbench2-hub",
+    "notes_count": 0
+  },
+  "attestation": {
+    "observation_verdict": "confirmed",
+    "reason": "host_facts_match",
+    "signature": {
+      "alg": "Ed25519",
+      "key_id": "dev-organizer-2026",
+      "payload_digest": "sha256:db877e01bffd342e311a69f888066cfbc28ec57d45c72b784575c0e93e9220d1",
+      "signed_at": "2026-09-30T10:01:00Z",
+      "signature": "w/dvIEUgcIHNHv5ShkGdF/HxX+hxvqL6CeFwPSTPvTmICgr+0jSechdeMUjf82Z0Aaev9e+Slh6R89iSvKPqCQ=="
+    }
+  }
+}

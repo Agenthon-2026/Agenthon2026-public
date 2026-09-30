@@ -35,7 +35,7 @@ def _ids(paths: list[pathlib.Path]) -> list[str]:
 
 def test_fixture_directory_is_not_empty() -> None:
     """A glob that silently matches nothing would make every test below vacuous."""
-    assert len(_fixture_files()) >= 15
+    assert len(_fixture_files()) >= 22
 
 
 @pytest.mark.parametrize("path", _fixture_files(), ids=_ids(_fixture_files()))

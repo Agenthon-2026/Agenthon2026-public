@@ -260,7 +260,7 @@ Cards still carry `faithfulness_threshold = 0.80`: from 5.2.0 that value is read
 per-claim penalty", and any other value is refused. `penalty_k` = 1 and `contradiction_bar` = 0.9
 are fixed scorer constants; a card or plan that names either is refused. **Under the previously published scorer 3.1.0 the
 gate asked a different question** — whether the passage entails your *prediction* — which is now
-recorded for the organizer's review queue as `prediction_relevance` and never affects your score.
+recorded as `prediction_relevance` and never affects your score.
 
 Every `task.json` (and each public practice unit's card, though no held-out evaluation card) still carries a `faithfulness_rubric` text written for that retired
 admission gate: an NLI score above 0.5 per claim, with 80% of claims supported. It is a legacy

@@ -838,11 +838,10 @@ support them is hallucinating. Faithfulness checks catch this.
 **Everyday:** "does document A prove claim B?" — a yes/no judgment about whether one text logically
 supports another.
 **Precise:** Natural Language Inference (NLI) is the task of determining whether a premise text
-entails, contradicts, or is neutral toward a hypothesis text. In T4, the NLI judge is a
-fine-tuned DeBERTa model (Laurer et al., 2024) that scores whether a cited passage entails each
-claim. Scores above a threshold τ count as "entailed."
-**Why it matters:** NLI lets the system automatically check faithfulness at scale. Manual review
-of every citation by a finance expert would be too slow and expensive.
+entails, contradicts, or is neutral toward a hypothesis text. In T4 (scorer 5.2.x) two NLI models
+read each cited passage against the claim; a claim whose averaged three-way probability of
+contradiction exceeds 0.9 is false.
+**Why it matters:** NLI lets the system check faithfulness automatically, at scale.
 
 ### Directional accuracy
 **Everyday:** "did the model predict the right direction?" — e.g., did it say "EPS will beat
@@ -938,7 +937,7 @@ is a fairness requirement.
   [Development submission limits](DEVELOPMENT-RUNTIME.md#submission-limits-at-the-development-opening).
 - **Joint Final + Verification** (October 13–25, 2026): sealed private-test units are evaluated
   from one final submission per team per track. Organizers rerun the top submissions on fresh
-  seeds and check reproducibility within the same phase; disputed results go to manual review.
+  seeds and check reproducibility within the same phase.
   There is no separate participant Verification submission. The final board remains hidden
   until results are verified and published.
 

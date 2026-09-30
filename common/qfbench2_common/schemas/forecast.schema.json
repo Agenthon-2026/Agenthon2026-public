@@ -59,7 +59,7 @@
     },
     "rationale": {
       "type": "object",
-      "description": "OPTIONAL declaration of the derivation behind the submitted distribution. The FILE forecast_rationale.md is REQUIRED — gate g1 checks the filesystem directly, next to forecast.parquet, so this sidecar key is a declaration only and its absence cannot fail a submission. The file is NEVER SCORED: no submission is ranked higher or lower because of it, and no scoring code may read its content. It exists because a submission that recalled its answer and one that derived it are indistinguishable as a set of draws. Read only as a review screen over the top of the leaderboard; a flag opens a human review and cannot by itself produce a DNF or move a score.",
+      "description": "OPTIONAL declaration of the derivation behind the submitted distribution. The FILE forecast_rationale.md is REQUIRED — gate g1 checks the filesystem directly, next to forecast.parquet, so this sidecar key is a declaration only and its absence cannot fail a submission. The file is NEVER SCORED: no submission is ranked higher or lower because of it, and no scoring code may read its content. It exists because a submission that recalled its answer and one that derived it are indistinguishable as a set of draws.",
       "required": [
         "file"
       ],

@@ -17,6 +17,7 @@ import math
 
 import pytest
 
+from qfbench2_common.contracts.errors import OrganizerFault
 from qfbench2_common.scoring import faithfulness as F
 from qfbench2_common.scoring.faithfulness import predictive_quality
 
@@ -106,15 +107,15 @@ class TestMonotone:
 
 class TestTheNaiveRuleIsRequired:
     def test_regression_without_naive_values_raises(self):
-        with pytest.raises(ValueError, match="naive"):
+        with pytest.raises(OrganizerFault, match="naive"):
             predictive_quality("regression", [], [], list(TRUTH), list(TRUTH))
 
     def test_a_naive_vector_that_does_not_cover_the_truth_raises(self):
-        with pytest.raises(ValueError, match="naive"):
+        with pytest.raises(OrganizerFault, match="naive"):
             reg(list(TRUTH), naive=[3.0, 3.0])
 
     def test_a_nonfinite_naive_value_raises(self):
-        with pytest.raises(ValueError, match="naive"):
+        with pytest.raises(OrganizerFault, match="naive"):
             reg(list(TRUTH), naive=[3.0, 3.0, math.nan, 3.0, 3.0])
 
     def test_the_naive_vector_is_ignored_off_regression(self):

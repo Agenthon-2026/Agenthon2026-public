@@ -322,10 +322,16 @@ def mean_interval_score(
     ``naive_IS / (naive_IS + IS)`` against the unit's declared naive interval. Moved here from
     ``qfbench2_track_analysis.scoring`` (2026-09-28) so the track does not keep its own scoring
     function. Rows are never dropped: ``lo``, ``hi`` and ``y`` must have one value per roster
-    row, and an empty roster or a length mismatch raises ``OrganizerFault``.
+    row, and an empty roster or a length mismatch raises ``OrganizerFault``. So does a nonfinite
+    ``lo``, ``hi`` or ``y``, or an ``interval_level`` outside (0, 1): callers validate the
+    participant's bounds and the truth before this point, so such a value is a caller defect.
     """
     if not (len(lo) == len(hi) == len(y)) or not y:
         raise OrganizerFault("interval score needs one lo, hi and y per roster row")
+    if not all(math.isfinite(float(v)) for v in (*lo, *hi, *y)):
+        raise OrganizerFault("interval score needs finite lo, hi and y on every roster row")
+    if not 0.0 < float(interval_level) < 1.0:
+        raise OrganizerFault("interval score needs an interval_level strictly between 0 and 1")
     alpha = 1.0 - float(interval_level)
     return sum(_interval_score_row(a, b, t, alpha) for a, b, t in zip(lo, hi, y)) / len(y)
 
@@ -427,8 +433,10 @@ def predictive_quality(
                         ``naive_mae / (naive_mae + mae)``, both MAEs over the graded entities,
                         ``naive_values`` being that rule's point forecast aligned exactly as the
                         prediction is. Matching the naive rule's error scores 0.5, the truth
-                        scores 1.0, and both exact scores 1.0. ``naive_values`` is REQUIRED here:
-                        ``None`` raises ``ValueError`` (a missing scoring parameter, never a
+                        scores 1.0, and both exact scores 1.0. When the naive rule is exact
+                        (``naive_mae == 0``) any other answer scores 0.0: only the truth itself
+                        matches the naive rule there. ``naive_values`` is REQUIRED here:
+                        ``None`` raises ``OrganizerFault`` (a missing scoring parameter, never a
                         fallback). The retired clamp(1 - MAE / dispersion_MAE) formula survives
                         only as ``regression_mae_skill_v1``, for records and tests;
       ranking        -> Spearman rank correlation (average ranks, so ties are ties) rescaled
@@ -480,7 +488,7 @@ def predictive_quality(
     """
     if target_type == "regression":
         if naive_values is None:
-            raise ValueError(
+            raise OrganizerFault(
                 "regression predictive quality needs the unit's declared naive baseline "
                 "(naive_values); a regression unit scored without its naive rule is a missing "
                 "scoring parameter, not a fallback to the retired MAE-skill formula"
@@ -488,13 +496,13 @@ def predictive_quality(
         tv_all = [float(t) for t in true_values]
         nv_all = [float(v) for v in naive_values]
         if len(nv_all) != len(tv_all):
-            raise ValueError(
+            raise OrganizerFault(
                 f"the naive baseline covers {len(nv_all)} entities but the truth covers "
                 f"{len(tv_all)}; the naive rule must be aligned to the same roster"
             )
         idx = [i for i in range(len(tv_all)) if not math.isnan(tv_all[i])]
         if any(not math.isfinite(nv_all[i]) for i in idx):
-            raise ValueError("the naive baseline carries a nonfinite point forecast")
+            raise OrganizerFault("the naive baseline carries a nonfinite point forecast")
         n = len(idx)
         if n == 0:
             return 0.0

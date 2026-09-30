@@ -11,6 +11,7 @@ numbers here are the numbers that suite measures through the scorer.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 
 import pytest
@@ -72,6 +73,24 @@ def test_interval_quality_ordering_matches_the_track_suite():
 def test_an_empty_or_misaligned_roster_is_an_organizer_fault(lo, hi, y):
     with pytest.raises(OrganizerFault, match="one lo, hi and y per roster row"):
         mean_interval_score(lo, hi, y, 0.90)
+
+
+@pytest.mark.parametrize("bad", [math.nan, math.inf, -math.inf])
+@pytest.mark.parametrize("where", ["lo", "hi", "y"])
+def test_a_nonfinite_value_is_an_organizer_fault(where, bad):
+    # Callers validate the participant's bounds and the truth first, so a nonfinite value here
+    # is a caller defect. It used to return NaN or inf and score silently.
+    vals = {"lo": [0.0, 1.0], "hi": [2.0, 3.0], "y": [1.0, 2.0]}
+    vals[where][1] = bad
+    with pytest.raises(OrganizerFault, match="finite"):
+        mean_interval_score(vals["lo"], vals["hi"], vals["y"], 0.90)
+
+
+@pytest.mark.parametrize("level", [1.0, 0.0, 1.5, math.nan])
+def test_an_interval_level_outside_zero_one_is_an_organizer_fault(level):
+    # interval_level = 1.0 used to raise a bare ZeroDivisionError
+    with pytest.raises(OrganizerFault, match="interval_level"):
+        mean_interval_score([0.0], [2.0], [1.0], level)
 
 
 def test_it_is_exported():

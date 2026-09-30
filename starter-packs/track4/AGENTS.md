@@ -158,13 +158,30 @@ A claim is **false** when any one of these holds:
 4. **A figure its passage does not carry, exact code.** **Every** figure in a claim must appear
    in a span the claim cites, read against the whole cited span `text[span_start:span_end]`.
    Dates, years, periods, counts of periods ("13 weeks"), identifiers and form or item numbers are
-   not figures; a number inside one of the unit's own entity names or tickers as `task.json`
-   writes them ("Phillips 66", "S&P 500") is not a figure. A figure that **exactly** equals a
+   not figures; from scorer 5.2.1 neither are a date without a year ("3/20"), a month and year
+   ("03/2025"), an index base ("1982-84=100"), a period label with a two-digit year ("Q4-25") or
+   a rule number ("Rule 12b-2"). A number inside one of the unit's own entity names or tickers as
+   `task.json` writes them ("Phillips 66", "S&P 500") is not a figure. A figure that equals a
    value you submitted and are scored on is exempt: your point forecast on a regression or ranking
-   unit, and your interval bounds only on a unit whose interval leg is scored. Your rank is never
-   exempt, and no scale, percent-versus-ratio or rounding tolerance applies to your own values.
-   For figures in a passage, separators, scale, percent-versus-ratio, sign and rounding to your
-   precision are tolerated. A cited span over 8,000 characters anchors no figure. A claim that is
+   unit, and your interval bounds only on a unit whose interval leg is scored. From scorer 5.2.1
+   the same scale steps as for passages apply ("$5.9bn" for 5.9 in billions, "12%" for 0.12), but
+   no rounding, and the exemption reads the sign you write: a figure is not exempt when the
+   direction you write contradicts the value's sign. A minus sign, accounting parentheses or a fall
+   word that governs the figure ("yields declined 20 bps") make it negative, a plus sign or a rise
+   word ("rose 10 bps") positive, so "declined 20 bps" is not an upper bound of 20. A half-width
+   written with "±", "+/-" or "plus or minus" ("±10 bps", "+/- 10 bps", "plus or minus 10 bps")
+   is exempt when it equals half the width of your scored interval, and so is the unit's interval
+   level written next to an interval word ("the 90% interval").
+   Your rank is never exempt. For figures in a passage, separators, scale, percent-versus-ratio,
+   sign and rounding to your precision are tolerated. From scorer 5.2.1 equivalent forms of a
+   number are read as the same figure in claim and passage: a fraction of a point ("1/4 percentage
+   point" and "quarter-point" are 0.25, and so 25 bps; "½ point" is 0.5, and so 50 bps), a number
+   in words before a unit ("four basis points", "two percent"), and glued forms ("7.3x", "$212mm",
+   "1.5pp", which matches "150 bps" by the same x100 step). Such a form is now a figure, so it
+   must be found in a passage you cite. A different figure still fails: 50 bps is not "1/4
+   percentage point". (Under scorer 5.2.0 a
+   figure was exempt only when it equalled your own value exactly, with no scale step and no sign.)
+   A cited span over 8,000 characters anchors no figure. A claim that is
    word for word a piece of a span it cites passes whole, even when that span is over 8,000
    characters (the cap applies to every other claim).
 5. **Contradicted.** The NLI ensemble reads each cited passage (premise) against **your `claim`
@@ -193,13 +210,13 @@ Two consequences that are easy to miss:
 
 Cards still carry `faithfulness_threshold = 0.80`: from 5.2.0 that value is read only as "use the
 per-claim penalty", and any other value is refused. `penalty_k` = 1 and `contradiction_bar` = 0.9
-are fixed scorer constants; a card or plan that names either is refused. **Under the published scorer 3.1.0 the
+are fixed scorer constants; a card or plan that names either is refused. **Under the previously published scorer 3.1.0 the
 gate asked a different question** — whether the passage entails your *prediction* — which is now
 recorded for the organizer's review queue as `prediction_relevance` and never affects your score.
 
 Every `task.json` (and each public practice unit's card, though no held-out evaluation card) still carries a `faithfulness_rubric` text written for that retired
 admission gate: an NLI score above 0.5 per claim, with 80% of claims supported. It is a legacy
-field, and neither scorer 5.2.0 nor the reasoning grader reads it. The rules are the ones above and
+field, and neither scorer 5.2.1 nor the reasoning grader reads it. The rules are the ones above and
 in the track's `SUBMISSION_CLI.md` ("How faithfulness is scored").
 
 And the schema is not a sufficient pre-submission check on this track: it marks `label` and
@@ -231,10 +248,10 @@ is the one people hit:
   5.2.0 the claim carrying it is false (out of range), costing that claim's share of the unit;
 * an **unresolvable `doc_id`** — a name not declared `role: corpus` in the unit's manifest — is a
   participant failure that never reaches the judge at all. Measured: `domain_gate_failed`, the
-  unit scores W = 0.0 (scorer 5.1.0; 5.0.0: −0.27; 0.0 on the analysis scale shows as −0.27 on the
+  unit scores W = 0.0 (the previously published scorer 3.1.0: −0.27; 0.0 on the analysis scale shows as −0.27 on the
   leaderboard, which is −0.27 + 1.27 × analysis), and no entailment is computed.
 
-The first costs one claim's share of the unit (scorer 5.2.0); the second refuses the unit, and no
+The first costs one claim's share of the unit (from scorer 5.2.0); the second refuses the unit, and no
 good prediction elsewhere in it recovers that.
 
 **3. Canaries: where they are, and where they are not.** Regex-scanning every file under
@@ -371,7 +388,9 @@ a **bonus** on top of the analysis score (final-score/v2):
 
     final = -0.27 + 1.27 x analysis + 0.25 x reasoning
 
-`analysis` is your 0..1 analysis score after the per-claim faithfulness penalty, shown on the
+`analysis` is your 0..1 analysis score after the per-claim faithfulness penalty (it combines
+your prediction and, on units that score one, your interval; from scorer 5.2.1 the interval part
+can score above 0.5 only as far as the point forecast beats the naive rule), shown on the
 old leaderboard scale (`-0.27 + 1.27 x analysis`: 0 shows -0.27, the old worst case, and 1 shows
 1.0); `reasoning` is in [0, 1]. The bonus is uncapped, so the maximum is 1.25. A keyed unit with
 no judged reasons (missing, not judged, or refused for a cap or the deny list) adds 0: leaving reasons out never costs anything. A malformed `submitted_reasons` block is
@@ -380,7 +399,7 @@ the format is the same everywhere: practise it on the dev units.
 
 **Old scores and resubmitting.** Leaderboard scores already posted under the earlier scorer stay
 as they were (frozen, not re-scored). A submission made with the new starter package is scored
-with scorer 5.2.0 and this final formula.
+with scorer 5.2.1 and this final formula.
 
 **Your answer rows.** The judge's per-entity answer is built from `entity_predictions` in the
 same `answer.json`: each row keeps `entity_id` and the answer fields the unit declares, and every
@@ -422,10 +441,11 @@ you, so an answer within them never reaches that limit. The local checker below 
 text you wrote contains any of these, case-insensitively, as a substring: `leaderboard`,
 `canary`, `://`, `/home/`, `units/`, `reference/`, `outcome.json`, `team_id`, `team name`,
 `participant_id`, `participant name`, `submission_id`, `other submission`. `mechanism` and
-`answer_implication` are always checked. Exempt: the corpus text your citations resolve to,
-and a `premise` that is, as a whole (surrounding whitespace aside), a verbatim quote of a
-corpus document; a premise that adds any word of your own is checked. So do not put URLs or
-file paths in your own words.
+`answer_implication` are always checked. Exempt: the corpus text your citations resolve to.
+A premise is exempt from the deny list only if it is a verbatim quote of one corpus document, at
+least three words long once every URL in it and in the document is masked; a premise with any
+word of your own, a bare URL, a bare token such as `units/`, or a one- or two-word quote is
+checked. So do not put URLs or file paths in your own words.
 
 **Organiser faults.** If the grader fails on an organiser input (the task, the key, the
 corpus, the judge forms or the policy), the grading run stops, the organiser fixes it and the
@@ -538,9 +558,10 @@ are x86-64 B200 (sm_100); build `linux/amd64`.
 
 ## Scoring, and what a public run can and cannot tell you
 
-`composite = 0.70 × predictive_quality + 0.30 × interval_quality` (scorer 5.1.0; 5.0.0 subtracted
-`0.30 × |interval_coverage − 0.90|`; from scorer 5.2.0 a unit without an interval leg scores the
-prediction leg alone), multiplied from scorer 5.2.0 by the faithfulness factor
+`composite = 0.70 × predictive_quality + 0.30 × interval_quality` (scorer 5.2.1; the previously
+published scorer 3.1.0 subtracted `0.30 × |interval_coverage − 0.90|` instead, which made wide intervals
+nearly free; from scorer 5.2.0 a unit without an interval leg scores the prediction leg alone),
+multiplied from scorer 5.2.0 by the faithfulness factor
 `1 − F / (F + min(T, 3 × E))` (F false claims, T other claims, E entities), and gated on **zero embargo
 violations** and the structural checks. A claim is false when it cites a document the manifest
 does not bind to its entity (nor marks shared), cites an out-of-range slice, is malformed, states
@@ -548,15 +569,17 @@ any figure no cited span carries (exact code), or when the ensemble's three-way 
 probability that the cited span contradicts your claim text exceeds `contradiction_bar = 0.9`
 (the penalty denominator is F + min(T, 3 × E), not the raw claim count, so padding past 3 × E does
 not dilute a false claim; see "How faithfulness is judged" above). `predictive_quality` is accuracy / soft ratio against the unit's naive rule,
-`naive_mae/(naive_mae+mae)` / rescaled Spearman by `target_type`. From scorer 5.2.0 accuracy and
+`naive_mae/(naive_mae+mae)` / rescaled Spearman by `target_type` (on a regression unit whose
+naive rule is exact, `naive_mae = 0`, only the exact truth scores 1 and any other answer scores
+0). From scorer 5.2.0 accuracy and
 rescaled Spearman are **anchored to the naive rule**: 0 stays 0, the unit's declared naive rule
 scores 0.5, a perfect answer 1, linear in between; the anchor is the stronger of the naive rule's
 quality and, on ranking, a constant forecast's 0.5.
 
 **An ineligible or inadmissible unit does not drop out of the aggregate.** `scoring.py`: *"An
 inadmissible unit scores W, not `None`. The frozen policy is a pre-committed worst value that stays
-in the denominator."* `W = 0·w_a + 0·w_c = **0.0**` (shown as −0.27 on the leaderboard, which is −0.27 + 1.27 × analysis; `DOMAIN_MIN`; scorer 5.1.0, where both legs
-are ratios in [0, 1] — 5.0.0 used `0·w_a − w_c·interval_level = −0.27`), and
+in the denominator."* `W = 0·w_a + 0·w_c = **0.0**` (shown as −0.27 on the leaderboard, which is −0.27 + 1.27 × analysis; `DOMAIN_MIN`; both legs
+are ratios in [0, 1] — the previously published scorer 3.1.0 used a worst value of −0.27), and
 `UnitOutcome.score` is documented "ALWAYS a float in the frozen domain — never `None`". So a risky
 answer that might be ruled ineligible is **not free**: it takes W and stays in the denominator, and
 no unit can be dropped by failing it.
@@ -565,31 +588,39 @@ An inadmissible answer scores W; every admissible answer scores above W on any u
 interval leg, because the interval leg is always positive. (On a pure-label or interval-exempt unit
 the composite is the prediction leg alone from scorer 5.2.0, so an admissible answer with every
 label wrong scores exactly W = 0.0 (shown as −0.27 on the leaderboard) — and still no worse than failing.) Measured on a four-entity regression
-unit under scorer 5.1.0, naive rule 2.5 with interval [0.5, 3.5]:
+unit under scorer 5.2.1, naive rule 2.5 with interval [0.5, 3.5]:
 
-| answer                                                         | composite (5.1.0) | 5.0.0   |
-|:---------------------------------------------------------------|------------------:|--------:|
-| perfect forecast, interval [0.5, 4.5] covering every value     |           +0.8737 | +0.6700 |
-| bad forecast (all 0), very wide interval [−1000, 1000]          |           +0.2008 | +0.1700 |
-| bad forecast (all 0), zero-width interval at 0                 |           +0.2297 | −0.0700 |
-| inadmissible (one roster entity omitted)                       |            0.0000 | −0.2700 |
+| answer                                                         | composite |
+|:---------------------------------------------------------------|----------:|
+| perfect forecast, interval [0.5, 4.5] covering every value     |   +0.8737 |
+| bad forecast (all 0), very wide interval [−1000, 1000]          |   +0.2008 |
+| bad forecast (all 0), zero-width interval at 0                 |   +0.2297 |
+| inadmissible (one roster entity omitted)                       |    0.0000 |
 
-Under 5.0.0 the zero-width row was the worst admissible answer. Under 5.1.0 it is not: the interval
-leg charges width, so the ±1000 interval now scores below the zero-width miss. Every admissible row
-stays above the inadmissible one. Answer rather than omitting. (The one surviving `None` is the public practice path, where no
+The interval leg charges width, so the ±1000 interval scores below the zero-width miss. (The
+previously published scorer 3.1.0 charged no width, only `0.30 × |interval_coverage − 0.90|`, so widening
+toward full coverage was nearly free: past 90% coverage it cost at most 0.03.) Every
+admissible row stays above the inadmissible one. Answer rather than omitting. (The one surviving `None` is the public practice path, where no
 `reference/outcome.json` is mounted.)
 
-**The interval leg is an interval score against the unit's naive interval (scorer 5.1.0).** Per
+**The interval leg is an interval score against the unit's naive interval (scorer 5.2.1).** Per
 row the score is the width `hi − lo` plus `2/alpha` (20 at 90%) times the distance by which the
-realized value falls outside `[lo, hi]`, averaged over the roster; `interval_quality =
-naive / (naive + yours)`, 0.5 when your intervals match the naive rule's. Width costs and misses
-cost twenty times their distance, so neither erring wide nor erring tight is free. (5.0.0 scored
+realized value falls outside `[lo, hi]`, averaged over the roster; `naive / (naive + yours)` is
+0.5 when your intervals match the naive rule's. Width costs and misses cost twenty times their
+distance, so neither erring wide nor erring tight is free. From scorer 5.2.1 the interval part can
+score above 0.5 only as far as the point forecast beats the naive rule:
+
+    interval_quality = min(naive / (naive + yours), max(0.5, predictive_quality))
+
+So an answer that keeps the naive rule's points and only narrows the band cannot score above the
+naive rule, while a band worse than the naive rule's still costs in full. The uncapped value is
+recorded as `raw_interval_quality` in the unit's diagnostics. (The previously published scorer 3.1.0 scored
 `− w_c × |coverage − interval_level|` instead, which made erring wide nearly free.) Your
 `interval.level` must equal the **unit's** `interval_level`; the schema's `const: 0.9` happens to
 agree today. A unit whose reference roster carries no numeric target, or a classification unit
 whose card declares `interval_leg = false` (its numeric truth is only a label code), has **no
 interval leg** at all — from scorer 5.2.0 `composite = predictive_quality` (anchored), not capped
-at 0.70 (5.1.0: `0.70 × predictive_quality`).
+at 0.70.
 A statistical prediction alone does not establish admissibility: the submitted answer must
 also satisfy the citation and embargo checks. This guide makes no measured accuracy or
 faithfulness-pass-rate claim for a text-blind baseline.

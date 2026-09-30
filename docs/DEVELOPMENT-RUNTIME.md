@@ -1,8 +1,8 @@
 # Development runtime and House requests
 
 This page describes the selected **Development** resources and the planned execution-relative
-House timing release. The timing change is pending deployment and verification; participant
-access remains held. This page does not certify Final resources or scoring.
+House timing release. The timing change is pending deployment and verification. This page does
+not certify Final resources or scoring.
 Read your track's task card alongside this guide; the card supplies CPU, memory, GPU and network
 settings, and may supply a per-unit timeout.
 

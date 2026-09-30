@@ -40,6 +40,75 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
+### Track 4 scorer 5.2.2 — filler and whole-document claims are false, claim-level `citations` list removed, numbers in web addresses, reasons checked one by one
+
+**`ACTION`** **Pull the Track 4 repository; toolkit `v2.5.1` is unchanged.** Track 4 scorer 5.2.2
+needs no new toolkit release: keep toolkit `v2.5.1` installed. The Development task switches to
+5.2.2 separately; the switch is announced on Agenthon-2026/track4-analysis-public#2, and
+Development scores from before and after it are not comparable. The Development board runs
+without the NLI contradiction check and does not grade reasons, so the four claim rules below
+that are decided by exact code (content-free claims, citations over 8,000 characters, numbers in
+web addresses, a claim carrying the removed `citations` key) apply on Development and in the Final
+alike; the judge window and the reasoning rules apply in the Final only.
+
+**`ACTION`** **Track 4: a content-free claim is false.** Under 5.2.1 such a claim was neutral. A
+claim with no figure is content-free when, once the unit's own entity names, ids and tickers are
+set aside, every word left is a function word or an evidence/meta word, and either nothing but
+function words is left or one of the words is a filler word about the evidence: evidence,
+passage(s), excerpt, pre-cutoff, cutoff, cite(d), citing, retrieved, top-retrieved, nearest,
+placeholder, fallback, inference, context(ual), wording, document(s), source(s), model-entailed
+("Pre-cutoff evidence selected for the submitted prediction."). It is false and is not put to
+the judge. Any other word makes a claim contentful ("Guidance was cut."), and so do ordinary
+finance words without a filler word ("AAPL has no forecast."), a digit, an arrow or a letter
+outside a-z. The word lists are `CONTENT_FREE_FUNCTION_WORDS`, `CONTENT_FREE_META_WORDS` and
+`CONTENT_FREE_FILLER_ANCHORS` in `qfbench2_track_analysis/scoring.py`.
+
+**`ACTION`** **Track 4: a claim citing a span over 8,000 characters is false**, whatever it
+states, a verbatim quote of the span included. Under 5.2.1 such a span anchored no figure, but a
+verbatim quote of it still passed. Cite the passage that states your figures, not the whole
+document.
+
+**`ACTION`** **Track 4: numbers inside web addresses are not figures**, in claims and passages
+alike ("?id=77", "/series/42", a port, an EDGAR path), including disguised addresses: look-alike
+colons and slashes, invisible characters, a scheme-less "//host", a "www." host. A figure outside
+the address is still checked, and the judge still reads the text as written.
+
+**`ACTION`** **Track 4:** The claim-level `citations` list is removed: a claim cites one span of
+one document with its own `doc_id`, `span_start` and `span_end`, and a claim that still carries a
+`citations` key is false, like a malformed claim (never put to the judge, the list not read, the
+claim's own span checked as usual); the key never refuses the unit. The Track 4 local checker
+reports such a claim (`check_answer` as `claim_citations`).
+
+**`ACTION`** **Track 4 (Final only): a long cited passage is judged on its best-matching window.**
+The judge reads a window of about 500 tokens. Under 5.2.1 it read the opening window of a longer
+passage; from 5.2.2 it reads the window that shares the most words with your claim, and the first
+window on a tie.
+
+**`ACTION`** **Track 4 reasoning (Final only): the size caps are checked reason by reason.** Under
+5.2.1 a unit over any cap had its whole reasoning score 0. From 5.2.2 reasons are checked in the
+order you submit them: a reason is judged only if every citation in it is at most 8,000
+characters and, together with the reasons already judged, the reasons stay within 6,500 bytes
+and their cited evidence within 46,500 bytes. A reason that does not fit is not judged and
+scores 0, and later reasons are still checked. The 3,000-byte answer cap still
+applies to the whole unit. Put your strongest reason first.
+
+**`ACTION`** **Track 4 reasoning (Final only): URLs in reasons are masked, not refused.** Under
+5.2.1 a URL in a reason refused the unit's reasoning. From 5.2.2 every URL, disguised ones
+included, is masked with one "#" per character, and the byte caps are measured on the masked
+text. The deny list still runs on the text as written, so a URL that contains a listed phrase
+(for example a path with `units/`) is refused, and so is a "://" with no scheme letters before
+it, and a deny-listed phrase disguised with look-alike or invisible characters.
+
+**`ADDED`** **Track 4: the local checker applies the new rules with the scorer's own code.**
+`check_claim_rules` reports `claim_over_cap` and `claim_content_free`; `check_submitted_reasons`
+applies the per-reason caps, the URL masking and the deny list; `reasons_judged()` reports which
+reasons will be judged and why the others are not. Run it before your agent writes `answer.json`.
+
+**`CLARIFIED`** **Toolkit: the `submitted_reasons` description in `analysis.schema.json` is out of
+date.** It still says a unit over a cap is not judged and that URLs are on the deny list. From
+scorer 5.2.2 the caps are checked reason by reason and URLs are masked, as above; these entries
+supersede that text. What the schema accepts is unchanged.
+
 ### Toolkit `v2.5.1` and Track 4 scorer 5.2.1 — the interval cap, claim figures in more forms, a signed participant refusal
 
 **`ACTION`** **Reinstall the toolkit and the Track 4 package together.** Toolkit `v2.5.1` goes with

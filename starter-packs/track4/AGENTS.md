@@ -38,10 +38,10 @@ contract — the dual `/app/output` mount is **Track 1 only** (`SUBMISSION_CLI.m
 - **All 69 corpus documents use a flat `text` field. Not one carries `spans[]`.** Write the `text`
   path first; keep a `spans` fallback because the schema still permits it, but do not build on it.
 - **`corpus/manifest.json` is present in 10 of the 11 units, and it is NOT a corpus document.**
-  `corpus.py:234-238` skips it by name, calling it "the corpus INDEX, not a corpus document". An
+  `corpus.py:354-358` skips it by name, calling it "the corpus INDEX, not a corpus document". An
   agent that globs `corpus/*.json` and treats each hit as a document will index a non-document, and
   a citation to it is `CITATION_UNRESOLVED` — the unit fails closed.
-- **A citable `doc_id` is the manifest-declared filename stem** (`corpus.py:252-268`, grammar
+- **A citable `doc_id` is the manifest-declared filename stem** (`corpus.py:399-415`, grammar
   `DOC_ID_RE`), not a free string and not necessarily the document's own `doc_id` field. They agree
   on all 69 public documents; the filename stem is the authoritative one.
 - **`question.json` exists in no public unit** — it was a deprecated stub whose body was
@@ -61,14 +61,14 @@ exemplar's own `task.json` says real tasks have 3-30. Size for the range, not th
 
 ## The gate that decides admissibility: roster set equality
 
-`alignment.py:142-203` enforces **exact unique set equality with the trusted roster**, and it
+`alignment.py:216-277` enforces **exact unique set equality with the trusted roster**, and it
 raises before any metric is computed.
 
 | you did | reason raised | source |
 |---|---|---|
-| omitted an entity on the roster | `ENTITY_MISSING` | `alignment.py:193-200` |
-| named an entity not on the roster | `ENTITY_UNKNOWN` | `alignment.py:186-190` |
-| named the same entity twice | `ENTITY_DUPLICATE` | `alignment.py:177-182` |
+| omitted an entity on the roster | `ENTITY_MISSING` | `alignment.py:267-276` |
+| named an entity not on the roster | `ENTITY_UNKNOWN` | `alignment.py:259-266` |
+| named the same entity twice | `ENTITY_DUPLICATE` | `alignment.py:250-258` |
 
 The docstring is blunt: *"Exact unique set equality with the trusted roster, or a participant
 failure with counts."* **Answering a subset is a whole-unit failure**, not partial credit — the
@@ -76,13 +76,14 @@ roster fixes the graded set. One extra row does the same. Emit exactly the roste
 
 Four more participant-side failures at the same layer:
 
-- **`rank` is all-or-nothing** (`alignment.py:382-397`). Supply it for any entity and you must
+- **`rank` is all-or-nothing** (`alignment.py:502-517`). Supply it for any entity and you must
   supply it for every entity, as a permutation of `1..n`. A partial ranking fails the unit.
-- **A wrong `target_type` is fatal; omitting it is safe** (`alignment.py:301-307` →
+- **A wrong `target_type` is fatal; omitting it is safe** (`alignment.py:419-425` →
   `TARGET_TYPE_MISMATCH`, a *participant* failure). If you are not certain, omit it.
-- **Inverted intervals fail** (`alignment.py:233-238` → `INTERVAL_INVALID` when `lo > hi`).
-- **NaN and Inf fail; rows are never silently dropped** (`alignment.py:125-139` →
-  `NONFINITE_VALUE`). Sanitise before you write.
+- **Inverted intervals fail** (`alignment.py:307-312` → `INTERVAL_INVALID` when `lo > hi`).
+- **NaN and Inf fail in any number the schema names (`point_forecast`, `interval`, `rank`, span
+  offsets); rows are never silently dropped** (`alignment.py:199-213` → `NONFINITE_VALUE`; `rank`
+  and offsets fail at the schema check). Sanitise before you write.
 
 Two baseline facts worth knowing while you read the kit: `baselines/baseline_agent/formatter.py`'s
 `build_answer` takes `target_type: str | None = None` and its own docstring warns against
@@ -99,7 +100,18 @@ file; do not rely on line numbers, both files moved on 2026-09-05.
 
 One filename, everywhere: `qfbench2_track_analysis/scoring.py` opens exactly
 `output_dir / "answer.json"` and nothing else. The scorer is per-track, not per-unit, so this holds
-across the corpus.
+across the corpus. An answer written anywhere else, even `/output/<dir>/answer.json`, counts as no
+answer. Other files in `/output` are not scored, but under the organizers' platform rules the
+output checker reads the whole tree after your process exits, and the unit scores `no_output` if
+the tree has any of these:
+
+- more than 256 files, or folders nested 8 or more levels deep;
+- a symbolic or hard link, or a special file;
+- a file with a setuid, setgid or sticky bit;
+- a file more than 64 times larger than the disk space it occupies (a heavily sparse file), two names that differ only in letter case or Unicode form, or a name with a backslash or a control character;
+- no files at all, or more than 64 MiB in total in Development (a single file is capped at 64 MiB).
+
+In the Final, a canary string anywhere in the output is scored as contamination.
 
 **`analysis.schema.json` does not ship in this repo.** It lives in `qfbench2-common`, which
 installs in one command — see [SUBMISSION-DESCRIPTOR.md](SUBMISSION-DESCRIPTOR.md), which also
@@ -117,7 +129,8 @@ label, point_forecast, target_type, evidence_trace   — OPTIONAL in the schema
 
 Additional alignment requirements:
   classification     label is required and must belong to the task's label vocabulary
-  regression/ranking point_forecast is required and must be finite
+  regression/ranking point_forecast is required
+  any target type    a point_forecast or interval value you supply must be finite
   target_type        optional; if supplied, it must match the task
   evidence_trace     optional
 ```
@@ -125,6 +138,11 @@ Additional alignment requirements:
 The real contract is `entity_predictions[]`, one object per entity row — never a flat
 single-object answer. Copy `templates/answer.example.json` or
 `baselines/baseline_agent/formatter.py`; the README's example is also valid.
+
+Fields the schema does not name are allowed in `answer.json`, at the top level and in each entity
+row (the template's `_comment` is one); they do not fail the unit. Assume the leakage scan reads
+them like every other byte of your output. This differs from `submission.json`, whose schema
+refuses unknown keys.
 
 ## How faithfulness is judged: your `claim` text is the hypothesis
 
@@ -138,8 +156,8 @@ not a limit per entity). Up to the cap the cost is the plain share: on a unit wi
 entities, one false claim among twenty claims costs 5%; with fewer entities the cap is lower,
 so it costs more (on a 1-entity unit, one false claim among twenty costs 1/(1 + 3) = 25%). Past
 the cap, adding more claims does not shrink what a false claim costs (on a 10-entity unit, one
-false claim always costs at least 1/31 of it). Content-free claims are never false and earn
-nothing; beyond the cap they do not change the factor. Nothing about
+false claim always costs at least 1/31 of it). From scorer 5.2.2 a content-free claim is false
+(rule 4 below). Nothing about
 faithfulness refuses a unit any more; structural errors (schema, roster, embargo, malformed
 citations) still do. A neutral claim is never charged and earns nothing here; evidence earns credit
 only through the reasoning score. Whether your evidence supports your *forecast* is reasoning
@@ -157,6 +175,10 @@ A claim is **false** when any one of these holds:
    tokenizer).
 4. **A figure its passage does not carry, exact code.** **Every** figure in a claim must appear
    in a span the claim cites, read against the whole cited span `text[span_start:span_end]`.
+   A claim cites one span of one document (`doc_id`, `span_start`, `span_end`), so figures from
+   two documents need two claims, one per document. Figures from two passages of one document fit
+   in one claim only if its span covers both, within the 8,000-character cap; otherwise write two
+   claims.
    Dates, years, periods, counts of periods ("13 weeks"), identifiers and form or item numbers are
    not figures; from scorer 5.2.1 neither are a date without a year ("3/20"), a month and year
    ("03/2025"), an index base ("1982-84=100"), a period label with a two-digit year ("Q4-25") or
@@ -181,13 +203,39 @@ A claim is **false** when any one of these holds:
    must be found in a passage you cite. A different figure still fails: 50 bps is not "1/4
    percentage point". (Under scorer 5.2.0 a
    figure was exempt only when it equalled your own value exactly, with no scale step and no sign.)
-   A cited span over 8,000 characters anchors no figure. A claim that is
-   word for word a piece of a span it cites passes whole, even when that span is over 8,000
-   characters (the cap applies to every other claim).
+   From scorer 5.2.2 numbers inside a web address ("?id=77", "/series/42", an EDGAR path),
+   disguised or not (look-alike colons and slashes, invisible characters, a scheme-less "//host",
+   a "www." host), are not figures, in claim and passage alike. A claim that is word for word a
+   piece of a span it cites passes the figure check whole, even if the quote is cut mid-number.
+   From scorer 5.2.2 two more rules make a claim false, both by exact code:
+   - **A citation over 8,000 characters** (the published per-citation cap) makes the claim
+     false, whatever it states, a verbatim quote included. Cite the passage that states your
+     figures, not a whole filing.
+   - **A content-free claim is false.** A claim with no figure is content-free when, once the
+     unit's own entity names, ids and tickers are set aside, every word left is a function word
+     or an evidence/meta word, and either nothing but function words is left (the entity name
+     alone) or one of the words is a filler word about the evidence: evidence, passage(s),
+     excerpt, pre-cutoff, cutoff, cite(d), citing, retrieved, top-retrieved, nearest,
+     placeholder, fallback, inference, context(ual), wording, document(s), source(s),
+     model-entailed ("Pre-cutoff evidence selected for the submitted prediction.", "Evidence for
+     X from the cited pre-cutoff passage."). Such a claim asserts nothing a passage could
+     support. It is false and is not put to the judge. Any other word makes a claim contentful
+     ("Guidance was cut.", "Rates rose."), and so do ordinary finance words without a filler
+     word ("AAPL has no forecast.", "No quotes were submitted."). So does a digit, an arrow ("X
+     ↑", "▲") or a letter outside a-z (an accented letter, another script) left once the names
+     are set aside, however few words the claim has. The word lists are in
+     `qfbench2_track_analysis/scoring.py`: the function words ("a", "the", "of", "for", "is",
+     "has", "not", "no", "any", ...) are `CONTENT_FREE_FUNCTION_WORDS`, the evidence/meta words
+     `CONTENT_FREE_META_WORDS` and the filler words `CONTENT_FREE_FILLER_ANCHORS`.
+   Run the local checker (`baselines/guardrails_example/citation_rail.check_claim_rules`) before
+   you write `answer.json`: it applies these rules with the scorer's own code.
 5. **Contradicted.** The NLI ensemble reads each cited passage (premise) against **your `claim`
    text** (hypothesis) and returns the three-way probability that the passage contradicts it,
    averaged over its two models; above `contradiction_bar` = 0.9 the claim is false. A verbatim
-   quote of a span it cites is not put to the judge.
+   quote of a span it cites is not put to the judge. The judge reads a window of about 500
+   tokens: from scorer 5.2.2 a passage longer than that is judged on the window that shares the
+   most words with your claim (the first window on a tie), so a contradiction deep in a long
+   passage is read.
 
 **Claims are extractive facts.** State what the passage says, with the figures it carries. A
 figure you computed (a change, a ratio, an average) belongs in `submitted_reasons` (the
@@ -216,12 +264,12 @@ recorded for the organizer's review queue as `prediction_relevance` and never af
 
 Every `task.json` (and each public practice unit's card, though no held-out evaluation card) still carries a `faithfulness_rubric` text written for that retired
 admission gate: an NLI score above 0.5 per claim, with 80% of claims supported. It is a legacy
-field, and neither scorer 5.2.1 nor the reasoning grader reads it. The rules are the ones above and
+field, and neither scorer 5.2.2 nor the reasoning grader reads it. The rules are the ones above and
 in the track's `SUBMISSION_CLI.md` ("How faithfulness is scored").
 
 And the schema is not a sufficient pre-submission check on this track: it marks `label` and
-`point_forecast` optional, while `alignment.py:337` rejects a missing `label` on a classification
-unit and `:353` rejects a missing `point_forecast` on regression and ranking — both loudly, before
+`point_forecast` optional, while `alignment.py:453-464` rejects a missing `label` on a classification
+unit and `:469-474` rejects a missing `point_forecast` on regression and ranking — both loudly, before
 any metric.
 
 ## Traps that are invisible until they cost a run
@@ -264,14 +312,14 @@ clean**. Quoting corpus evidence does not risk a canary echo on any public unit;
 does. **Never copy card or manifest text into the answer.**
 
 T4's `_g2_cutoff_resource` **is active**:
-`scoring.py:417` compares `answer["task_id"]` against the unit's and raises `TASK_ID_MISMATCH`, so
+`scoring.py:721-731` compares `answer["task_id"]` against the unit's and raises `TASK_ID_MISMATCH`, so
 **echo `task_id` through**. A leakage scan additionally lives in shared `qfbench2_common.leakage`,
 verdict-only (`clean`/`hit` plus counts), over **all bytes at any depth with no extension
 allowlist**, failing closed. Assume it runs over your output tree.
 
 **4. `target_type`: emit it from the task, or omit it — never guess.** `SUBMISSION_CLI.md`
 invariant 7 says the answer "must include a matching `target_type`"; the schema makes it optional;
-and a **wrong** value is fatal (`TARGET_TYPE_MISMATCH`, `alignment.py:301-307`) while omitting it
+and a **wrong** value is fatal (`TARGET_TYPE_MISMATCH`, `alignment.py:419-425`) while omitting it
 is safe. Read it from `task.json["target"]["type"]` / `card.toml [scoring].params.target_type`, and
 if you cannot resolve it, omit it. The shipped baseline's `build_answer` takes it as a parameter
 and warns against hardcoding — do not reintroduce a constant.
@@ -286,6 +334,8 @@ a placeholder does not make an answer admissible.
 **6. Never crash, and never write an empty file.** A missing, empty, unparseable or
 not-an-object `answer.json` is all the same outcome — "no usable output", **attributed to you** as
 `SCHEMA_INVALID_OUTPUT`. Wrap the whole body, always emit a schema-valid answer, exit 0.
+Write it as UTF-8 without a byte-order mark. A byte-order mark or non-UTF-8 bytes fail: the
+scorer cannot read the file as JSON, and the unit gets the worst-case score.
 
 **7. `span_index` is documented and does not exist — and DO NOT handle it.** "Handle all three
 shapes defensively" sounds prudent and is actively harmful, proved by execution:
@@ -306,7 +356,7 @@ because it looks clean.
 
 **8. On a `ranking` unit the score comes from `point_forecast`, and `label` is never read for
 it.** The schema marks `point_forecast` optional. It is not optional in practice:
-`alignment.py:353` raises `SCHEMA_INVALID` — *"entity … carries no point_forecast on a
+`alignment.py:469-474` raises `SCHEMA_INVALID` — *"entity … carries no point_forecast on a
 {target_type} unit"* — for **both** regression and ranking, before any metric runs.
 
 **Put the ordering in `point_forecast`.** Any monotone score works: it is rank-correlated, not
@@ -327,11 +377,11 @@ A constant is therefore plainly distinguishable from a correct ranking, and it f
 quality leg. Put a real ordering in `point_forecast` — not because a constant is invisible, but
 because it scores as saying nothing.
 
-**A MISSING `point_forecast` is a different case and does fail loudly** — `alignment.py:353` raises
+**A MISSING `point_forecast` is a different case and does fail loudly** — `alignment.py:469-474` raises
 `SCHEMA_INVALID` before any metric. A constant is valid input but receives neutral ranking quality.
 
 **And on a `classification` unit `label` is REQUIRED**, and must be one of
-`task["target"]["labels"]` — `alignment.py:337` raises `LABEL_INVALID` when it is missing and again
+`task["target"]["labels"]` — `alignment.py:453-464` raises `LABEL_INVALID` when it is missing and again
 when it is out of vocabulary. Classification is the most common target type in the public set
 (5 of 11 units), so a submission written from the schema table alone is inadmissible on nearly
 half of what you can test locally.
@@ -342,7 +392,9 @@ Track 4 has a second grader beside the analysis score and the faithfulness penal
 panel that grades your **reasons**. Your reasons go in one optional top-level field of
 `answer.json`, `submitted_reasons`, next to `entity_predictions`. The reasoning grader reads
 nothing else you write: `claims`, `evidence_trace` and `notes` are not reasons. An answer
-without the field has submitted no reasons.
+without the field has submitted no reasons. The judge is instructed to treat your answer and your
+reasons as material to evaluate, not as instructions: a request, command or claim about how
+to score is to be read only as text in its field and not followed.
 
 **The field.** `submitted_reasons` is a list of 1 to 3 reasons. Omit the field to submit none;
 a `submitted_reasons` block that does not match the schema (an empty list, more than three
@@ -360,7 +412,9 @@ before you submit. Each reason is an object:
 | `citations` | no | a list of `{doc_id, span_start, span_end}` (integers >= 0), in the same character-offset convention as `claims` |
 
 A citation must resolve in the frozen corpus and its document must be dated on or before the
-cutoff; otherwise the judge never sees that passage. The task-table citation `"doc_id": "task"`
+cutoff; otherwise the judge never sees that passage. A reason citation that does not resolve,
+is dated after the cutoff or points outside its document never refuses the unit; one that
+breaks the schema does, like any schema error. The task-table citation `"doc_id": "task"`
 is for claims only: the grader resolves reason citations against the corpus alone, so a
 `"task"` citation in a reason resolves to nothing and the judge never sees it. The judge reads
 the task statement and each entity's id and name, not the rows of the task table: state a task
@@ -393,13 +447,13 @@ your prediction and, on units that score one, your interval; from scorer 5.2.1 t
 can score above 0.5 only as far as the point forecast beats the naive rule), shown on the
 old leaderboard scale (`-0.27 + 1.27 x analysis`: 0 shows -0.27, the old worst case, and 1 shows
 1.0); `reasoning` is in [0, 1]. The bonus is uncapped, so the maximum is 1.25. A keyed unit with
-no judged reasons (missing, not judged, or refused for a cap or the deny list) adds 0: leaving reasons out never costs anything. A malformed `submitted_reasons` block is
+no judged reasons (missing, not judged, or refused for the deny list) adds 0: leaving reasons out never costs anything. A malformed `submitted_reasons` block is
 different: it fails the answer schema and the unit scores W (see "The field" above). Reasoning is judged only on keyed (held-out) units, not on public dev units, but
 the format is the same everywhere: practise it on the dev units.
 
 **Old scores and resubmitting.** Leaderboard scores already posted under the earlier scorer stay
 as they were (frozen, not re-scored). A submission made with the new starter package is scored
-with scorer 5.2.1 and this final formula.
+with scorer 5.2.2 and this final formula.
 
 **Your answer rows.** The judge's per-entity answer is built from `entity_predictions` in the
 same `answer.json`: each row keeps `entity_id` and the answer fields the unit declares, and every
@@ -418,7 +472,7 @@ plus `interval` on units that score an interval leg (numeric truth, and `interva
 to false in `card.toml`). No unit declares `label_probs`. An undeclared field is dropped before
 the judge reads your answer; it is not an error and costs nothing.
 
-**Caps.** Over any cap, that unit's reasoning is not judged and scores 0. Nothing is clipped.
+**Caps.** Reasons are checked in the order you submit them. A reason is judged only if every citation in it is at most 8,000 characters and, together with the reasons already judged, the reasons stay within 6,500 bytes and their cited evidence within 46,500 bytes. A reason that does not fit is not judged and scores 0 (every target reason stays in the denominator); later reasons are still checked. If no reason fits, the unit's reasoning scores 0. Put your strongest reason first. The 3,000-byte answer cap still applies to the whole unit. Nothing is clipped.
 
 | cap | limit, per unit |
 |---|---|
@@ -430,7 +484,8 @@ the judge reads your answer; it is not an error and costs nothing.
 The last three are counted the way the grader counts what the judge reads: UTF-8 bytes of compact
 JSON. Plain ASCII text is one byte per character; a line break, quote or backslash is two (it is
 escaped); accented letters, typographic quotes and non-Latin scripts take two to four; a control
-character six; a URI in cited text is masked with the same number of `█` (three bytes each); and
+character six; a URI in cited text is masked with the same number of `█` (three bytes each), a
+URL in your own reason text with the same number of `#` (one byte each); and
 every citation adds about 75 bytes of JSON around its text plus its `doc_id` and offsets. In practice: about 6,000 characters of
 plain reason text over three reasons, and about 45,000 characters of plain cited text in a few
 citations. The three caps add up to the grader's 56,000-byte limit on what the judge reads from
@@ -438,14 +493,24 @@ you, so an answer within them never reaches that limit. The local checker below 
 (`cap_answer_bytes`, `cap_reason_bytes`, `cap_evidence_bytes`).
 
 **Deny list.** The grader refuses a unit's request, and that unit's reasoning scores 0, if the
-text you wrote contains any of these, case-insensitively, as a substring: `leaderboard`,
-`canary`, `://`, `/home/`, `units/`, `reference/`, `outcome.json`, `team_id`, `team name`,
+text you wrote, including a reason the caps skip, contains any of these, case-insensitively, as a substring: `leaderboard`,
+`canary`, `/home/`, `units/`, `reference/`, `outcome.json`, `team_id`, `team name`,
 `participant_id`, `participant name`, `submission_id`, `other submission`. `mechanism` and
-`answer_implication` are always checked. Exempt: the corpus text your citations resolve to.
-A premise is exempt from the deny list only if it is a verbatim quote of one corpus document, at
-least three words long once every URL in it and in the document is masked; a premise with any
-word of your own, a bare URL, a bare token such as `units/`, or a one- or two-word quote is
-checked. So do not put URLs or file paths in your own words.
+`answer_implication` are always checked. Exempt: the corpus text your citations resolve to,
+and a `premise` that is a verbatim quote of a corpus document: with every URL masked, it has at
+least 3 words and, the document's URLs masked the same way, appears in one corpus document. A
+premise that adds any word of your own, a bare token such as `units/`, `canary` or `/home/`, and
+a quote of one or two words are checked. So do not put file paths or the other listed tokens in
+your own words.
+
+URLs in reasons are masked, not refused. The deny list still runs on the URL as written, so a
+URL containing a listed token (for example a path with `units/`) is refused; so is a `://` with
+no scheme letters before it. Disguised URLs are masked too: look-alike colons and slashes
+(fullwidth or other Unicode forms), invisible characters inside a URL, a scheme-less `//host`
+and a `www.` host; a deny-listed phrase disguised the same way is refused. These are not
+URLs and are left as written: a bare host or path (`example.org/a`), `mailto:` and `data:`, an
+IP address, a non-breaking space between the slashes, and dot or bracket obfuscation
+(`example[.]org`).
 
 **Organiser faults.** If the grader fails on an organiser input (the task, the key, the
 corpus, the judge forms or the policy), the grading run stops, the organiser fixes it and the
@@ -558,14 +623,15 @@ are x86-64 B200 (sm_100); build `linux/amd64`.
 
 ## Scoring, and what a public run can and cannot tell you
 
-`composite = 0.70 × predictive_quality + 0.30 × interval_quality` (scorer 5.2.1; the previously
+`composite = 0.70 × predictive_quality + 0.30 × interval_quality` (scorer 5.2.2; the previously
 published scorer 3.1.0 subtracted `0.30 × |interval_coverage − 0.90|` instead, which made wide intervals
 nearly free; from scorer 5.2.0 a unit without an interval leg scores the prediction leg alone),
 multiplied from scorer 5.2.0 by the faithfulness factor
 `1 − F / (F + min(T, 3 × E))` (F false claims, T other claims, E entities), and gated on **zero embargo
 violations** and the structural checks. A claim is false when it cites a document the manifest
-does not bind to its entity (nor marks shared), cites an out-of-range slice, is malformed, states
-any figure no cited span carries (exact code), or when the ensemble's three-way NLI
+does not bind to its entity (nor marks shared), cites an out-of-range slice, is malformed, cites a
+span over 8,000 characters, states any figure no cited span carries (exact code), is content-free
+(from scorer 5.2.2), or when the ensemble's three-way NLI
 probability that the cited span contradicts your claim text exceeds `contradiction_bar = 0.9`
 (the penalty denominator is F + min(T, 3 × E), not the raw claim count, so padding past 3 × E does
 not dilute a false claim; see "How faithfulness is judged" above). `predictive_quality` is accuracy / soft ratio against the unit's naive rule,
@@ -603,7 +669,7 @@ toward full coverage was nearly free: past 90% coverage it cost at most 0.03.) E
 admissible row stays above the inadmissible one. Answer rather than omitting. (The one surviving `None` is the public practice path, where no
 `reference/outcome.json` is mounted.)
 
-**The interval leg is an interval score against the unit's naive interval (scorer 5.2.1).** Per
+**The interval leg is an interval score against the unit's naive interval (scorer 5.2.2).** Per
 row the score is the width `hi − lo` plus `2/alpha` (20 at 90%) times the distance by which the
 realized value falls outside `[lo, hi]`, averaged over the roster; `naive / (naive + yours)` is
 0.5 when your intervals match the naive rule's. Width costs and misses cost twenty times their
@@ -673,7 +739,9 @@ docker run --rm --network=none \
 Expect **exit 0** and a schema-valid `/tmp/run/output/answer.json`. Then, in order:
 
 1. Validate against `analysis.schema.json` — the failures in the table above are the ones people
-   actually hit.
+   actually hit. Then run `check_claim_rules(answer, unit_dir)` from
+   `baselines/guardrails_example/citation_rail.py`, from the kit root: the schema alone accepts a
+   NaN and a label outside the task's vocabulary, and this check refuses them as the scorer does.
 2. Run a citation rail: every `doc_id` resolves, every `doc_date <= cutoff_date`, every
    `(span_start, span_end)` slices to non-empty text **under the join-with-space convention**.
    `baselines/guardrails_example/citation_rail.py` is std-lib and does this; advisory, never scored.

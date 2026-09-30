@@ -40,6 +40,58 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
+### Toolkit `v2.5.1` and Track 4 scorer 5.2.1 — the interval cap, claim figures in more forms, a signed participant refusal
+
+**`ACTION`** **Reinstall the toolkit and the Track 4 package together.** Toolkit `v2.5.1` goes with
+Track 4 scorer 5.2.1: pull the Track 4 repository and reinstall toolkit `v2.5.1` at the same time.
+The Development task switches to 5.2.1 separately; the switch is announced on
+Agenthon-2026/track4-analysis-public#2, and Development scores from before and after it are not
+comparable.
+
+**`ACTION`** **Track 4: the interval part can score above 0.5 only as far as the point forecast
+beats the naive rule.** `interval_quality = min(naive / (naive + yours), max(0.5,
+predictive_quality))`. An answer that keeps the naive rule's points and only narrows the band no
+longer scores above the naive rule; a band worse than the naive rule's still costs in full. The
+uncapped value is recorded as `raw_interval_quality` in the unit's diagnostics.
+
+**`ACTION`** **Track 4: equivalent forms of a number are read as the same figure in claims and
+passages.** A fraction of a point ("1/4 percentage point" and "quarter-point" are 0.25, so 25 bps;
+"½ point" is 0.5), a number in words before a unit ("four basis points") and glued forms ("7.3x",
+"$212mm", "1.5pp") are figures, so each must be found in a passage you cite. A month/day date
+after a date word ("on 3/20", "ended 12/31"), a month and year ("03/2025"), an index base
+("1982-84=100"), a period label with a two-digit year ("Q4-25") and a rule number ("Rule 12b-2")
+are no longer figures.
+
+**`ACTION`** **Track 4: your own forecast values are recognised in more forms.** Restating a
+scored value of yours is exempt at the same scale steps as passages ("12%" for 0.12, "$5.9bn" for
+5.9 in billions), with no rounding, and the exemption reads the sign you write: a value written
+with a direction that contradicts its sign is not exempt. A half-width written with "±", "+/-" or
+"plus or minus" is exempt when it equals half the width of your scored interval, and so is the
+unit's interval level written next to an interval word ("the 90% interval").
+
+**`ACTION`** **Track 4 reasoning (Final only): a premise is exempt from the deny list only as a
+verbatim quote of one corpus document, at least three words long once URLs are masked.** The
+Development board does not grade reasons.
+
+**`ADDED`** **Toolkit: organizer data faults in the Track 4 scoring helpers stop the run as an
+organizer fault.** A missing, misaligned or non-finite naive baseline in `predictive_quality`, and
+non-finite bounds or truth values or an interval level outside (0, 1) in `mean_interval_score`,
+now raise `OrganizerFault` instead of a plain error. Valid inputs score exactly as in `v2.5.0`.
+
+**`ADDED`** **C2 `1.3.0` (Track 3 Final): a signed participant refusal in the run record.** A Final
+run that fails only because of the submission (no stable output, no readable trace, an invalid
+sidecar, repeats whose stable outputs differ, or an output tree the output checks refuse) is
+scored as a participant failure with one of the existing public codes (`no_output`,
+`malformed_output`, `schema_invalid` or `incomplete_output`), as any failed run is. Nothing changes
+for Development.
+
+**`CLARIFIED`** **The Development runtime guide no longer says participant access remains
+held.** That clause predated the opening of Development.
+
+**`CLARIFIED`** **Install commands now pin toolkit `v2.5.1`** in the top-level README, AGENTS.md, the
+toolkit README, the glossary and the Track 4 submission guide. Tracks 1–3 need no change; their
+starter packs keep `v2.4.4`, which still works.
+
 ### Track 4 — scorer 5.2.0: per-claim faithfulness, anchored scores, graded reasons
 
 **`ACTION`** **Track 4: the 80% faithfulness gate is replaced by a per-claim penalty.** Under the

@@ -102,14 +102,18 @@ One filename, everywhere: `qfbench2_track_analysis/scoring.py` opens exactly
 `output_dir / "answer.json"` and nothing else. The scorer is per-track, not per-unit, so this holds
 across the corpus. An answer written anywhere else, even `/output/<dir>/answer.json`, counts as no
 answer. Other files in `/output` are not scored, but under the organizers' platform rules the
-output checker reads the whole tree after your process exits, and the unit scores `no_output` if
-the tree has any of these:
+output checker reads the whole tree after your process exits. If your process exited 0, the unit
+scores `no_output` when the tree has any of these:
 
-- more than 256 files, or folders nested 8 or more levels deep;
+- more than 256 files, more than 4,096 files and folders together, or folders nested 8 or more levels deep;
 - a symbolic or hard link, or a special file;
 - a file with a setuid, setgid or sticky bit;
-- a file more than 64 times larger than the disk space it occupies (a heavily sparse file), two names that differ only in letter case or Unicode form, or a name with a backslash or a control character;
-- no files at all, or more than 64 MiB in total in Development (a single file is capped at 64 MiB).
+- a file more than 64 times larger than the disk space it occupies (a heavily sparse file);
+- two names that differ only in letter case or Unicode form, a name that is not valid UTF-8 or not in Unicode NFC form, a name with a backslash or a control character, or a top-level name that starts with a letter and a colon (such as `C:`);
+- no files at all, or more than 64 MiB in total (a single file is capped at 64 MiB). The same cap applies in the Final.
+
+A process that exits non-zero scores `container_crashed` whatever its output tree holds (a run
+that hits the time limit scores `resource_timeout`, and one killed for memory `resource_oom`).
 
 In the Final, a canary string anywhere in the output is scored as contamination.
 

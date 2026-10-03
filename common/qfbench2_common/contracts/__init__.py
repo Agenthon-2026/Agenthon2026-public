@@ -78,6 +78,7 @@ from .codes import (
 from .descriptor import CATEGORIES, IMAGE_ACCESS, ModelDisclosure, SubmissionDescriptor
 from .devattest import (
     DevelopmentAttestationRefused,
+    LeakageScan,
     attest_development_run_records,
 )
 from .digest import (
@@ -181,11 +182,14 @@ from .run_record import (
 from ._time import RFC3339_RE, format_rfc3339, parse_rfc3339
 from .sealed import ArtifactRole, CorpusEntry, ResolverDescriptor, SealedArtifact, SealedHandle
 from .signing import (
+    HOST_PURPOSES,
     SIGNATURE_ALG,
+    TRUST_PURPOSES,
     SignatureEnvelope,
     SignatureUnverifiable,
     TrustStore,
     VerificationResult,
+    derive_public_key,
     ed25519_backend,
     sign_payload,
     verify_signed,
@@ -206,6 +210,7 @@ __all__ = [
     "HANDLE_RE",
     "HEARTBEAT_PREFLIGHT_KEYS",
     "HEARTBEAT_SCHEMA_VERSION",
+    "HOST_PURPOSES",
     "IMAGE_ACCESS",
     "LABELLED_TARGET_TYPES",
     "LABELS_REQUIRED_FROM",
@@ -227,6 +232,7 @@ __all__ = [
     "SIGN_OFF_ROLES",
     "TARGET_TYPES",
     "TRACKS",
+    "TRUST_PURPOSES",
     "UNIT_SCOPES",
     "UNMET_CONTROLS",
     "WORKER_ENV_REQUIRED_ROLES",
@@ -249,6 +255,7 @@ __all__ = [
     "NodeObservation",
     "NodeType",
     "DevelopmentAttestationRefused",
+    "LeakageScan",
     "attest_development_run_records",
     "OrganizerFault",
     "ParticipantFailure",
@@ -282,6 +289,7 @@ __all__ = [
     "compute_roster_digest",
     "derive_opaque_handle",
     "derive_opaque_roster",
+    "derive_public_key",
     "derive_participant_outcome",
     "derive_unmet_controls",
     "digest_json",

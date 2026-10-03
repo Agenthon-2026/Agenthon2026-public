@@ -170,14 +170,18 @@ def compute_forecast_input_commitments(
     return _commit(cards), digest_json(snapshots)
 
 
-def _signed(raw: bytes, trust: TrustStore, now: datetime, production: bool) -> dict[str, Any]:
+def _signed(
+    raw: bytes, trust: TrustStore, now: datetime, production: bool, *, purpose: str
+) -> dict[str, Any]:
+    """Parse and verify one signed document for `purpose`: `c1` for the organizer's protocol and
+    resolution, `c2` for the run-time receipt that binds C2 records."""
     obj = _json(raw)
     envelope = SignatureEnvelope.from_mapping(obj.get("signature"))
     _require(
         now.tzinfo is not None and _time(envelope.signed_at) <= now,
         "signed time is later than verifier time",
     )
-    verify_signed_object(obj, trust, require_production_trust=production)
+    verify_signed_object(obj, trust, require_production_trust=production, purpose=purpose)
     return obj
 
 
@@ -270,7 +274,7 @@ def _template(value: Any) -> tuple[dict[str, Any], dict[str, list[tuple[str, int
 
 
 def _protocol(raw: bytes, trust: TrustStore, now: datetime, production: bool) -> dict[str, Any]:
-    signed = _signed(raw, trust, now, production)
+    signed = _signed(raw, trust, now, production, purpose="c1")
     version = signed.get("schema_version")
     _require(version in (VERSION, INPUT_VERSION), "unsupported forecasting protocol")
     obj = _closed(
@@ -427,7 +431,7 @@ def _freeze(
     input_snapshots: Mapping[str, Mapping[str, bytes]] | None = None,
 ) -> dict[str, Any]:
     obj = _closed(
-        _signed(receipt, receipt_trust, now, production),
+        _signed(receipt, receipt_trust, now, production, purpose="c2"),
         (
             "schema_version",
             "kind",
@@ -641,7 +645,7 @@ def verify_forecast_resolution(
         input_snapshots=input_snapshots,
     )
     obj = _closed(
-        _signed(resolution, organizer_trust, now, require_production_trust),
+        _signed(resolution, organizer_trust, now, require_production_trust, purpose="c1"),
         (
             "schema_version",
             "kind",

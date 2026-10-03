@@ -1144,6 +1144,9 @@ class RunRecord:
         digest of the frozen payload, and that the Ed25519 signature over the envelope verifies
         under a configured trust store. A caller treats any failure as the unmet control
         `signature_invalid` — never as "no signature to check" (frozen rule 0.5).
+
+        A run record is verified for purpose `c2`: a store that binds purposes refuses a record
+        signed by a key it does not trust for run records.
         """
         if self.attestation is None:
             raise SignatureUnverifiable(
@@ -1157,6 +1160,7 @@ class RunRecord:
             now=now,
             max_age=max_age,
             require_production_trust=require_production_trust,
+            purpose="c2",
         )
 
     def verify_bindings(self, **expected: str) -> None:

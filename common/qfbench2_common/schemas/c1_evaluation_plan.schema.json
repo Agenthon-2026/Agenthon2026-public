@@ -312,7 +312,8 @@
               "network_violation",
               "cutoff_violation",
               "contamination_detected",
-              "domain_gate_failed"
+              "domain_gate_failed",
+              "not_reached"
             ]
           },
           "additionalProperties": {

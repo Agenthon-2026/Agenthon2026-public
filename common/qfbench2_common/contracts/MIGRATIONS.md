@@ -230,3 +230,69 @@ table, and no track scorer is asked about it.
    failure, and `derive_participant_outcome` gives the outcome to sign.
 4. A track scorer that reads C2 itself reads the same member and the same table.
 5. The Development self-attester stays on 1.1.0.
+
+---
+
+# Toolkit 2.6.0 — trust-store key purposes, `not_reached`, and organizer-side additions
+
+None of this changes a submission or what a submission must contain. The contract set stays at
+1.1.0, the C5 descriptor and the answer schemas are unchanged, and every signature already made
+still verifies.
+
+## Trust stores bind keys to purposes
+
+A trust store maps `key_id` to a public key. Before this release every key it held verified every
+kind of signed document. A store may now bind each key to the purposes it is trusted for, and
+every verifier names the purpose it verifies for:
+
+| Purpose | Verifies |
+|---|---|
+| `c1` | C1 evaluation plans, the Track 2 forecast protocol |
+| `c2` | C2 run records, and the run-time receipts that bind them |
+| `c6` | C6 sealed-dataset resolver descriptors |
+| `c7` | C7 hardware instances |
+| `c8` | C8 release evidence |
+| `heartbeat` | worker heartbeats |
+| `archive` | the Track 2 close archive manifest |
+
+- A **production** store that holds a key must bind it (`purposes`, beside `profile`, `label` and
+  `keys`), and a production verification names its purpose or is refused.
+- A **development** store may bind none, and then behaves exactly as before. The development trust
+  store document is byte-for-byte unchanged.
+- A key holding `c2` or `heartbeat` (the keys that live on fleet hosts) may hold no other purpose.
+- A store that binds purposes holds each public key under one id, and loading a store document
+  that names a member twice is refused.
+- `EvaluationPlan.verify_signature` verifies for `c1`, `RunRecord.verify_attestation` for `c2`, the
+  forecast protocol for `c1` (its receipts for `c2`); call `verify_signed` /
+  `verify_signed_object` with `purpose=` for C7 (`c7`), heartbeats (`heartbeat`) and the rest.
+- `signing.TRUST_PURPOSES` and `signing.HOST_PURPOSES` are exported, with `derive_public_key`.
+
+Signing uses the compiled Ed25519 in `cryptography` when it is installed, otherwise the bundled
+pure-Python implementation; both give the same signature. A signer holding a real key passes
+`require_constant_time=True` to `sign_payload` or `derive_public_key`, which refuses the
+pure-Python fallback. `cryptography` is not a new dependency.
+
+## C4 failure-code registry 1.2.0 — `not_reached`
+
+`not_reached`: the run's total wall-clock allowance for the phase ended before this unit was
+started. It is scored (the unit keeps its slot in the C1 denominator at `W`, like a missing
+output), and its scope is `ingestion`. The C1 and C4 schemas list it with the other codes. The C4
+document shape is unchanged; a reader with a hard-coded list of the enum refuses the new value,
+which is what the registry version announces.
+
+## Unit handles
+
+`plan.validate_unit_handle` refuses a handle with a trailing newline in every phase: both handle
+patterns are now full matches.
+
+## Development self-attestation
+
+- `development_plan(..., phase=...)` builds the same development-signed plan for another phase
+  (for example `"final"`); it differs from the Development plan in `phase` and the identifiers
+  only. A sealed phase still requires opaque handles.
+- `attest_development_run_records(..., leakage=LeakageScan(registry, unit_inputs))` scans each unit's
+  verified published tree against an organizer-only canary registry, leaving out the entries the
+  unit was itself handed. Omitted, every record carries the unscanned default exactly as before.
+- A unit whose container was never created because the submitted image could not be pulled now
+  gets a participant-charged record, so the run is scored and the run summary names the cause
+  (`image_unusable`) instead of the run failing without a page.

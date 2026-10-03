@@ -40,6 +40,35 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
+### Toolkit `v2.6.0` — organizer-side contracts for the Final; no action needed
+
+**`ADDED`** **No action is needed: nothing you build or submit changes.** Toolkit `v2.6.0` adds
+organizer-side pieces the Final uses. Your submission descriptor, the answer schemas, the contract
+set (still 1.1.0) and the way you are scored are unchanged, and toolkit `v2.5.1` keeps working.
+Install `v2.6.0` whenever you next reinstall:
+
+```bash
+pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.6.0#subdirectory=common"
+```
+
+What is in it:
+
+- **Trust stores can bind each signing key to the documents it may sign** (evaluation plans, run
+  records, hardware instances, release evidence, heartbeats, the Track 2 close archive). A
+  production store must; a development store need not, and behaves exactly as before. Every
+  signature already made still verifies. Signing uses the `cryptography` package when it is
+  installed and gives the same signature either way; it is not a new dependency.
+- **The failure-code registry is at 1.2.0 and lists `not_reached`**, the reason code a run summary
+  shows for a unit the stage clock ended before it was started (see "Track 1: a run cut short by
+  the 12-hour stage clock is now scored" below). The toolkit's own registry, and its C1 and C4
+  schemas, now carry it.
+- **A unit handle with a trailing newline is refused** in every phase.
+- **`metadata.difficulty` is optional** in the task-card schema.
+- **Development self-attestation:** the development-signed plan can be built for another phase; the
+  records can carry a real canary scan of each published output; and a unit whose submitted image
+  could not be pulled gets a record charged to the submission (`image_unusable`), so such a run is
+  scored with that reason instead of failing without a result.
+
 ### Track 4 scorer 5.2.2 — filler and whole-document claims are false, claim-level `citations` list removed, numbers in web addresses, reasons checked one by one
 
 **`ACTION`** **Pull the Track 4 repository; toolkit `v2.5.1` is unchanged.** Track 4 scorer 5.2.2

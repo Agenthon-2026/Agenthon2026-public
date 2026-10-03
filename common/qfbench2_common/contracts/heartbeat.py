@@ -37,8 +37,9 @@ bound to the old body stops matching, which is the correct outcome — the opera
 were claiming about the hardware and the worker has not re-attested to the new claim.
 
 Verification is the frozen §0.5 envelope over the document minus `signature`, so
-`verify_signed_object(doc, trust_store)` is the whole of it. An empty trust store fails closed,
-exactly as everywhere else.
+`verify_signed_object(doc, trust_store, purpose="heartbeat")` is the whole of it: a store that
+binds key purposes (every production store) refuses a call that names none, and a key it does not
+trust for heartbeats. An empty trust store fails closed, exactly as everywhere else.
 """
 
 from __future__ import annotations

@@ -49,6 +49,35 @@ anything the development trust store accepts is forgeable by anyone who can read
 exactly why `verify_signed(..., require_production_trust=True)` — the default — refuses it, why
 `score.py` stamps `rankable=false` and `trust_profile="development"` on every board it produces,
 and why a production bundle carries neither this module's output nor the key that verifies it.
+
+## The `leakage` block: a scan, or the stated Development default
+
+C2's `leakage` block is verdict-only (frozen ruling R-8) and has two verdicts, `clean` and `hit`.
+Until the `leakage` parameter existed this producer wrote `clean` with zero files and zero bytes on
+every record, without scanning anything. That default is unchanged, byte for byte, when
+the parameter is omitted, so the Development bundles already staged keep producing the records they
+produce today; zero scanned files is how such a record says that no scan ran.
+
+Given a `LeakageScan`, every record's block comes from a real scan instead:
+
+* the unit's published tree is scanned with `leakage.scan_tree` only after it has verified against
+  its persisted C3 descriptor, under that descriptor's own `limits_applied`. The bounds the
+  sanitizer held the tree to are the bounds it is scanned under, so a profile that allows more
+  output (a larger per-file bound) is scanned whole rather than refused at a fixed 64 MiB;
+* the tree is verified again after the scan, so the verdict is about the bytes the scorer reads;
+* a unit that published nothing gets the empty-tree verdict, zero files and zero bytes;
+* a registry entry that is present in the unit's own input tree (the directory mounted into its
+  container as `/input`) is left out of that unit's scan. Every unit's card carries its own canary,
+  and some tracks repeat it in files the agent reads, so an agent that writes its own input back
+  into its output would otherwise be reported as contaminated by a canary it was handed. The same entry
+  in any other unit's output is still a hit;
+* when no verdict can be established -- the tree did not verify, the scan could not read it whole,
+  the input tree could not be read -- the unit gets NO record and a stated reason. It never gets a
+  `clean` one. A missing C2 is an organizer fault in `score.py`, which is the correct reading of a
+  run whose output we could not examine.
+
+The registry is organizer-only. Nothing here returns, prints or raises a registry entry, and a
+`LeakageScan`'s `repr` does not show one.
 """
 
 from __future__ import annotations
@@ -58,8 +87,10 @@ import json
 import os
 import pathlib
 import re
+import stat
 from collections.abc import Mapping, Sequence
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, NamedTuple
 
 from .artifact_tree import SanitizedTree, TreeLimits
 from .digest import digest_json, parse_digest
@@ -73,7 +104,7 @@ from .fixtures import (
     dev_selfattest_public_key,
     load_fixture,
 )
-from .plan import EvaluationPlan, compute_roster_digest
+from .plan import PHASES, EvaluationPlan, compute_roster_digest
 
 # Self-attestation does not collect the independent host facts required by C2 1.2.
 # Its existing infrastructure-fault handling remains on the readable 1.1 format.
@@ -90,6 +121,7 @@ from .signing import TrustStore, sign_payload
 __all__ = [
     "CONTROL_DIRNAME",
     "DevelopmentAttestationRefused",
+    "LeakageScan",
     "OBSERVATION_DIRNAME",
     "PLAN_FILENAME",
     "RUN_RECORD_DIRNAME",
@@ -137,6 +169,81 @@ _MEMORY_RE = re.compile(r"^\s*([0-9]+(?:\.[0-9]+)?)\s*([a-zA-Z]*)\s*$")
 
 class DevelopmentAttestationRefused(OrganizerFault):
     """This producer was asked to do something only the Runner may do. Never a warning."""
+
+
+#: The block every record carried before `LeakageScan` existed, and still carries when the caller
+#: passes none. It is NOT the result of a scan: nothing was read, which is what the zero counts
+#: say. Kept byte for byte so the Development bundles already staged produce identical records.
+_UNSCANNED_LEAKAGE: Mapping[str, Any] = {
+    "canary_verdict": "clean",
+    "hit_count": 0,
+    "scanned_file_count": 0,
+    "scanned_bytes": 0,
+}
+
+#: The verdict for a unit that published no tree. There are no bytes for a scorer to read, so
+#: there is nothing that could carry a canary into scoring: zero files, zero bytes, no hit. This is
+#: exactly what `scan_tree` returns for an empty directory. A published tree is never empty (the
+#: sanitizer refuses an empty output), so under a scan zero files means nothing was published.
+_NOTHING_PUBLISHED_LEAKAGE: Mapping[str, Any] = {
+    "canary_verdict": "clean",
+    "hit_count": 0,
+    "scanned_file_count": 0,
+    "scanned_bytes": 0,
+}
+
+
+@dataclass(frozen=True, slots=True, repr=False)
+class LeakageScan:
+    """What each record's `leakage` block is scanned against. Organizer-only.
+
+    `registry` is the canary registry: every entry a lowercase UUIDv4, the registry's canonical
+    form (`leakage.is_canary_shaped`). It is refused when empty, because an empty registry makes
+    every scan report `clean` having searched for nothing, and when any entry is not a canary,
+    because a malformed needle matches either nothing or far too much.
+
+    `unit_inputs` is the directory whose `<handle>/` subdirectories were mounted into the unit
+    containers as `/input` (`ingest.py` mounts `<input_dir>/ref/<handle>`). The registry entries
+    present in a unit's own input tree are left out of that unit's scan, and only that unit's.
+
+    Neither field appears in the `repr`, and no error raised here names an entry.
+    """
+
+    registry: tuple[str, ...]
+    unit_inputs: pathlib.Path
+
+    def __post_init__(self) -> None:
+        from ..leakage import is_canary_shaped
+
+        if isinstance(self.registry, (str, bytes)):
+            raise OrganizerFault(
+                "the canary registry must be a collection of entries, not a single string"
+            )
+        entries: set[str] = set()
+        for raw in self.registry:
+            if not isinstance(raw, str) or not is_canary_shaped(raw):
+                raise OrganizerFault(
+                    "the canary registry holds an entry that is not a canary (a lowercase "
+                    "UUIDv4). A malformed entry is refused rather than matched; it is not echoed "
+                    "here."
+                )
+            entries.add(raw.strip().lower())
+        if not entries:
+            raise OrganizerFault(
+                "the canary registry is empty, so every scan would report 'clean' having searched "
+                "for nothing. A record never claims a scan that did not look."
+            )
+        inputs = pathlib.Path(self.unit_inputs)
+        if not inputs.is_dir():
+            raise OrganizerFault(
+                "the unit input root is not a directory, so no unit's own input can be told apart "
+                "from leaked material"
+            )
+        object.__setattr__(self, "registry", tuple(sorted(entries)))
+        object.__setattr__(self, "unit_inputs", inputs)
+
+    def __repr__(self) -> str:
+        return "LeakageScan(<organizer-only canary registry>)"
 
 
 def _memory_bytes(value: Any) -> int | None:
@@ -190,37 +297,53 @@ def _require_development(*, profile: str, trust_store: TrustStore, key_id: str) 
         )
 
 
+class _PublishedTree(NamedTuple):
+    """What `_verify_published_tree` established about one unit's published output."""
+
+    #: The claimed root digest, re-derived and re-read when `verdict` is None; "" when the
+    #: observation names no published tree.
+    digest: str
+    #: None when the tree verified (or none was published); "contradicted" otherwise.
+    verdict: str | None
+    reason: str | None
+    #: The verified C3 descriptor and the directory it describes. Both set only when a tree was
+    #: published AND it verified; `None` otherwise.
+    tree: SanitizedTree | None = None
+    path: pathlib.Path | None = None
+
+
 def _verify_published_tree(
     sanitized_root: pathlib.Path, control: pathlib.Path, unit: str, observation: Mapping[str, Any]
-) -> tuple[str, str | None, str | None]:
+) -> _PublishedTree:
     """Re-read the published tree and check it against the persisted C3 descriptor.
 
-    Returns `(sanitized_tree_digest, verdict, reason)` where `verdict` is `None` when the tree
-    verified. This is the ONE independent host fact this producer establishes, so it is also the
-    only thing entitling it to write `confirmed`.
+    Returns the claimed digest, a verdict that is `None` when the tree verified, and its reason.
+    This is the ONE independent host fact this producer establishes, so it is also the only thing
+    entitling it to write `confirmed`. A tree that verified also comes back with its C3 descriptor
+    and its published path, which is what a leakage scan of exactly those bytes needs.
     """
     sanitized = observation.get("sanitized")
     if not isinstance(sanitized, Mapping) or not sanitized.get("tree_digest"):
         # No published tree: the sanitizer refused it, or the container never produced one. There
         # is nothing to compare and nothing to disagree with, so the verdict is not `contradicted`
         # -- `score.py` resolves this unit from the lifecycle and the absent `res/<handle>/`.
-        return "", None, None
+        return _PublishedTree("", None, None)
     claimed = str(sanitized["tree_digest"])
     path = control / ARTIFACT_TREE_DIRNAME / f"{unit}.json"
     if not path.is_file():
-        return claimed, "contradicted", "observation_malformed"
+        return _PublishedTree(claimed, "contradicted", "observation_malformed")
     try:
         tree = SanitizedTree.from_mapping(json.loads(path.read_text(encoding="utf-8")))
     except (OSError, ValueError, ContractError):
-        return claimed, "contradicted", "observation_malformed"
+        return _PublishedTree(claimed, "contradicted", "observation_malformed")
     if tree.root_digest != claimed:
-        return claimed, "contradicted", "host_facts_mismatch"
+        return _PublishedTree(claimed, "contradicted", "host_facts_mismatch")
     try:
         # Both ways: the entries re-derive the digest, and the digest is over bytes that are still
         # on disk in the scoring namespace.
         tree.verify_digest()
     except ContractError:
-        return claimed, "contradicted", "host_facts_mismatch"
+        return _PublishedTree(claimed, "contradicted", "host_facts_mismatch")
     from ..sanitize import MaterializedFile, verify_destination
 
     published = sanitized_root / str(sanitized.get("published_as") or unit)
@@ -235,8 +358,156 @@ def _verify_published_tree(
         for entry in tree.entries
     ]
     if verify_destination(published, expected, limits=TreeLimits()):
-        return claimed, "contradicted", "host_facts_mismatch"
-    return claimed, None, None
+        return _PublishedTree(claimed, "contradicted", "host_facts_mismatch")
+    return _PublishedTree(claimed, None, None, tree, published)
+
+
+def _registry_entries_in_input(directory: pathlib.Path, registry: Sequence[str]) -> frozenset[str]:
+    """The registry entries present anywhere in the tree a unit was handed as `/input`.
+
+    Private to `_leakage_block`, which uses it only to subtract from one unit's scan; the set
+    never leaves that function, is never printed and never reaches a record. Every regular file is
+    read at any depth, case-folded like `scan_tree`. A link is never followed: inside the container
+    it resolves against the container's filesystem rather than this tree, and a link to a file of
+    this tree is read as that file. Raises `OSError` when the tree cannot be read whole: an
+    exclusion computed from part of the tree would be a different exclusion, chosen by accident.
+    """
+    from ..leakage import DEFAULT_LIMITS
+
+    if directory.is_symlink() or not directory.is_dir():
+        raise NotADirectoryError("the unit's input tree is absent")
+    needles = {entry.encode("ascii"): entry for entry in registry}
+    overlap = DEFAULT_LIMITS.chunk_overlap_bytes
+    found: set[str] = set()
+
+    def refuse(exc: OSError) -> None:
+        raise exc
+
+    for current, _dirnames, filenames in os.walk(directory, onerror=refuse, followlinks=False):
+        for name in filenames:
+            path = os.path.join(current, name)
+            if not stat.S_ISREG(os.lstat(path).st_mode):
+                continue
+            fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+            with os.fdopen(fd, "rb") as handle:
+                tail = b""
+                while chunk := handle.read(DEFAULT_LIMITS.read_chunk_bytes):
+                    window = (tail + chunk).lower()
+                    found.update(entry for needle, entry in needles.items() if needle in window)
+                    tail = chunk[-overlap:]
+    return frozenset(found)
+
+
+def _leakage_block(
+    leakage: LeakageScan,
+    sanitized_root: pathlib.Path,
+    control: pathlib.Path,
+    unit: str,
+    observation: Mapping[str, Any],
+    published: _PublishedTree,
+) -> dict[str, Any] | str:
+    """One unit's `leakage` block from a real scan, or the reason there can be none.
+
+    A string return is an outcome for the operator log, and it means the unit gets NO record:
+    a verdict that could not be established is never written as `clean`. The strings are fixed;
+    none carries a path, an entry, or anything the participant wrote.
+    """
+    from ..leakage import LeakageScanIncomplete, ScanLimits, scan_tree
+
+    if published.verdict is not None:
+        return "leakage_unscanned (the published tree did not verify)"
+    if published.tree is None or published.path is None:
+        sanitized = observation.get("sanitized")
+        where = sanitized.get("published_as") if isinstance(sanitized, Mapping) else None
+        stray = sanitized_root / str(where or unit)
+        if stray.exists() or stray.is_symlink():
+            # Nothing was published, yet something sits where the scorer would look for it, and no
+            # C3 describes it. It is not called clean; nothing vouched for it.
+            return "leakage_unscanned (an undescribed tree is at the published path)"
+        return dict(_NOTHING_PUBLISHED_LEAKAGE)
+    try:
+        handed = _registry_entries_in_input(leakage.unit_inputs / unit, leakage.registry)
+    except OSError:
+        return "leakage_unscanned (the unit's input tree could not be read)"
+    needles = [entry for entry in leakage.registry if entry not in handed]
+    if not needles:
+        return "leakage_unscanned (every registry entry is in the unit's own input)"
+    # The bounds the sanitizer held THIS tree to, from its own persisted descriptor -- never a
+    # constant. A tree the sanitizer accepted is therefore always readable here, whatever output
+    # allowance the run's profile granted.
+    applied = published.tree.limits_applied
+    limits = ScanLimits(
+        max_files=applied.max_files,
+        max_depth=applied.max_depth,
+        max_file_bytes=applied.max_file_bytes,
+        max_total_bytes=applied.max_total_bytes,
+    )
+    try:
+        verdict = scan_tree(published.path, needles, limits=limits)
+    except LeakageScanIncomplete:
+        return "leakage_scan_incomplete"
+    after = _verify_published_tree(sanitized_root, control, unit, observation)
+    if after.verdict is not None or after.digest != published.digest:
+        return "leakage_unscanned (the published tree changed during the scan)"
+    return verdict.as_dict()
+
+
+#: Hub failure labels that may be carried into a PARTICIPANT-charged C2's observation block, where
+#: `score.py` reads them to choose the public failure code. Closed, and short on purpose: every
+#: member is a published participant-facing outcome with a row in the C4 failure-code registry.
+#:
+#: `not_reached` -- the phase's total wall-clock allowance ended before the unit was started
+#: (registry 1.2.0).
+_PARTICIPANT_HUB_FAILURES = frozenset({"not_reached"})
+
+#: The bounded `docker_error_reason` (`ingest.py` `_DAEMON_REASONS`) that names the SUBMITTED image
+#: as the reason `docker create` was refused: the registry refused the pull (401/403), the
+#: repository, tag or manifest does not exist, or the reference is malformed.
+_IMAGE_UNAVAILABLE_REASON = "image_unavailable"
+
+#: `lifecycle.daemon_status` on the record for a unit whose container was never created because the
+#: participant's image could not be pulled. C2 requires a non-empty string, and the Hub has none to
+#: give: it asks the daemon about a container, and there was no container. A value docker cannot
+#: produce (its states are created/running/paused/restarting/removing/exited/dead), and not
+#: `ingest.py`'s `not_started`, which `score.py` reads as `not_reached`: this unit WAS reached. Its
+#: public code is `image_unusable`, which `score.py` derives from `phase_reached: created`.
+NOT_CREATED_DAEMON_STATUS = "not_created"
+
+#: `image.interface_label` on the same record. C2 requires a non-empty string; the label is read
+#: from the pulled image's configuration, and this image was never pulled.
+NOT_INSPECTED_INTERFACE_LABEL = "not_inspected"
+
+
+def _unpullable_participant_image(observation: Mapping[str, Any]) -> bool:
+    """Was this unit's `docker create` refused because the participant's image could not be pulled?
+
+    The one case in which a missing `image.resolved_digest` is the participant's. Every
+    clause reads a field the Hub derived from a channel no participant process can write:
+    `docker create` fails before any container exists, so its stderr -- which the Hub classifies
+    into `docker_fault` and the bounded `docker_error_reason` -- is the daemon's alone, and the
+    lifecycle floor says that no container was ever created, started or cleaned up. A digest that
+    is missing for any other reason (a create that timed out, an image the Hub could not inspect
+    after a container ran, a refusal the Hub charged to us) is not this, and files no record.
+    """
+    image = observation.get("image")
+    lifecycle = observation.get("lifecycle")
+    if not isinstance(image, Mapping) or not isinstance(lifecycle, Mapping):
+        return False
+    requested = image.get("requested")
+    return (
+        not image.get("resolved_digest")
+        and isinstance(requested, str)
+        and bool(requested.strip())
+        and observation.get("fault") == "submission"
+        and observation.get("docker_fault") == "submission"
+        and observation.get("docker_error_reason") == _IMAGE_UNAVAILABLE_REASON
+        and lifecycle.get("phase_reached") == "created"
+        and lifecycle.get("daemon_status") == ""
+        and lifecycle.get("exit_code") is None
+        and lifecycle.get("timed_out") is False
+        and lifecycle.get("oom_killed") is False
+        and lifecycle.get("cleanup_confirmed") is True
+    )
 
 
 #: The prefix `ingest.py:gpu_args()` puts in front of a pinned device before handing it to
@@ -344,12 +615,25 @@ def attest_development_run_records(
     trust_store: TrustStore,
     key_id: str = DEV_SELFATTEST_KEY_ID,
     seed: bytes = DEV_SELFATTEST_SEED,
+    leakage: LeakageScan | None = None,
 ) -> dict[str, str]:
     """File one self-attested C2 per observation. Returns `{unit: outcome}` for the operator log.
 
     `outcome` is `"written"`, or a short reason the unit produced no record. A unit with no record
     is resolved by `score.py` as a missing C2, which is an organizer fault — correctly, because a
     run whose evidence we could not assemble is one we cannot attribute.
+
+    An unresolved image digest files no record, with one exception: the Hub established that the
+    daemon refused `docker create` because the participant's image could not be pulled
+    (`_unpullable_participant_image`). That unit gets a participant-charged record, which
+    `score.py` resolves to the public code `image_unusable`, so the run is scored and its run
+    summary page names the cause.
+
+    `leakage` decides each record's `leakage` block. Omitted, every record carries the unscanned
+    Development default, exactly as before this parameter existed. Given a `LeakageScan`, every
+    record carries the verdict of a real scan of the unit's verified published tree, under the
+    bounds of that tree's own C3 descriptor, with the unit's own input entries left out; a unit
+    whose verdict cannot be established gets no record (see the module docstring).
     """
     _require_development(profile=profile, trust_store=trust_store, key_id=key_id)
     root = pathlib.Path(output_root)
@@ -384,17 +668,49 @@ def attest_development_run_records(
             outcomes[unit] = "observation_malformed"
             continue
         image = observation.get("image") or {}
-        if not image.get("resolved_digest"):
+        lifecycle = dict(observation.get("lifecycle") or {})
+        resolved_digest = image.get("resolved_digest")
+        interface_label = image.get("interface_label") or ""
+        unpullable = not resolved_digest and _unpullable_participant_image(observation)
+        if unpullable:
+            # THE PARTICIPANT'S IMAGE COULD NOT BE PULLED. Nothing unresolved is ours
+            # here: the daemon refused `docker create` because the registry would not serve the
+            # submitted reference (private, absent or mistyped). Filing no record made `score.py`
+            # abort the whole run as an ORGANIZER fault with no page, so the one thing the
+            # participant needed to learn -- "your image is not pullable" -- was never said.
+            #
+            # C2 has no null `image.resolved_digest`, so this binds a digest of the STATEMENT that
+            # the daemon resolved none for the requested reference -- the same device as
+            # `c7_instance_digest` above -- and declares `image_digest_unresolved`, so no reader
+            # can take it for an image identity. The record stays unrankable like every record
+            # this producer files, and a production trust store refuses its signer outright.
+            resolved_digest = digest_json(
+                {
+                    "image": {"requested": image["requested"], "resolved_digest": None},
+                    "profile": profile,
+                    "reason": "docker create was refused: the submitted image could not be pulled",
+                }
+            )
+            lifecycle["daemon_status"] = NOT_CREATED_DAEMON_STATUS
+            interface_label = NOT_INSPECTED_INTERFACE_LABEL
+        elif not resolved_digest:
             # C2 has no null `image.resolved_digest`, so a run whose image the daemon could not
             # identify cannot be described by a run record at all. `ingest.py` already calls this
             # an infrastructure failure in production ("no provable identity"); the same reading
             # applies here, and the unit surfaces as a missing C2 rather than as a participant zero.
             outcomes[unit] = "image_digest_unresolved"
             continue
-        lifecycle = dict(observation.get("lifecycle") or {})
         lifecycle.setdefault("signal", None)
         lifecycle.setdefault("oom_killed", False)
-        tree_digest, verdict, reason = _verify_published_tree(root, control, unit, observation)
+        published = _verify_published_tree(root, control, unit, observation)
+        tree_digest, verdict, reason = published.digest, published.verdict, published.reason
+        leakage_block: dict[str, Any] = dict(_UNSCANNED_LEAKAGE)
+        if leakage is not None:
+            scanned = _leakage_block(leakage, root, control, unit, observation, published)
+            if isinstance(scanned, str):
+                outcomes[unit] = scanned
+                continue
+            leakage_block = scanned
         hint = (observation.get("rankability_hint") or {}).get("unmet_controls") or []
         document: dict[str, Any] = {
             "schema_version": SCHEMA_VERSION,
@@ -411,8 +727,8 @@ def attest_development_run_records(
             },
             "image": {
                 "requested": image.get("requested") or "",
-                "resolved_digest": image["resolved_digest"],
-                "interface_label": image.get("interface_label") or "",
+                "resolved_digest": resolved_digest,
+                "interface_label": interface_label,
             },
             "lifecycle": lifecycle,
             "participant_outcome": "success",
@@ -422,12 +738,7 @@ def attest_development_run_records(
             "telemetry": None,
             "output_row_counts": {},
             "repeats": [],
-            "leakage": {
-                "canary_verdict": "clean",
-                "hit_count": 0,
-                "scanned_file_count": 0,
-                "scanned_bytes": 0,
-            },
+            "leakage": leakage_block,
             "worker_layer_view": [],
             "observation": {"observed_by": "qfbench2-hub", "notes_count": 0},
             "attestation": {
@@ -455,6 +766,10 @@ def attest_development_run_records(
         unmet = (set(hint) - {"signature_invalid"}) | {"telemetry_absent", "tier_unenforced"}
         if verdict == "contradicted":
             unmet.add("observation_contradicted")
+        if unpullable:
+            # Declared here whatever the Hub's hint says: the bound digest is a statement, not an
+            # image identity, and the record must say so itself.
+            unmet.add("image_digest_unresolved")
         # THE HUB'S OWN BLAME VERDICT, CARRIED. `ingest.py` classifies the daemon's refusal and
         # writes `fault`/`docker_fault: "infrastructure"` when the run failed for a reason the
         # participant did not cause -- a missing GPU device driver, an unreachable daemon, a
@@ -467,8 +782,39 @@ def attest_development_run_records(
         # from it scored the unit `container_crashed`, a PARTICIPANT failure. That is exactly the
         # attribution mistake the contract set exists to remove, reintroduced one layer down.
         state = "unrankable"
+        # A Hub failure label the SCORER needs in order to pick the right public code, on a
+        # record that is charged to the participant. `_code_from_lifecycle` reads only
+        # `timed_out`, `oom_killed` and `phase_reached`, and a unit the roster never started has
+        # none of those to distinguish it -- it would arrive as `image_unusable`, which is a false
+        # statement about an image that was never pulled for it.
+        #
+        # Deliberately an ALLOW-LIST and not the bounded-charset rule the organizer_failure branch
+        # below uses: this string reaches the participant-visible submission log and the run
+        # summary page, so on this side only labels we have published a meaning for may cross.
+        participant_label = observation.get("failure")
+        if isinstance(participant_label, str) and (participant_label in _PARTICIPANT_HUB_FAILURES):
+            document["observation"]["hub_failure"] = participant_label
         if "infrastructure" in (observation.get("fault"), observation.get("docker_fault")):
             state = "organizer_failure"
+            # AND THE REASON, so the abort can name it. `score.py` could only print the unmet
+            # control list, which describes the Development phase's permanent condition and not
+            # what went wrong -- a real abort read "organizer failure (['telemetry_absent',
+            # 'tier_unenforced'])" whatever caused it, which sent a diagnosis down several wrong
+            # paths.
+            #
+            # `observation` is the one legal channel: `rankability.unmet_controls` is a closed
+            # vocabulary and `execution_fault` is re-derived from the lifecycle and refuses
+            # disagreement, while the observation block is Hub-authored and open. `fault` and
+            # `docker_fault` are deliberately NOT carried here: `score.py` reads exactly those two
+            # keys one branch earlier, and writing them would raise the legacy-ambiguous-
+            # attribution fault instead, changing control flow.
+            #
+            # Bounded to a charset, and the bound IS the defence: this string ends up in the
+            # scorer's stderr, which CodaBench shows the submitter as their submission log. A
+            # relaxation here is a leak channel, not a formatting change.
+            reason = observation.get("failure")
+            if isinstance(reason, str) and re.fullmatch(r"[a-z0-9_]{1,64}", reason):
+                document["observation"]["hub_failure"] = reason
         document["rankability"] = {"state": state, "unmet_controls": sorted(unmet)}
         try:
             probe = RunRecord.from_mapping({**document, "attestation": None})
@@ -519,8 +865,9 @@ def development_plan(
     signed_at: str,
     seed: bytes = DEV_SEED,
     key_id: str = DEV_KEY_ID,
+    phase: str = "dev",
 ) -> dict[str, Any]:
-    """A signed, expanded C1 over `handles`, for the Development phase.
+    """A signed, expanded C1 over `handles`, for the Development phase unless `phase` says otherwise.
 
     DERIVED from the hub's own golden fixture rather than written out here. Each track's fixture
     already carries every track-specific key the C1 parser requires -- T2's grid and normalization,
@@ -532,7 +879,15 @@ def development_plan(
     The signature is the published DEVELOPMENT organizer key, so `verify_signature(...,
     require_production_trust=True)` -- the default everywhere else -- refuses it, and `score.py`
     stamps `rankable=false` / `trust_profile="development"` on any board it produces.
+
+    `phase` is the plan's `phase`, `"dev"` unless a caller names another, such as `"final"`: the
+    same template, the same entries and the same development signature, in the phase its
+    descriptors and roster belong to. Nothing else in the body depends on it. A sealed phase still
+    holds its roster to the opaque handle grammar (C1 1.1.0), which the C1 parser enforces below,
+    before this returns.
     """
+    if phase not in PHASES:
+        raise ContractError(f"phase {phase!r} is not one of {list(PHASES)}")
     handles = [str(h) for h in handles]
     if not handles:
         raise ContractError(
@@ -542,7 +897,7 @@ def development_plan(
     body: dict[str, Any] = json.loads(
         json.dumps(load_fixture(_C1_TEMPLATE.get(track, f"c1/{track}_final.expanded.json")))
     )
-    body["phase"] = "dev"
+    body["phase"] = phase
     body["competition_id"] = competition_id
     body["plan_id"] = plan_id
     if track == "coding":

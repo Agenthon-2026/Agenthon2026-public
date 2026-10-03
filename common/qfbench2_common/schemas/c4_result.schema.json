@@ -71,7 +71,8 @@
                 "network_violation",
                 "cutoff_violation",
                 "contamination_detected",
-                "domain_gate_failed"
+                "domain_gate_failed",
+                "not_reached"
               ]
             }
           ]
@@ -94,7 +95,8 @@
                 "network_violation",
                 "cutoff_violation",
                 "contamination_detected",
-                "domain_gate_failed"
+                "domain_gate_failed",
+                "not_reached"
               ]
             },
             "missing_count": {
@@ -303,7 +305,8 @@
                   "network_violation",
                   "cutoff_violation",
                   "contamination_detected",
-                  "domain_gate_failed"
+                  "domain_gate_failed",
+                  "not_reached"
                 ]
               },
               "phase_scope": {

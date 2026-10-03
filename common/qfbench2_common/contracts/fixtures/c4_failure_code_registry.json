@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "contract_set": "1.1.0",
   "codes": [
     {
@@ -72,6 +72,12 @@
       "code": "domain_gate_failed",
       "phase_scope": "scoring",
       "one_line_participant_gloss": "Your output was well-formed but did not pass one of this unit's published domain checks.",
+      "scored": true
+    },
+    {
+      "code": "not_reached",
+      "phase_scope": "ingestion",
+      "one_line_participant_gloss": "Your run's total time allowance ended before this unit was started.",
       "scored": true
     }
   ]

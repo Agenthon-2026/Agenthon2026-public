@@ -20,7 +20,7 @@
     },
     "metadata": {
       "type": "object",
-      "required": ["author_name", "difficulty", "category", "tags"],
+      "required": ["author_name", "category", "tags"],
       "properties": {
         "author_name": {"type": "string"},
         "author_email": {"type": "string", "format": "email"},

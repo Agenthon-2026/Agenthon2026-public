@@ -308,13 +308,15 @@ def validate_unit_handle(handle: Any, *, phase: str, path: str = "unit_handle") 
             f"{path}={handle!r} begins with '.'; a dot-prefixed directory is invisible to an "
             "operator listing the scoring namespace"
         )
-    if not HANDLE_RE.match(handle):
+    # `fullmatch`: both patterns end in `$`, which `match` lets stand before a trailing newline,
+    # and a handle becomes a directory name.
+    if not HANDLE_RE.fullmatch(handle):
         raise OrganizerFault(
             f"{path}={handle!r} is outside the permitted character class "
             "[A-Za-z0-9][A-Za-z0-9._-]*. Path separators, NUL, whitespace and shell "
             "metacharacters are refused where the handle is minted, not where it is used."
         )
-    if phase in SEALED_PHASES and not OPAQUE_HANDLE_RE.match(handle):
+    if phase in SEALED_PHASES and not OPAQUE_HANDLE_RE.fullmatch(handle):
         raise OrganizerFault(
             f"{path}={handle!r} carries semantic content and this is the SEALED {phase!r} phase. "
             f"A sealed-phase handle must match {OPAQUE_HANDLE_RE.pattern}. The handle becomes a "
@@ -371,7 +373,7 @@ def derive_opaque_handle(
     handle = "u-" + mac.hexdigest()[:hex_length]
     # Belt and braces: the derivation cannot produce an invalid handle, and if a future edit makes
     # it possible the failure happens here rather than at plan-parse time in a different repo.
-    if not OPAQUE_HANDLE_RE.match(handle):  # pragma: no cover - unreachable by construction
+    if not OPAQUE_HANDLE_RE.fullmatch(handle):  # pragma: no cover - unreachable by construction
         raise OrganizerFault(f"derived handle {handle!r} does not match the opaque grammar")
     return handle
 
@@ -1025,9 +1027,13 @@ class EvaluationPlan:
         )
 
     def verify_signature(self, trust_store: TrustStore, **kwargs: Any) -> VerificationResult:
-        """Verify the plan's envelope. An empty trust store fails closed (frozen rule 0.5)."""
+        """Verify the plan's envelope. An empty trust store fails closed (frozen rule 0.5).
+
+        A plan is verified for purpose `c1`: a store that binds purposes refuses a plan signed by a
+        key it does not trust for plans, such as a host's run-record key.
+        """
         payload = {k: v for k, v in self._raw.items() if k != "signature"}
-        return verify_signed(payload, self.signature, trust_store, **kwargs)
+        return verify_signed(payload, self.signature, trust_store, purpose="c1", **kwargs)
 
     def public_commitment_mapping(self) -> dict[str, Any]:
         """The bundle-visible projection: the same plan with `roster.expected_units` removed.

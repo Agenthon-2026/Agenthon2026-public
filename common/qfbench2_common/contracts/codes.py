@@ -2,8 +2,8 @@
 
 ## Executive summary (read this first)
 
-Twelve codes. The set is closed (global rule 0.3): an unrecognized value is an error, never an
-"unknown/other" bucket, and a track cannot add a thirteenth without a registry version bump. The
+Thirteen codes. The set is closed (global rule 0.3): an unrecognized value is an error, never an
+"unknown/other" bucket, and a track cannot add a fourteenth without a registry version bump. The
 first eleven were adopted verbatim in §5 of the contract freeze.
 
 ### Registry 1.1.0 adds `domain_gate_failed`
@@ -22,6 +22,25 @@ Adding a row is a registry version bump and nothing else: the C4 *document* shap
 a 1.0.0 result document is still valid. What changes is that a consumer with a hard-coded copy of
 the enum will refuse a result carrying the new value — which is the closed-enum rule working, and
 the reason the version moved. See `contracts/MIGRATIONS.md`.
+
+### Registry 1.2.0 adds `not_reached` (the stage clock ends mid-roster)
+
+A phase has a total wall-clock allowance for the whole roster (`execution_time_limit`, 43,200 s on
+Development), and it is separate from the per-unit ceiling. When a run spends it
+before the last unit, the ingestion program stops leasing and the units it never started have no
+run record at all, so the whole run used to end `Failed` with no score, although the units that ran
+had been answered.
+
+A unit the run did not reach is an unanswered unit and counts as not passed -- the same
+fixed-denominator rule the Track 1 README already publishes for a missing output. None of the
+twelve earlier codes says that. `resource_timeout` comes closest and its gloss is "Your container did
+not finish within the unit's wall-clock budget", which is false: there was no container. That is
+exactly the `schema_invalid`-as-"least-wrong" problem registry 1.1.0 was created to fix, so this
+takes the same route rather than repeating it.
+
+`scored` is `true`, like every other public code: the unit keeps its slot in the C1 denominator and
+receives the committed worst-case score `W`. `phase_scope` is `ingestion`, because the ingestion
+stage is what observes the allowance ending.
 
 The registry ships as a **fixture**, not as prose, so the website generates participant-facing
 wording from the same bytes the scorer uses instead of paraphrasing it. Each row is exactly
@@ -75,7 +94,8 @@ __all__ = [
 
 #: Bumped whenever a row is added, removed, or its `scored` value changes. Consumers pin it.
 #: 1.0.0 -> 1.1.0: `domain_gate_failed` added.
-FAILURE_CODE_REGISTRY_VERSION = "1.1.0"
+#: 1.1.0 -> 1.2.0: `not_reached` added.
+FAILURE_CODE_REGISTRY_VERSION = "1.2.0"
 
 #: The PIPELINE stage that may emit a code. Closed.
 #:
@@ -86,7 +106,7 @@ PHASE_SCOPES = ("ingestion", "execution", "scoring")
 
 
 class FailureCode(StrEnum):
-    """The twelve public participant-failure codes. Frozen; the set is closed."""
+    """The thirteen public participant-failure codes. Frozen; the set is closed."""
 
     NO_OUTPUT = "no_output"
     MALFORMED_OUTPUT = "malformed_output"
@@ -106,6 +126,10 @@ class FailureCode(StrEnum):
     #: the output parsed and satisfied the schema, and then failed a rule the unit published
     #: separately from it.
     DOMAIN_GATE_FAILED = "domain_gate_failed"
+    #: The run's TOTAL wall-clock allowance for the phase ended before this unit was started.
+    #: Registry 1.2.0. Not `resource_timeout`: no container ran, so nothing overran a per-unit
+    #: budget. The unit stays in the fixed denominator at `W`, exactly as a missing output does.
+    NOT_REACHED = "not_reached"
 
 
 def parse_failure_code(value: Any, *, field: str = "failure_code") -> FailureCode:

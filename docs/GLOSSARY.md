@@ -208,11 +208,16 @@ submit Docker images; CodaBench runs them and posts scores.
 the joint Final + Verification phase. Agenthon.net hosts the public leaderboard.
 
 ### Reproducibility
-**Everyday:** if you run the exact same thing twice, you get the exact same result.
-**Precise:** Agenthon 2026 fixes a random seed (`QFBENCH_SEED`) for every official run; the
-organizer verification within the joint Final + Verification phase re-runs the top-K submissions on fresh seeds and flags any whose results
-differ beyond a tolerance threshold. A submission that passes only because of a lucky random
-seed is "non-reproducible" and may be disqualified.
+**Everyday:** run the same submission again and its result should hold up.
+**Precise:** Agenthon 2026 fixes a random seed (`QFBENCH_SEED`) for every official run. The
+organizer verification within the joint Final + Verification phase re-runs the top-K submissions
+on fresh seeds, so a seed meant to repeat must be a constant in the code. Tracks 2, 3 and 4
+compare the rerun statistically (bootstrap-CI overlap), and a submission that passes only because
+of a lucky random draw is "non-reproducible" and may be disqualified. On Track 1, what has to
+match is the submitted image and program, not the House model's answers: the program must fix its
+sampling settings in its code (for example a fixed temperature; a seed is recommended, not
+required), and a per-unit verdict that differs only because the House model answered differently
+is not a violation.
 **Why it matters:** a scientific competition should produce results that others can verify.
 Non-reproducible wins are not science — they are luck.
 

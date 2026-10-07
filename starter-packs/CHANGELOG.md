@@ -40,6 +40,21 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
+### Final images without a Docker `VOLUME`; Track 3 output allowance; Track 4 embedding models
+
+**`ACTION`** The Final cannot run an image that declares a Docker `VOLUME`, including one inherited
+from its base image. Such an upload is marked Failed when its run starts and does not use an
+attempt; remove the `VOLUME` (or choose another base image) and upload again. Each track's
+`AGENTS.md` and `RUNTIME-ENVIRONMENT.md`, and `docs/IMAGE-SUBMISSIONS.md`, now say so.
+
+**`CLARIFIED`** `docs/DEVELOPMENT-RUNTIME.md` now gives Track 3's output allowance: 256 MiB per file and
+for the complete output tree, in Development (from the 7 October 2026 Track 3 update) and in the Final.
+`/tmp` stays 64 MiB. Tracks 1, 2 and 4 keep 64 MiB.
+
+**`CLARIFIED`** Track 4 `AGENTS.md`: "no in-image model weights path" means language models. The
+NeMo Retriever embedding models recommended under "Accelerated libraries on this track" are the only
+in-image neural models allowed, as the Track 4 artifact policy says.
+
 ### Toolkit `v2.6.0` — organizer-side contracts for the Final; no action needed
 
 **`ADDED`** **No action is needed: nothing you build or submit changes.** Toolkit `v2.6.0` adds

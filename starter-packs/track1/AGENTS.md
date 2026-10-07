@@ -44,6 +44,10 @@ but `SUBMISSION_CLI.md` also permits building with **no `ENTRYPOINT`** and resol
 `_g0_integrity` reads the *unit's* `card.toml` and never looks at a Docker label, so do not go
 looking there to confirm it.
 
+The Final cannot run an image that declares a Docker `VOLUME`, including one inherited from its base
+image. Such an upload is marked Failed when its run starts and does not use an attempt; remove the
+`VOLUME` (or choose another base image) and upload again.
+
 - `/input` is mounted read-only and **the whole unit directory is mounted there**, not just
   `instruction.md`, `card.toml` and `environment/data/`. That includes `checks/test_outputs.py`,
   which is the only machine-readable statement of the output contract. Read it at run time when it

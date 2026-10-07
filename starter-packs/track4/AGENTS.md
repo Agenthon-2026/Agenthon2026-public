@@ -28,6 +28,10 @@ consume it as a leading positional
 (`parser.add_argument("verb", nargs="?", default="analyze", choices=["analyze"])`).
 `LABEL qfbench2.interface_version="2.0"` is required.
 
+The Final cannot run an image that declares a Docker `VOLUME`, including one inherited from its base
+image. Such an upload is marked Failed when its run starts and does not use an attempt; remove the
+`VOLUME` (or choose another base image) and upload again.
+
 `/input` is the unit directory, read-only. `/output` is yours. T4 uses the plain `/output`
 contract — the dual `/app/output` mount is **Track 1 only** (`SUBMISSION_CLI.md` invariant 8).
 
@@ -802,8 +806,11 @@ Ruling of 2026-09-18, superseding the adapter-only option this file used to desc
 Track 4 submission runs against the House model through the endpoint the runtime hands you
 (`MODEL_ENDPOINT` + `/v1`, bearer `MODEL_TOKEN` — see
 [docs/HOUSE-MODEL.md](../../docs/HOUSE-MODEL.md)). There is no LoRA adapter path and no in-image
-model weights path. Declare `"category": "api"` and list the House model in `models`; the former
-`byo-small` / `byo-large` values are invalid since toolkit 2.4.3 (`qfbench2 submission pack`
-refuses them), and an upload that still carries one is held by the organizer's intake and never
-run. Non-LLM artifacts — fitted statistical or tree models, calibration parameters, retrieval
-indexes — remain ordinary bundled artifacts under the track's artifact policy.
+language-model weights path. The only in-image neural models the Track 4 artifact policy allows
+are NeMo Retriever embedding models, baked into the image at build time, as described under
+"Accelerated libraries on this track". Declare `"category": "api"` and list the House model in
+`models`; the former `byo-small` / `byo-large` values are invalid since toolkit 2.4.3
+(`qfbench2 submission pack` refuses them), and an upload that still carries one is held by the
+organizer's intake and never run. Non-LLM artifacts — fitted statistical or tree models,
+calibration parameters, retrieval indexes — remain ordinary bundled artifacts under the track's
+artifact policy.

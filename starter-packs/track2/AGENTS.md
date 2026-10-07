@@ -19,6 +19,10 @@ The verb arrives as the first argument after the image reference: resolve it fro
 required. Output goes to **`/output`** — not `/app/output`; that is Track 1's path and T2 has no
 dual mount.
 
+The Final cannot run an image that declares a Docker `VOLUME`, including one inherited from its base
+image. Such an upload is marked Failed when its run starts and does not use an attempt; remove the
+`VOLUME` (or choose another base image) and upload again.
+
 > **Accelerated libraries:** see the section at the end of this file — the honest answer on this
 > track is that there is almost no surface. **Bring-your-own models and adapters are not part of
 > this competition** — see the note at the end of this file.

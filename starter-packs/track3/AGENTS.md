@@ -60,6 +60,10 @@ puts both verbs on `PATH`; the `ENTRYPOINT ["python","agent.py"]` form works if 
 the verb as a leading positional. Exit `127` (not on `PATH`), `126` (not executable) or your own
 parser's rejection are recorded as **your** failure — zero on that unit.
 
+The Final cannot run an image that declares a Docker `VOLUME`, including one inherited from its base
+image. Such an upload is marked Failed when its run starts and does not use an attempt; remove the
+`VOLUME` (or choose another base image) and upload again.
+
 `submission.json` must declare **`category: "simulator"`**, a required closed enum. Declare it
 explicitly rather than relying on any default.
 

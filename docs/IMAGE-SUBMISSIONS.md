@@ -2,6 +2,8 @@
 
 The currently supported participant image route is an anonymously pullable Linux/amd64 container, identified by an immutable digest. Upload the descriptor and team proof to CodaBench, not the container layers or registry credentials. A public container can be downloaded by other people, including the files and model artifacts packaged inside it. The descriptor's `organizer_mirror` option does not itself transfer a private image or grant the backend access. Do not make a confidential image public just to work around a failed pull: arrange an organizer-confirmed private route before attempting that submission.
 
+The Final cannot run an image that declares a Docker `VOLUME`, including one inherited from its base image. Such an upload is marked Failed when its run starts and does not use an attempt; remove the `VOLUME` (or choose another base image) and upload again.
+
 ## Public registry images
 
 Build and push your image before packaging the submission. Set the descriptor's `image` fields to its registry, repository and digest, and set `image_access` to `public`. Follow your track's submission interface for the container label, entrypoint and output paths.

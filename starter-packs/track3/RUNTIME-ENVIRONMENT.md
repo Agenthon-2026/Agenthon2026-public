@@ -61,6 +61,10 @@ The image must accept the track verb as its first argument: either resolve the v
 with no `ENTRYPOINT`, or use an `ENTRYPOINT` that consumes that leading argument. Follow your
 track's `SUBMISSION_CLI.md` for the verb, arguments and output paths.
 
+The Final cannot run an image that declares a Docker `VOLUME`, including one inherited from its base
+image. Such an upload is marked Failed when its run starts and does not use an attempt; remove the
+`VOLUME` (or choose another base image) and upload again.
+
 The [image submission guide](../../docs/IMAGE-SUBMISSIONS.md) explains anonymous public pulls,
 immutable digests and the organizer confirmation required for a private mirror. Selecting
 `organizer_mirror` does not arrange image transfer or registry access.

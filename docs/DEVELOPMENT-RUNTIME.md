@@ -54,13 +54,16 @@ All four tracks use these additional per-unit limits:
 | Inputs | Read-only at `/input` |
 | Temporary space | 64 MiB tmpfs at `/tmp`, with `noexec`, `nosuid` and `nodev` |
 | Deliverables | Writable `/output`; Coding also mounts the same directory at `/app/output` |
-| Output acceptance | At most 64 MiB for the complete output tree per unit |
+| Output acceptance | At most 64 MiB for the complete output tree per unit (Track 3: 256 MiB) |
 
 The selected Development runtime is `runc`. Earlier gVisor measurements are not a description of
 this runtime or a guarantee of its performance.
 
 A 64 MiB per-file operating-system limit applies while running. The complete output tree is
 checked **after the process exits**; 64 MiB is not a live aggregate quota on the output mount.
+Track 3 allows 256 MiB per file and for the complete output tree, in Development (from the
+7 October 2026 Track 3 update) and in the Final; its `/tmp` stays 64 MiB, so write large files
+directly under `/output`.
 Track-specific file names, schemas and smaller file limits still apply.
 
 The launcher requests a 1 GiB quota on the image's writable layer. That layer is separate from

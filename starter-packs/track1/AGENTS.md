@@ -241,7 +241,9 @@ headers on your sources.
 
 Two runs of your agent on the same unit with `--network=none` should produce byte-identical
 `solution.py` and `results.parquet`. Seed everything. Non-determinism will not fail an invariant
-check directly, but it makes pass@3 unpredictable and makes your own debugging much harder.
+check directly, but it makes pass@3 unpredictable and makes your own debugging much harder. The
+organizer rerun sets a fresh `QFBENCH_SEED`, so a seed meant to repeat must be a constant in your
+code (see [Which architecture you are graded on](#which-architecture-you-are-graded-on)).
 
 ## Scoring
 
@@ -338,37 +340,26 @@ top of the unit's `test_outputs.py` — the absolute paths are declared in the f
 
 The evaluation fleet is **x86-64 with NVIDIA B200 (sm_100)**. Build for `linux/amd64`.
 
-This matters more than it looks if you use floating point: the same agent can produce parquet bytes
-that are **identical within an architecture and different across architectures**, while passing every
-assertion on both. If organizer verification within the joint Final + Verification phase re-runs your submission and compares outputs
-byte-for-byte, an image built only for arm64 — or a multi-arch image whose manifest resolves
-differently between runs — could differ from itself.
+If you use floating point, the same agent can produce parquet bytes that are **identical within an
+architecture and different across architectures**, while passing every assertion on both. Build
+single-arch `linux/amd64`, pin your numeric stack, and use an immutable image digest.
 
-**Unresolved, and worth asking the organizers rather than guessing:** whether the reproducibility
-check is architecture-pinned. Until that is answered, build single-arch `linux/amd64` and pin your
-numeric stack, and do not assume a multi-arch manifest is safe.
+**What a verification rerun has to match.** When organizer verification within the joint Final +
+Verification phase reruns a Track 1 submission, what has to match is the submitted image and
+program, not the House model's answers: a per-unit verdict that differs only because the House
+model answered differently is not a violation. Fix your sampling settings in your code, for example
+a fixed temperature (it need not be 0). A seed is recommended, not required; the organizer rerun
+sets a fresh `QFBENCH_SEED`, so a seed meant to repeat must be a constant in your code. The rule is
+`SUBMISSION_CLI.md` rule 4 and contract invariant 4.
 
 ## Performance, if you get that far
 
-The evaluation sandbox is **gVisor**, not plain Docker. Measured on the evaluation hardware:
-
-- CPU arithmetic, heap allocation and GPU work: **essentially free** (~7-8%, heap ~0%, GPU unaffected).
-- Raw syscalls: **~85% slower**.
-- **Sockets, and the shape matters enormously** — in-process pair ~76%, loopback TCP ~67%, and
-  **cross-container ~91-95%, a 10-20x slowdown**. Measured on two hosts.
-
-**And do not rely on container names resolving.** Docker's embedded DNS did not resolve for a
-sandboxed client on the eval network, while an unsandboxed client on the same network resolved the
-same name fine. Anything you reach must be addressed by IP or handed to you explicitly — which is
-what `$MODEL_ENDPOINT` already does.
-
-That last one has a concrete design consequence. **Do not run a model server as a separate process
-and talk to it over `localhost` HTTP.** Anything you serve inside the image must run in-process —
-`vllm.LLM(...)` or the TensorRT-LLM runtime object — never a server you POST to. The natural architecture is the slow one here, and the symptom looks like a slow
-model rather than a sandbox tax.
-
-Also: do not measure your own CPU time with `os.times()` or `getrusage` inside the sandbox. gVisor
-misreports CPU time by roughly 4×. Measure work completed, not CPU seconds.
+The selected Development runtime is `runc`. Earlier gVisor measurements are not a description of
+this runtime or a guarantee of its performance. Read the
+[container limits](../../docs/DEVELOPMENT-RUNTIME.md#container-limits) before choosing writable
+paths, and before you upload, run at least one unit with the platform's own container settings
+using the command in
+[Run it locally the way the platform runs it](../../docs/DEVELOPMENT-RUNTIME.md#run-it-locally-the-way-the-platform-runs-it).
 
 ## Where to look in the kit
 

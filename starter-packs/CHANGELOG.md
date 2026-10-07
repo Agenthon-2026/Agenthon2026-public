@@ -40,7 +40,7 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
-### Final images without a Docker `VOLUME`; Track 3 output allowance; Track 4 embedding models
+### Final images without a Docker `VOLUME`; Track 3 output allowance; Track 4 embedding models; Track 1 reruns
 
 **`ACTION`** The Final cannot run an image that declares a Docker `VOLUME`, including one inherited
 from its base image. Such an upload is marked Failed when its run starts and does not use an
@@ -54,6 +54,15 @@ for the complete output tree, in Development (from the 7 October 2026 Track 3 up
 **`CLARIFIED`** Track 4 `AGENTS.md`: "no in-image model weights path" means language models. The
 NeMo Retriever embedding models recommended under "Accelerated libraries on this track" are the only
 in-image neural models allowed, as the Track 4 artifact policy says.
+
+**`CLARIFIED`** Track 1 `AGENTS.md`: on a verification rerun, what has to match is the submitted
+image and program, not the House model's answers; a per-unit verdict that differs only because the
+House model answered differently is not a violation. Fix sampling settings in your code (for example
+a fixed temperature); a seed is recommended, not required. The organizer rerun sets a fresh
+`QFBENCH_SEED`, so a seed meant to repeat must be a constant in your code. This replaces the
+paragraphs that left open whether a rerun compares outputs byte-for-byte and whether it is
+architecture-pinned. The same file now says the selected Development runtime is `runc`, as
+`docs/DEVELOPMENT-RUNTIME.md` does, instead of describing a gVisor sandbox.
 
 ### Toolkit `v2.6.0` — organizer-side contracts for the Final; no action needed
 

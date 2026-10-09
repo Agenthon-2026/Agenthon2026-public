@@ -40,6 +40,32 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
+### Track 4 scorer 5.3.0 — only the first 20 claims about each entity count; Development uses the NLI judge
+
+**`ACTION`** **Pull the Track 4 repository; no new toolkit release.** Track 4 scorer 5.3.0 works
+with toolkit `v2.5.1` and with `v2.6.0`, the current release, so there is nothing to reinstall. The
+Development task switches to 5.3.0 separately; the switch is announced on
+Agenthon-2026/track4-analysis-public#2, and Development scores from before and after it are not
+comparable.
+
+**`ACTION`** **Track 4: only the first 20 claims about each entity count.** For each entity, the
+scorer checks and counts only its first 20 claims, in the order they appear in `answer.json`.
+Further claims about that entity are ignored, not penalised: they are not checked, not put to the
+judge, and not counted in F or T. Faithfulness and the penalty factor are computed over the counted
+claims only; E is unchanged. The cap is per entity, not per unit. The answer as a whole is still
+checked: the schema applies to every claim, and a citation that does not resolve, is undated or is
+dated after the cutoff refuses the unit even in an ignored claim. Put your most important claims
+first.
+
+**`ACTION`** **Track 4: the Development board scores with the same NLI judge as the Final**,
+contradiction check included. Under 5.2.2 the Development board ran without the NLI contradiction
+check.
+
+**`ADDED`** **Track 4: the local checker applies the cap with the scorer's own code.**
+`check_claim_rules` checks only the first 20 claims about each entity and reports one
+`claims_ignored` notice for an entity with more; `faithfulness/judge.py --answer` counts only the
+checked claims and says how many it ignored. Run it before your agent writes `answer.json`.
+
 ### Final images without a Docker `VOLUME`; Track 3 output allowance; Track 4 embedding models; Track 1 reruns
 
 **`ACTION`** The Final cannot run an image that declares a Docker `VOLUME`, including one inherited

@@ -165,7 +165,12 @@ entities, one false claim among twenty claims costs 5%; with fewer entities the 
 so it costs more (on a 1-entity unit, one false claim among twenty costs 1/(1 + 3) = 25%). Past
 the cap, adding more claims does not shrink what a false claim costs (on a 10-entity unit, one
 false claim always costs at least 1/31 of it). From scorer 5.2.2 a content-free claim is false
-(rule 4 below). Nothing about
+(rule 4 below). From scorer 5.3.0 only the first 20 claims about each entity, in the order they appear in
+`answer.json`, are checked and counted; later claims about that entity are ignored, not penalised (F and
+T count the first 20 only, E is unchanged), and the Development board scores with the same NLI judge as
+the Final. The answer as a whole is still checked: the schema applies to every claim, and a citation
+that does not resolve, is undated or is dated after the cutoff refuses the unit even in an ignored
+claim. Nothing about
 faithfulness refuses a unit any more; structural errors (schema, roster, embargo, malformed
 citations) still do. A neutral claim is never charged and earns nothing here; evidence earns credit
 only through the reasoning score. Whether your evidence supports your *forecast* is reasoning
@@ -272,7 +277,7 @@ recorded as `prediction_relevance` and never affects your score.
 
 Every `task.json` (and each public practice unit's card, though no held-out evaluation card) still carries a `faithfulness_rubric` text written for that retired
 admission gate: an NLI score above 0.5 per claim, with 80% of claims supported. It is a legacy
-field, and neither scorer 5.2.2 nor the reasoning grader reads it. The rules are the ones above and
+field, and neither scorer 5.3.0 nor the reasoning grader reads it. The rules are the ones above and
 in the track's `SUBMISSION_CLI.md` ("How faithfulness is scored").
 
 And the schema is not a sufficient pre-submission check on this track: it marks `label` and
@@ -461,7 +466,7 @@ the format is the same everywhere: practise it on the dev units.
 
 **Old scores and resubmitting.** Leaderboard scores already posted under the earlier scorer stay
 as they were (frozen, not re-scored). A submission made with the new starter package is scored
-with scorer 5.2.2 and this final formula.
+with scorer 5.3.0 and this final formula.
 
 **Your answer rows.** The judge's per-entity answer is built from `entity_predictions` in the
 same `answer.json`: each row keeps `entity_id` and the answer fields the unit declares, and every
@@ -631,11 +636,12 @@ are x86-64 B200 (sm_100); build `linux/amd64`.
 
 ## Scoring, and what a public run can and cannot tell you
 
-`composite = 0.70 × predictive_quality + 0.30 × interval_quality` (scorer 5.2.2; the previously
+`composite = 0.70 × predictive_quality + 0.30 × interval_quality` (scorer 5.3.0; the previously
 published scorer 3.1.0 subtracted `0.30 × |interval_coverage − 0.90|` instead, which made wide intervals
 nearly free; from scorer 5.2.0 a unit without an interval leg scores the prediction leg alone),
 multiplied from scorer 5.2.0 by the faithfulness factor
-`1 − F / (F + min(T, 3 × E))` (F false claims, T other claims, E entities), and gated on **zero embargo
+`1 − F / (F + min(T, 3 × E))` (F false claims, T other claims, E entities; from scorer 5.3.0 only the
+first 20 claims about each entity count), and gated on **zero embargo
 violations** and the structural checks. A claim is false when it cites a document the manifest
 does not bind to its entity (nor marks shared), cites an out-of-range slice, is malformed, cites a
 span over 8,000 characters, states any figure no cited span carries (exact code), is content-free
@@ -677,7 +683,7 @@ toward full coverage was nearly free: past 90% coverage it cost at most 0.03.) E
 admissible row stays above the inadmissible one. Answer rather than omitting. (The one surviving `None` is the public practice path, where no
 `reference/outcome.json` is mounted.)
 
-**The interval leg is an interval score against the unit's naive interval (scorer 5.2.2).** Per
+**The interval leg is an interval score against the unit's naive interval (scorer 5.3.0).** Per
 row the score is the width `hi − lo` plus `2/alpha` (20 at 90%) times the distance by which the
 realized value falls outside `[lo, hi]`, averaged over the roster; `naive / (naive + yours)` is
 0.5 when your intervals match the naive rule's. Width costs and misses cost twenty times their

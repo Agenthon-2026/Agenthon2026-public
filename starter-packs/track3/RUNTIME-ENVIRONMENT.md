@@ -65,9 +65,11 @@ The Final cannot run an image that declares a Docker `VOLUME`, including one inh
 image. Such an upload is marked Failed when its run starts and does not use an attempt; remove the
 `VOLUME` (or choose another base image) and upload again.
 
-The [image submission guide](../../docs/IMAGE-SUBMISSIONS.md) explains anonymous public pulls,
-immutable digests and the organizer confirmation required for a private mirror. Selecting
-`organizer_mirror` does not arrange image transfer or registry access.
+There's no private-image route in Agenthon 2026: your image must be anonymously pullable. A public
+image can be pulled by anyone, including the files and model artifacts inside it; leave out
+anything you don't want to share. The [image submission guide](../../docs/IMAGE-SUBMISSIONS.md)
+explains anonymous public pulls and immutable digests; the descriptor's `organizer_mirror` value
+isn't available.
 
 ### The anonymous pullability check
 

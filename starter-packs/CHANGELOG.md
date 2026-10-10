@@ -40,6 +40,16 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
+### No private-image route
+
+**`CLARIFIED`** There's no private-image route in Agenthon 2026: your image must be anonymously
+pullable. A public image can be pulled by anyone, including the files and model artifacts inside
+it; leave out anything you don't want to share. The descriptor's `organizer_mirror` value isn't
+available and there's no private handoff to request, so set `image_access` to `public`.
+`docs/IMAGE-SUBMISSIONS.md`, `docs/DEVELOPMENT-RUNTIME.md` and each track's
+`RUNTIME-ENVIRONMENT.md` and `SUBMISSION-DESCRIPTOR.md` no longer suggest that a private route can
+be arranged.
+
 ### Track 4 scorer 5.3.0 — only the first 20 claims about each entity count; Development uses the NLI judge
 
 **`ACTION`** **Pull the Track 4 repository; no new toolkit release.** Track 4 scorer 5.3.0 works

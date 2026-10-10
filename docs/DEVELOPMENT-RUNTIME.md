@@ -212,8 +212,9 @@ separate published contract.
 
 ## Image access
 
-Build for `linux/amd64` and use an immutable image digest. The supported public route requires
-anonymous pullability. A private organizer mirror requires confirmation of the handoff and exact
-usable reference before submission. See [Image submissions](IMAGE-SUBMISSIONS.md) for those
-routes and their limits; selecting an image-access field does not transfer an image or grant
-registry access.
+Build for `linux/amd64` and use an immutable image digest. There's no private-image route in
+Agenthon 2026: your image must be anonymously pullable. A public image can be pulled by anyone,
+including the files and model artifacts inside it; leave out anything you don't want to share.
+The descriptor's `organizer_mirror` value isn't available. See
+[Image submissions](IMAGE-SUBMISSIONS.md) for the public-image steps and the anonymous
+pullability check.

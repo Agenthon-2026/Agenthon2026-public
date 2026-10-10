@@ -1,6 +1,6 @@
 ## Executive summary (read this first)
 
-The currently supported participant image route is an anonymously pullable Linux/amd64 container, identified by an immutable digest. Upload the descriptor and team proof to CodaBench, not the container layers or registry credentials. A public container can be downloaded by other people, including the files and model artifacts packaged inside it. The descriptor's `organizer_mirror` option does not itself transfer a private image or grant the backend access. Do not make a confidential image public just to work around a failed pull: arrange an organizer-confirmed private route before attempting that submission.
+There's no private-image route in Agenthon 2026: your image must be anonymously pullable. A public image can be pulled by anyone, including the files and model artifacts inside it; leave out anything you don't want to share. Every Development and Final submission names a `linux/amd64` container image pinned by an immutable digest, with `image_access` set to `public`. Upload the descriptor and team proof to CodaBench, not the container layers or registry credentials.
 
 The Final cannot run an image that declares a Docker `VOLUME`, including one inherited from its base image. Such an upload is marked Failed when its run starts and does not use an attempt; remove the `VOLUME` (or choose another base image) and upload again.
 
@@ -12,13 +12,11 @@ Test pullability without your workstation's registry credentials. An ordinary `d
 
 An immutable digest selects the image bytes. Rebuilding or modifying an image requires pushing it, updating `image.digest` (and the registry/repository if changed), then repacking to recompute `descriptor_digest`. Keep dependencies in the image; downloading them during evaluation is not a supported installation method.
 
-## Private images and organizer mirrors
+## No private images or organizer mirrors
+
+There's no private-image route in Agenthon 2026. The descriptor schema still lists `organizer_mirror` as an `image_access` value, but that option isn't available, and there's no private handoff to request. Set `image_access` to `public` and make sure the image passes the anonymous pullability check linked above.
 
 Private registry credentials are not accepted in `submission.json`, `team-claim.json` or another ZIP member. The Team Key verifies team membership; it is not an image-pull credential. Do not put credentials in the container either.
-
-An organizer mirror means that organizers have already arranged access to a specific image and confirmed the reference participants should submit. Merely selecting `image_access: "organizer_mirror"` does none of that. This update does not establish a self-service confidential image-transfer endpoint or a verified participant mirror workflow.
-
-If your image must remain private, contact the organizers through the competition's support channel before uploading. Ask for the supported private handoff procedure without posting a token, Team Key, private archive or confidential source in a public issue. Wait for confirmation of the exact usable image reference. Until such confirmation, the private-image route is not ready for your submission.
 
 ## Pulls, quotas and model eligibility
 

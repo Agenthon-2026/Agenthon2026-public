@@ -330,7 +330,9 @@ baking any card's target into your image from any source.
   image — ingestion holds no registry credential, and a private image fails silently at the pull.
   The twelve required fields, the `image` object, the legacy-field traps and the self-referential
   `descriptor_digest` are all on [SUBMISSION-DESCRIPTOR.md](SUBMISSION-DESCRIPTOR.md); the
-  anonymous pullability check is in [RUNTIME-ENVIRONMENT.md](RUNTIME-ENVIRONMENT.md).
+  anonymous pullability check is in [RUNTIME-ENVIRONMENT.md](RUNTIME-ENVIRONMENT.md). Keep the image
+  pullable until results are published on November 13: the ranked run, and organizer verification
+  of the top entries after it, pull it after the close.
 - The harness sets `QFBENCH_SEED`; verification reruns the top of the board statistically. Seed
   everything, pin models to dated snapshots, disclose training
   cutoffs; `*-latest` aliases are rejected.

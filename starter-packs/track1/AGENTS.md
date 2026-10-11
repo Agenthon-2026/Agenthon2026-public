@@ -182,6 +182,8 @@ every other host does not.
 Before every submission, run the **anonymous pullability check** in
 [RUNTIME-ENVIRONMENT.md](RUNTIME-ENVIRONMENT.md). A fresh GHCR package is **private by default**,
 and the package page saying "public" is a different claim from the registry answering anonymously.
+Keep the image pullable until the results are published: a run that starts after the Final
+closes, and organizer verification reruns, pull it then.
 
 ## Read the card, do not hardcode limits
 
@@ -204,7 +206,7 @@ were given, and fall back to a CPU path rather than crashing.
 At run time you can reach **`$MODEL_ENDPOINT`** through the audited proxy and nothing else. PyPI,
 conda, HuggingFace Hub, NGC and GitHub are all unreachable. Call it with **`$MODEL_NAME`**, the
 pinned house-model id — it is OpenAI-compatible, free, and metered per run. Every connection is
-logged (domain, bytes, timestamps) and that log is the audit artifact for verification within the joint Final + Verification phase.
+logged (domain, bytes, timestamps) and that log is the audit artifact for organizer verification.
 
 **Every dependency must be baked into the image at build time.** A `pip install` in your agent's
 code path will fail during evaluation even though it worked while you were developing. Same for
@@ -344,8 +346,8 @@ If you use floating point, the same agent can produce parquet bytes that are **i
 architecture and different across architectures**, while passing every assertion on both. Build
 single-arch `linux/amd64`, pin your numeric stack, and use an immutable image digest.
 
-**What a verification rerun has to match.** When organizer verification within the joint Final +
-Verification phase reruns a Track 1 submission, what has to match is the submitted image and
+**What a verification rerun has to match.** When organizer verification reruns a Track 1
+submission, what has to match is the submitted image and
 program, not the House model's answers: a per-unit verdict that differs only because the House
 model answered differently is not a violation. Fix your sampling settings in your code, for example
 a fixed temperature (it need not be 0). A seed is recommended, not required; the organizer rerun

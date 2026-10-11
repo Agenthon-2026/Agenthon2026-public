@@ -158,7 +158,7 @@ out-of-contract connections; any submission that tries to fetch live data is ina
 **Why it matters:** a submission that calls a financial data API or browses the web during
 scoring has an unfair advantage and its performance cannot be reproduced after the contest —
 while supervised model-API access lets teams compete on prompts and harnesses without owning
-GPUs. The connection log is the audit artifact for verification within the joint Final + Verification phase.
+GPUs. The connection log is the audit artifact for organizer verification.
 
 ### T3 throughput box (the pinned timing instance)
 **Everyday:** one specific machine, kept idle and reserved, on which every Track-3 speed run is
@@ -210,8 +210,8 @@ the joint Final + Verification phase. Agenthon.net hosts the public leaderboard.
 ### Reproducibility
 **Everyday:** run the same submission again and its result should hold up.
 **Precise:** Agenthon 2026 fixes a random seed (`QFBENCH_SEED`) for every official run. The
-organizer verification within the joint Final + Verification phase re-runs the top-K submissions
-on fresh seeds, so a seed meant to repeat must be a constant in the code. Tracks 2, 3 and 4
+organizer verification re-runs the top-K submissions on fresh seeds, so a seed meant to repeat
+must be a constant in the code. Tracks 2, 3 and 4
 compare the rerun statistically (bootstrap-CI overlap), and a submission that passes only because
 of a lucky random draw is "non-reproducible" and may be disqualified. On Track 1, what has to
 match is the submitted image and program, not the House model's answers: the program must fix its
@@ -293,7 +293,9 @@ failure-mode map.
 **Everyday:** the ranking board that shows each team's current score.
 **Precise:** the public Development leaderboard is on agenthon.net. The final board is hidden
 during the joint Final + Verification phase; it is published after verification with each
-track's declared columns. T1 publishes fixed-denominator `pass@1` with no
+track's declared columns. Track 2 is the exception: it shows provisional standings from
+October 28, updated as targets resolve, and final results on November 13 (see the
+[Track 2 Final notice](https://github.com/Agenthon-2026/track2-forecasting-public/issues/4#issuecomment-6103652999)). T1 publishes fixed-denominator `pass@1` with no
 confidence interval; other tracks retain their declared interval columns.
 **Why it matters:** the leaderboard is the competition's output. Its columns must match the exact
 fields emitted by the scorer so missing or stale statistics are never presented as results.
@@ -941,19 +943,21 @@ is a fairness requirement.
   1 submission per team per day; Tracks 2, 3 and 4 allow 5 per team per day. See
   [Development submission limits](DEVELOPMENT-RUNTIME.md#submission-limits-at-the-development-opening).
 - **Joint Final + Verification** (October 13–25, 2026): sealed private-test units are evaluated
-  from one final submission per team per track. Organizers rerun the top submissions on fresh
-  seeds and check reproducibility within the same phase.
-  There is no separate participant Verification submission. The final board remains hidden
-  until results are verified and published.
+  from one final submission per team per track. On Track 2 the sealed cards are used only for an
+  unranked check run in the window; the ranked run is on fresh cards built after the close.
+  Organizers rerun the top submissions on fresh seeds and check reproducibility after their runs,
+  so verification can end after October 25. There is no separate participant Verification
+  submission. The final board remains hidden until results are verified and published; Track 2
+  shows provisional standings from October 28.
 
 The internal descriptor values `dev`, `final` and `verification` remain supported for
 compatibility; this calendar change does not rename schema values. Follow the organizer's
-phase-specific descriptor instructions. Registration and Development close together on October 12, 2026 at **23:59 Anywhere on Earth (AoE, UTC−12)**. The joint Final + Verification phase closes on October 25, 2026 at **23:59 AoE**. Other competition dates and task/data cutoffs
+phase-specific descriptor instructions. Registration and Development close together on October 12, 2026 at **23:59 Anywhere on Earth (AoE, UTC−12)**. Final uploads close on October 25, 2026 at **23:59 AoE** (October 26, 11:59 UTC); an upload made by then runs and counts even if its run finishes after the close. Keep your image pullable until the results are published. On Track 2 the ranked run happens after the close for every team; see [the Track 2 Final notice](https://github.com/Agenthon-2026/track2-forecasting-public/issues/4#issuecomment-6103652999). Other competition dates and task/data cutoffs
 are unchanged.
 
 **Why it matters:** Development provides practice feedback. Final evaluation and verification
-share a single period, so teams prepare one final submission and retain the material needed
-for the organizers' verification checks.
+use the same final submission, so teams prepare one final submission and retain the material
+needed for the organizers' verification checks.
 
 ### Baseline
 **Everyday:** a simple, already-working solution that participants must beat.

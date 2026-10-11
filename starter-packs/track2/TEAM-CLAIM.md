@@ -77,9 +77,9 @@ CodaBench account for every upload. Track 1 has a 1-per-day limit; Tracks 2, 3 a
 5 per day.
 
 Development runs through **October 12, 2026**. The joint **Final + Verification phase runs
-October 13–25, 2026**. Each team makes **one final submission per track**; organizers perform
-verification within that same phase, with no separate participant Verification submission.
-Registration and Development close together on October 12, 2026 at **23:59 Anywhere on Earth (AoE, UTC−12)**. The joint Final + Verification phase closes on October 25, 2026 at **23:59 AoE**. Other competition dates and task/data cutoffs are unchanged.
+October 13–25, 2026**. Each team makes **one final submission per track**, with no separate
+participant Verification submission.
+Registration and Development close together on October 12, 2026 at **23:59 Anywhere on Earth (AoE, UTC−12)**. Final uploads close on October 25, 2026 at **23:59 AoE** (October 26, 11:59 UTC). On Track 2 your upload's run in the window is a check run and isn't ranked. The ranked run happens after the close for every team, on a fresh set of cards, and organizers verify the top entries after their ranked runs. **Keep your image pullable until results are published on November 13.** See [the Track 2 Final notice](https://github.com/Agenthon-2026/track2-forecasting-public/issues/4#issuecomment-6103652999). Other competition dates and task/data cutoffs are unchanged.
 
 ## What happens when something is wrong
 

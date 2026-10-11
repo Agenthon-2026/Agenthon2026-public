@@ -71,7 +71,8 @@ There's no private-image route in Agenthon 2026: your image must be anonymously 
 image can be pulled by anyone, including the files and model artifacts inside it; leave out
 anything you don't want to share. The [image submission guide](../../docs/IMAGE-SUBMISSIONS.md)
 explains anonymous public pulls and immutable digests; the descriptor's `organizer_mirror` value
-isn't available.
+isn't available. Keep the image pullable until results are published on November 13: the
+ranked run, and organizer verification of the top entries after it, pull it after the close.
 
 ### The anonymous pullability check
 

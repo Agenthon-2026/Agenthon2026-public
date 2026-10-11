@@ -264,6 +264,8 @@ every other host does not.
 Before every submission, run the **anonymous pullability check** in
 [RUNTIME-ENVIRONMENT.md](RUNTIME-ENVIRONMENT.md). A fresh GHCR package is **private by default**,
 and the package page saying "public" is a different claim from the registry answering anonymously.
+Keep the image pullable until the results are published: a run that starts after the Final
+closes, and organizer verification reruns, pull it then.
 
 ## The sandbox taxes syscalls and IPC — not your event loop
 

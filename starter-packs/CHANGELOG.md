@@ -40,6 +40,30 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
+### The Final upload deadline, verification after the runs, and how long to keep your image pullable
+
+**`ACTION`** **Keep your image pullable until the results are published**, not only until
+October 25: a run that starts after the Final closes, and organizer verification reruns, pull it
+then. This replaces the October 25 date in the 7 and 10 October updates on
+Agenthon-2026/Agenthon2026-public#2. On Track 2 that is until results are published on
+November 13. `docs/IMAGE-SUBMISSIONS.md` and every track's `RUNTIME-ENVIRONMENT.md` and
+`AGENTS.md` now say so.
+
+**`CLARIFIED`** Final uploads close on October 25, 2026 at 23:59 AoE (October 26, 11:59 UTC). An
+upload made by then runs and counts even if its run finishes after the close; organizers verify
+the top entries after their runs, so verification can end after October 25. This replaces
+"organizers perform verification within that same phase" in the README's timeline,
+`docs/DEVELOPMENT-RUNTIME.md`, `docs/GLOSSARY.md` and every track's `TEAM-CLAIM.md`, as answered
+on Agenthon-2026/Agenthon2026-public#9.
+
+**`ACTION`** **Track 2: the ranked Final run happens after the close, on fresh cards.** Your
+upload's run in the window is a check run on the sealed cards and isn't ranked; every team's
+image then runs on cards built after submissions close, and organizers verify the top entries
+after their ranked runs. Track 2 shows provisional standings from October 28 and final results
+on November 13. Track 2's `TEAM-CLAIM.md`, `RUNTIME-ENVIRONMENT.md` and `AGENTS.md`, and the
+glossary, now say so; the full rules are in the Track 2 Final notice on
+Agenthon-2026/track2-forecasting-public#4.
+
 ### No private-image route
 
 **`CLARIFIED`** There's no private-image route in Agenthon 2026: your image must be anonymously

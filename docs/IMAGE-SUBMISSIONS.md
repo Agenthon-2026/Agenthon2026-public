@@ -1,6 +1,6 @@
 ## Executive summary (read this first)
 
-There's no private-image route in Agenthon 2026: your image must be anonymously pullable. A public image can be pulled by anyone, including the files and model artifacts inside it; leave out anything you don't want to share. Every Development and Final submission names a `linux/amd64` container image pinned by an immutable digest, with `image_access` set to `public`. Upload the descriptor and team proof to CodaBench, not the container layers or registry credentials.
+There's no private-image route in Agenthon 2026: your image must be anonymously pullable. A public image can be pulled by anyone, including the files and model artifacts inside it; leave out anything you don't want to share. Every Development and Final submission names a `linux/amd64` container image pinned by an immutable digest, with `image_access` set to `public`. Upload the descriptor and team proof to CodaBench, not the container layers or registry credentials. Keep the image pullable until the results are published: a run that starts after the Final closes, and organizer verification reruns, pull it then.
 
 The Final cannot run an image that declares a Docker `VOLUME`, including one inherited from its base image. Such an upload is marked Failed when its run starts and does not use an attempt; remove the `VOLUME` (or choose another base image) and upload again.
 

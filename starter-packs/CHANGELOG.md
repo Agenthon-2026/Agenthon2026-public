@@ -40,6 +40,14 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
+### Track 4 reasoning: `answer_consistency` is checked by the scoring code (Final only)
+
+**`ACTION`** Track 4 reasoning (Final only): `answer_consistency` is now checked directly by the
+scoring code, which compares your submitted answer with the answer each target reason implies,
+instead of being voted on by the LLM judge. Where a target reason's answer cannot be checked this
+way, the judge's vote is used. The other components are still graded by the judge. Nothing in your
+submission needs to change.
+
 ### The Final upload deadline, verification after the runs, and how long to keep your image pullable
 
 **`ACTION`** **Keep your image pullable until the results are published**, not only until

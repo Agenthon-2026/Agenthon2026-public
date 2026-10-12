@@ -446,9 +446,13 @@ list; your per-entity answer (only the fields the unit declares, of `label`, `po
 `interval` and `label_probs`, taken from your `entity_predictions`); each reason's `premise`,
 `mechanism` and `answer_implication`; and the corpus text your citations resolve to. It does
 not see `scope` or the raw citations. It compares your reasons with the unit's hidden target
-reasons and grades four components, `target_reason_coverage`, `evidence_grounding`,
-`inferential_link` and `answer_consistency`, plus the flags `valid_grounded_premise`,
-`has_answer_implication` and `contradiction`, with 5 judge votes per cell. A target reason that
+reasons. The judge grades three components, `target_reason_coverage`,
+`evidence_grounding` and `inferential_link`, plus the flags `valid_grounded_premise`,
+`has_answer_implication` and `contradiction`, with 5 judge votes per cell. The fourth,
+`answer_consistency`, is checked directly by the scoring code, which compares your submitted
+answer with the answer each target reason implies (for example its direction, value range or
+ordering). Where a target reason's answer cannot be checked this way, the judge's vote is used.
+A target reason that
 none of yours covers scores 0 against a denominator of all the unit's target reasons, so
 submitting fewer reasons never scores higher. From Track 4 scorer 5.2.0 the reasoning score is
 a **bonus** on top of the analysis score (final-score/v2):

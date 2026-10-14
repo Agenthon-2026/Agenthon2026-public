@@ -40,20 +40,30 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
-### Toolkit: `qfbench2 submission pack` on Windows
+### Toolkit `v2.6.1` — `qfbench2 submission pack` on Windows; no action needed
 
-**`ADDED`** **On Windows, run the toolkit inside WSL** (Windows Subsystem for Linux); it is not
-tested on native Windows. Keep a Team Key file in your WSL home (`~`), not under `/mnt/c`, where
-`chmod 600` has no effect. The next toolkit release also makes `--team-key-file` work for
-`submission pack` and `alias` on native Windows. Nothing you build or submit changes, and no zip
-packed so far was affected:
+**`ADDED`** **No action is needed: nothing you build or submit changes, and toolkit `v2.6.0` keeps
+working.** Toolkit `v2.6.1` makes `--team-key-file` work for `submission pack` and `alias` on
+native Windows; no zip packed so far was affected. Install it whenever you next reinstall:
+
+```bash
+pip install "qfbench2-common @ git+https://github.com/Agenthon-2026/Agenthon2026-public.git@v2.6.1#subdirectory=common"
+```
+
+**On Windows, run the toolkit inside WSL** (Windows Subsystem for Linux); it is not tested on
+native Windows. Keep a Team Key file in your WSL home (`~`), not under `/mnt/c`, where `chmod 600`
+has no effect. If you use native Windows anyway:
 
 - Python on native Windows shows every file as readable by group and others, whatever its access
   list says, so the "chmod 600" rule refused every key file there. The rule now applies everywhere
   except native Windows (Linux, macOS and WSL are unchanged).
-- On native Windows, keep the key file under `C:\Users\<you>`, not in OneDrive, a shared or
-  network folder, or a folder made at a drive root such as `C:\src`. Or use the hidden prompt in
-  PowerShell, Command Prompt or Windows Terminal (Git Bash cannot hide input).
+- Keep the key file under `C:\Users\<you>`, not in OneDrive, a shared or network folder, or a
+  folder made at a drive root such as `C:\src`. Or use the hidden prompt in PowerShell, Command
+  Prompt or Windows Terminal (Git Bash cannot hide input).
+
+**`CLARIFIED`** The install line in each track's `SUBMISSION-DESCRIPTOR.md`, and the two in Track 2's
+`AGENTS.md`, still named toolkit `v2.4.4` (`v2.5.1` for Track 4). They now name `v2.6.1`, like the
+toolkit's other install lines.
 
 ### Track 4 reasoning: `answer_consistency` is checked by the scoring code (Final only)
 
@@ -100,7 +110,7 @@ be arranged.
 ### Track 4 scorer 5.3.0 — only the first 20 claims about each entity count; Development uses the NLI judge
 
 **`ACTION`** **Pull the Track 4 repository; no new toolkit release.** Track 4 scorer 5.3.0 works
-with toolkit `v2.5.1` and with `v2.6.0`, the current release, so there is nothing to reinstall. The
+with toolkit `v2.5.1` and with `v2.6.0` or later, so there is nothing to reinstall. The
 Development task switches to 5.3.0 separately; the switch is announced on
 Agenthon-2026/track4-analysis-public#2, and Development scores from before and after it are not
 comparable.

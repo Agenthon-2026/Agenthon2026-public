@@ -40,6 +40,21 @@ never happens silently, which is the guarantee that actually protects you.
 
 ## Unreleased
 
+### Toolkit: `qfbench2 submission pack` on Windows
+
+**`ADDED`** **On Windows, run the toolkit inside WSL** (Windows Subsystem for Linux); it is not
+tested on native Windows. Keep a Team Key file in your WSL home (`~`), not under `/mnt/c`, where
+`chmod 600` has no effect. The next toolkit release also makes `--team-key-file` work for
+`submission pack` and `alias` on native Windows. Nothing you build or submit changes, and no zip
+packed so far was affected:
+
+- Python on native Windows shows every file as readable by group and others, whatever its access
+  list says, so the "chmod 600" rule refused every key file there. The rule now applies everywhere
+  except native Windows (Linux, macOS and WSL are unchanged).
+- On native Windows, keep the key file under `C:\Users\<you>`, not in OneDrive, a shared or
+  network folder, or a folder made at a drive root such as `C:\src`. Or use the hidden prompt in
+  PowerShell, Command Prompt or Windows Terminal (Git Bash cannot hide input).
+
 ### Track 4 reasoning: `answer_consistency` is checked by the scoring code (Final only)
 
 **`ACTION`** Track 4 reasoning (Final only): `answer_consistency` is now checked directly by the

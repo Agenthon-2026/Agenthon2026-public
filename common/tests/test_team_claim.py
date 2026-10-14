@@ -6,6 +6,7 @@ import base64
 import getpass
 import hashlib
 import hmac
+import importlib.util
 import io
 import json
 import os
@@ -516,6 +517,126 @@ def test_pack_output_is_what_the_organizer_side_reads(tmp_path):
             assert not entry.flag_bits & 1 and not entry.is_dir()
             assert (entry.external_attr >> 16) & 0o170000 == 0o100000
     assert os.path.getsize(out) < 8192
+
+
+# --------------------------------------------------------------------------------------
+# Native Windows. CI runs on Linux, so these tests execute a fresh copy of team_claim while
+# `os` looks like Windows (O_BINARY defined, os.name == "nt"), and keep os.fchmod missing for
+# the whole test, as on Windows before Python 3.13.
+# --------------------------------------------------------------------------------------
+
+# Windows' own O_BINARY is 0x8000, which means something else to open(2) on Linux and macOS;
+# this bit is stripped again before the real os.open sees it.
+_FAKE_O_BINARY = 1 << 30
+
+
+def _team_claim_imported_on_windows(monkeypatch):
+    monkeypatch.delattr(os, "fchmod", raising=False)
+    spec = importlib.util.spec_from_file_location(
+        "qfbench2_common._team_claim_on_windows", team_claim.__file__
+    )
+    module = importlib.util.module_from_spec(spec)
+    with monkeypatch.context() as importing:
+        # Only while the module body runs: _CREATE_FLAGS and _MODE_BITS_DESCRIBE_ACCESS are
+        # computed there, and pathlib.Path() also reads os.name, so leaving "nt" in place
+        # would make every later path a WindowsPath.
+        importing.setattr(os, "O_BINARY", _FAKE_O_BINARY, raising=False)
+        importing.setattr(os, "name", "nt")
+        spec.loader.exec_module(module)
+    return module
+
+
+def test_pack_on_windows_opens_binary_and_writes_the_exact_archive(tmp_path, monkeypatch):
+    """O_BINARY reaches os.open, a missing os.fchmod is no error, and every byte is as built."""
+    reference = tmp_path / "reference.zip"
+    team_claim.pack_submission(body(), 11, TEAM_KEY, reference)
+    windows = _team_claim_imported_on_windows(monkeypatch)
+    assert windows._CREATE_FLAGS & _FAKE_O_BINARY
+    assert not team_claim._CREATE_FLAGS & _FAKE_O_BINARY
+    real_open = os.open
+    opened = []
+
+    def recording_open(path, flags, mode=0o777, *, dir_fd=None):
+        opened.append((os.fspath(path), flags))
+        return real_open(path, flags & ~_FAKE_O_BINARY, mode, dir_fd=dir_fd)
+
+    monkeypatch.setattr(os, "open", recording_open)
+    out = tmp_path / "submission.zip"
+    assert windows.pack_submission(body(), 11, TEAM_KEY, out) == ALIAS_VECTOR
+    assert [flags & _FAKE_O_BINARY for path, flags in opened if path == str(out)] == [
+        _FAKE_O_BINARY
+    ]
+    # The real os.open never saw an O_BINARY here, so on an actual Windows machine this equality
+    # is os.fdopen's FileIO switching the fd to binary by itself.
+    raw = out.read_bytes()
+    assert raw == reference.read_bytes()
+    if team_claim._MODE_BITS_DESCRIBE_ACCESS:
+        # Without fchmod the O_CREAT mode still leaves the file no wider than 0600, any umask.
+        assert stat.S_IMODE(out.stat().st_mode) & 0o077 == 0
+    sealed = team_claim.seal_for_team(body(), 11, TEAM_KEY)
+    descriptor = (json.dumps(sealed, indent=2, sort_keys=True) + "\n").encode()
+    claim = team_claim.build_team_claim(11, TEAM_KEY, team_claim.descriptor_digest(descriptor))
+    with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+        assert archive.testzip() is None
+        assert archive.namelist() == ["submission.json", "team-claim.json"]
+        assert archive.read("submission.json") == descriptor
+        assert archive.read("team-claim.json") == claim
+    # Control: the same archive written through a text-mode fd (each b"\n" as b"\r\n") differs
+    # from the reference and is not a readable submission.
+    translated = raw.replace(b"\n", b"\r\n")
+    assert translated != raw
+    with pytest.raises(zipfile.BadZipFile):
+        with zipfile.ZipFile(io.BytesIO(translated)) as archive:
+            archive.read("submission.json")
+
+
+def test_key_file_mode_rule_applies_only_where_mode_bits_describe_access(tmp_path, monkeypatch):
+    """POSIX keeps `chmod 600`. Windows shows group and others the owner's access for every file,
+    so only that rule is skipped there; the link, regular-file, size and content rules hold."""
+    windows = _team_claim_imported_on_windows(monkeypatch)
+    assert team_claim._MODE_BITS_DESCRIBE_ACCESS is (os.name != "nt")
+    assert windows._MODE_BITS_DESCRIBE_ACCESS is False
+    key = tmp_path / "team.key"
+    # Bytes, not write_text: on Windows write_text turns "\r\n" into "\r\r\n".
+    key.write_bytes(TEAM_KEY.encode() + b"\r\n")
+    key.chmod(0o666)
+    if os.name != "nt":
+        with pytest.raises(team_claim.TeamClaimError, match="chmod 600"):
+            team_claim.read_team_key_file(key)
+    assert windows.read_team_key_file(key) == TEAM_KEY
+    link = tmp_path / "link"
+    link.symlink_to(key)
+    with pytest.raises(windows.TeamClaimError, match="link"):
+        windows.read_team_key_file(link)
+    with pytest.raises(windows.TeamClaimError, match="regular file"):
+        windows.read_team_key_file(tmp_path)
+    key.write_bytes(TEAM_KEY.encode() + b"\n\n")
+    with pytest.raises(windows.TeamClaimError):
+        windows.read_team_key_file(key)
+    key.write_bytes(b"k" * 5000)
+    with pytest.raises(windows.TeamClaimError, match="key alone"):
+        windows.read_team_key_file(key)
+    key.write_bytes(b"\xff" * 20)
+    with pytest.raises(windows.TeamClaimError, match="UTF-8"):
+        windows.read_team_key_file(key)
+
+
+def test_cli_pack_from_a_key_file_with_windows_mode_bits(tmp_path, monkeypatch, capsys):
+    """End to end through the CLI: the 0o666 that Windows reports for a key file is accepted
+    there, and the zip carries the claim, not the key."""
+    monkeypatch.setattr(team_claim, "_MODE_BITS_DESCRIBE_ACCESS", False)
+    key = tmp_path / "team.key"
+    key.write_bytes(TEAM_KEY.encode() + b"\r\n")
+    key.chmod(0o666)
+    descriptor = tmp_path / "submission.json"
+    descriptor.write_text(json.dumps(body()))
+    out = tmp_path / "submission.zip"
+    argv = ["submission", "pack", "--descriptor", str(descriptor), "--team-number", "11"]
+    assert cli.main([*argv, "--team-key-file", str(key), "--out", str(out)]) == 0
+    assert ALIAS_VECTOR in capsys.readouterr().out
+    with zipfile.ZipFile(out) as archive:
+        assert archive.namelist() == ["submission.json", "team-claim.json"]
+    assert TEAM_KEY.encode() not in out.read_bytes()
 
 
 # --------------------------------------------------------------------------------------

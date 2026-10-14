@@ -69,6 +69,10 @@ it to compute your team id and your proof, and that is all. `pack` refuses a des
 whose `team_id` disagrees with the derived id, and it refuses to run where the prompt
 cannot hide input; use `--team-key-file` there.
 
+**On Windows, run the toolkit inside WSL** (Windows Subsystem for Linux); it is not tested
+on native Windows. Keep a Team Key file in your WSL home (`~`), not under `/mnt/c`, where
+`chmod 600` has no effect.
+
 ## Development submission limits
 
 At the participant Development opening, **Track 3 allows 5 uploads per team per day**,

@@ -566,7 +566,10 @@ def main(argv: list[str] | None = None) -> int:
         )
         p_action.add_argument(
             "--team-key-file",
-            help="file holding the Team Key alone (mode 600); default: hidden terminal prompt",
+            help=(
+                "file holding the Team Key alone (mode 600 except on native Windows); "
+                "default: hidden terminal prompt"
+            ),
         )
         if action == "pack":
             p_action.add_argument("--descriptor", required=True, help="path to submission.json")

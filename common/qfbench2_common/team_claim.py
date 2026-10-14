@@ -85,6 +85,11 @@ _ALIAS_PREFIX = b"agenthon2026-team-alias:"
 _PROOF_KEY_PREFIX = b"agenthon2026-team-proof-key:v2:"
 _CLAIM_MESSAGE_PREFIX = b"agenthon2026-team-claim:v2:"
 _KEY_FILE_BYTES = 4096
+# On native Windows `os.stat` derives the permission bits from the read-only attribute and the
+# file name, never the ACL: group and others always show the owner's read access, and
+# `chmod 600` cannot change that, so a group/other rule there refuses every key file and
+# protects none.
+_MODE_BITS_DESCRIBE_ACCESS = os.name != "nt"
 
 
 class TeamClaimError(ValueError):
@@ -185,10 +190,20 @@ def build_team_claim(team_number: int, team_key: str, descriptor_sha256: str) ->
 
 
 def read_team_key_file(path: str | pathlib.Path) -> str:
-    """The key alone in a regular file the caller owns (mode 0600), one trailing newline allowed.
+    r"""The key alone in a regular file the caller owns (mode 0600), one trailing newline allowed.
 
     Refuses a symlink, a group/world-readable file, an empty file and anything over 4 KiB.
     The message on refusal names the rule, never the content.
+
+    Security note, native Windows: the group/world rule is not applied there, because the mode
+    bits cannot say who may read a file (`_MODE_BITS_DESCRIBE_ACCESS`); CPython's own `netrc`
+    limits its "access too permissive" check to POSIX for the same reason. Who can read the
+    file is then decided by its NTFS ACL, which this function does not inspect. A file under
+    `C:\Users\<you>` is private to that user (and SYSTEM and Administrators) by default; one in
+    a folder made at a drive root (`C:\src`), a shared or network folder, or a synced one such
+    as OneDrive may not be. Every other check still applies, and the hidden prompt, which
+    writes nothing, remains the safer way in where the console can hide input (PowerShell,
+    Command Prompt, Windows Terminal; not Git Bash). POSIX, WSL included, is unchanged.
     """
     p = pathlib.Path(path)
     try:
@@ -197,7 +212,7 @@ def read_team_key_file(path: str | pathlib.Path) -> str:
         raise TeamClaimError("team key file cannot be read") from None
     if stat.S_ISLNK(info.st_mode) or not stat.S_ISREG(info.st_mode):
         raise TeamClaimError("team key file must be a regular file, not a link")
-    if stat.S_IMODE(info.st_mode) & 0o077:
+    if _MODE_BITS_DESCRIBE_ACCESS and stat.S_IMODE(info.st_mode) & 0o077:
         raise TeamClaimError("team key file must not be readable by group or others (chmod 600)")
     if not 0 < info.st_size <= _KEY_FILE_BYTES:
         raise TeamClaimError("team key file must hold the key alone")
@@ -253,8 +268,8 @@ def pack_submission(
     symlink or non-regular path is refused, a pre-existing regular file is unlinked rather
     than reused (whoever already had it open, or holds another link to it, never sees the
     new content), and the file is created with `os.open(..., O_CREAT | O_EXCL | O_NOFOLLOW,
-    0o600)` plus `fchmod` so the umask cannot widen it. No byte is written before the mode
-    is in place.
+    0o600)` plus `fchmod` (where the platform has one) so the umask cannot change it. No
+    byte is written before the mode is in place.
 
     The descriptor is sealed and serialized *first*, because the claim's proof is computed
     over the digest of the exact `submission.json` bytes this archive will carry.
@@ -273,6 +288,11 @@ def pack_submission(
     return str(sealed["team_id"])
 
 
+# O_BINARY exists on Windows (and Cygwin), where an `os.open` fd starts in text mode and the C
+# runtime would write every b"\n" as b"\r\n". `os.fdopen` already switches the fd to binary
+# before the first write (CPython's FileIO calls `_setmode(fd, O_BINARY)` on every fd it
+# wraps), so no archive has been translated; the flag makes the fd binary from creation
+# instead of relying on that.
 _CREATE_FLAGS = (
     os.O_WRONLY
     | os.O_CREAT
@@ -280,6 +300,7 @@ _CREATE_FLAGS = (
     | os.O_TRUNC
     | getattr(os, "O_NOFOLLOW", 0)
     | getattr(os, "O_CLOEXEC", 0)
+    | getattr(os, "O_BINARY", 0)
 )
 
 
@@ -303,7 +324,10 @@ def _write_private_file(path: pathlib.Path, payload: bytes) -> None:
     except OSError:
         raise TeamClaimError("output path cannot be created privately") from None
     try:
-        os.fchmod(fd, 0o600)
+        # Every POSIX system has fchmod. Windows has it only from Python 3.13, and there it can
+        # only set or clear the read-only attribute, so skipping it loses no privacy.
+        if hasattr(os, "fchmod"):
+            os.fchmod(fd, 0o600)
         handle = os.fdopen(fd, "wb")
     except OSError:
         os.close(fd)

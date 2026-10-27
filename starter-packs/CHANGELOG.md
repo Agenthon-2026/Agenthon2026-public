@@ -28,7 +28,7 @@ we want to hear about it:
 - the answer schema each track validates against
 
 **The phase dates have been amended:** Development now ends October 12, 2026, followed by a
-joint Final + Verification phase on October 13–25. Other competition dates are unchanged.
+joint Final + Verification phase on October 13–27. Other competition dates are unchanged.
 See the `ACTION` entry below.
 
 **The metric each track is scored on was on this list, and is not any more.** The ranking metric
@@ -39,6 +39,14 @@ never happens silently, which is the guarantee that actually protects you.
 ---
 
 ## Unreleased
+
+### The Final upload deadline is October 27
+
+**`CLARIFIED`** Final uploads close on October 27, 2026 at 23:59 AoE (October 28, 11:59 UTC), as
+announced on Agenthon-2026/Agenthon2026-public#2 on October 24. The README's timeline,
+`docs/DEVELOPMENT-RUNTIME.md`, `docs/GLOSSARY.md` and every track's `TEAM-CLAIM.md` and
+`SUBMISSION-DESCRIPTOR.md` now say so. On Track 2, see the October 26 notice on
+Agenthon-2026/track2-forecasting-public#4 for uploads from October 27, 00:00 UTC.
 
 ### Toolkit `v2.6.1` — `qfbench2 submission pack` on Windows; no action needed
 

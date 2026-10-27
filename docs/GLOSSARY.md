@@ -942,17 +942,17 @@ is a fairness requirement.
   up to 20 submissions per track (23 on Track 1). At the participant Development opening, Track 1 allows
   1 submission per team per day; Tracks 2, 3 and 4 allow 5 per team per day. See
   [Development submission limits](DEVELOPMENT-RUNTIME.md#submission-limits-at-the-development-opening).
-- **Joint Final + Verification** (October 13–25, 2026): sealed private-test units are evaluated
+- **Joint Final + Verification** (October 13–27, 2026): sealed private-test units are evaluated
   from one final submission per team per track. On Track 2 the sealed cards are used only for an
   unranked check run in the window; the ranked run is on fresh cards built after the close.
   Organizers rerun the top submissions on fresh seeds and check reproducibility after their runs,
-  so verification can end after October 25. There is no separate participant Verification
+  so verification can end after October 27. There is no separate participant Verification
   submission. The final board remains hidden until results are verified and published; Track 2
   shows provisional standings from October 28.
 
 The internal descriptor values `dev`, `final` and `verification` remain supported for
 compatibility; this calendar change does not rename schema values. Follow the organizer's
-phase-specific descriptor instructions. Registration and Development close together on October 12, 2026 at **23:59 Anywhere on Earth (AoE, UTC−12)**. Final uploads close on October 25, 2026 at **23:59 AoE** (October 26, 11:59 UTC); an upload made by then runs and counts even if its run finishes after the close. Keep your image pullable until the results are published. On Track 2 the ranked run happens after the close for every team; see [the Track 2 Final notice](https://github.com/Agenthon-2026/track2-forecasting-public/issues/4#issuecomment-6103652999). Other competition dates and task/data cutoffs
+phase-specific descriptor instructions. Registration and Development close together on October 12, 2026 at **23:59 Anywhere on Earth (AoE, UTC−12)**. Final uploads close on October 27, 2026 at **23:59 AoE** (October 28, 11:59 UTC); an upload made by then runs and counts even if its run finishes after the close (on Track 2, see [the October 26 notice](https://github.com/Agenthon-2026/track2-forecasting-public/issues/4#issuecomment-6424023459) for uploads from October 27, 00:00 UTC). Keep your image pullable until the results are published. On Track 2 the ranked run happens after the close for every team; see [the Track 2 Final notice](https://github.com/Agenthon-2026/track2-forecasting-public/issues/4#issuecomment-6103652999). Other competition dates and task/data cutoffs
 are unchanged.
 
 **Why it matters:** Development provides practice feedback. Final evaluation and verification

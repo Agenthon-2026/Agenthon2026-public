@@ -9,11 +9,11 @@ settings, and may supply a per-unit timeout.
 ## Competition schedule
 
 Development runs through **October 12, 2026**. The joint **Final + Verification phase runs
-October 13–25, 2026**. Each team makes **one final submission per track**, with no separate
+October 13–27, 2026**. Each team makes **one final submission per track**, with no separate
 participant Verification submission.
 If two Final submissions finish a track with the same ranking score, the tie is broken in favour
 of the one uploaded earlier.
-Registration and Development close together on October 12, 2026 at **23:59 Anywhere on Earth (AoE, UTC−12)**. Final uploads close on October 25, 2026 at **23:59 AoE** (October 26, 11:59 UTC). An upload made by then runs and counts even if its run finishes after the close; organizers verify the top entries after their runs, so verification can end after October 25. **Keep your image pullable until the results are published.** On Track 2 the ranked run happens after the close for every team; see [the Track 2 Final notice](https://github.com/Agenthon-2026/track2-forecasting-public/issues/4#issuecomment-6103652999). Other competition dates and task/data cutoffs are unchanged.
+Registration and Development close together on October 12, 2026 at **23:59 Anywhere on Earth (AoE, UTC−12)**. Final uploads close on October 27, 2026 at **23:59 AoE** (October 28, 11:59 UTC). An upload made by then runs and counts even if its run finishes after the close (on Track 2, see [the October 26 notice](https://github.com/Agenthon-2026/track2-forecasting-public/issues/4#issuecomment-6424023459) for uploads from October 27, 00:00 UTC); organizers verify the top entries after their runs, so verification can end after October 27. **Keep your image pullable until the results are published.** On Track 2 the ranked run happens after the close for every team; see [the Track 2 Final notice](https://github.com/Agenthon-2026/track2-forecasting-public/issues/4#issuecomment-6103652999). Other competition dates and task/data cutoffs are unchanged.
 
 ## Submission limits at the Development opening
 
